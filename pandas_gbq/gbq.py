@@ -565,7 +565,7 @@ class GbqConnector(object):
 
             remote_fields = [{'name': field_remote['name'],
                               'type': field_remote['type']}
-                             for field_remote in remote_schema]
+                             for field_remote in remote_schema['fields']]
 
             fields_remote = set([json.dumps(field_remote)
                                  for field_remote in remote_fields])
