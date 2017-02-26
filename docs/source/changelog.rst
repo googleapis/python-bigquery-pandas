@@ -1,8 +1,10 @@
 Changelog
 =========
 
-0.2.0 / 2017-?
+0.2.0 / 2017-02-26
 --------------
+
+Fixed an issue with appending to a BigQuery table where fields have modes (NULLABLE,REQUIRED,REPEATED). The changes concern solely the comparision of the local (DataFrame) and remote (BQ) schema in GbqConnector.verify_schema function. The fix is to omit other field attributes than name and type.
 
 0.1.2 / 2017-02-23
 ------------------
