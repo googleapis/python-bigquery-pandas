@@ -1017,7 +1017,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     return final_df
 
 def from_gbq(query, project_id=None, index_col=None, col_order=None,
-             private_key=None, dialect='legacy', configuration = None, **kwargs):
+             private_key=None, dialect='legacy', configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -1056,21 +1056,14 @@ def from_gbq(query, project_id=None, index_col=None, col_order=None,
         <https://cloud.google.com/bigquery/sql-reference/>`__
     configuration : dict (optional)
         Because of current limitations (https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2765)
-        only a certain number of configuration settings are currently implemented. You can set them with
-        like: `from_gbq(q,configuration={'allow_large_results':True,'use_legacy_sql':False})`
-        Allowable settings: 
-        -allow_large_results
-        -create_disposition
-        -default_dataset
-        -destination
-        -flatten_results
-        -priority
-        -use_query_cache
-        -use_legacy_sql
-        -dry_run
-        -write_disposition
-        -maximum_billing_tier
-        -maximum_bytes_billed
+        only some configuration settings are currently implemented. You can pass them 
+        along like in the following: 
+        `from_gbq(q,configuration={'allow_large_results':True,'maximum_billing_tier':2})`
+        
+        Example allowable settings: 
+            allow_large_results, create_disposition, default_dataset, destination
+            flatten_results, priority, use_query_cache, use_legacy_sql, dry_run, 
+            write_disposition, udf_resources, maximum_billing_tier, maximum_bytes_billed
 
     Returns
     -------
@@ -1107,23 +1100,13 @@ def from_gbq(query, project_id=None, index_col=None, col_order=None,
     query_results = query_job.results()
 
     rows, total_rows, page_token = query_results.fetch_data()
-    columns=[field.name for field in query_results.schema]
+    columns = [field.name for field in query_results.schema]
     data = rows
 
     final_df = DataFrame(data=data,columns=columns)
 
-    # Reindex the DataFrame on the provided column
-    if index_col is not None:
-        if index_col in final_df.columns:
-            final_df.set_index(index_col, inplace=True)
-        else:
-            raise InvalidIndexColumn(
-                'Index column "{0}" does not exist in DataFrame.'
-                .format(index_col)
-            )
-
     # Change the order of columns in the DataFrame based on provided list
-    if col_order is not None:
+    if col_order:
         if sorted(col_order) == sorted(final_df.columns):
             final_df = final_df[col_order]
         else:
@@ -1131,14 +1114,15 @@ def from_gbq(query, project_id=None, index_col=None, col_order=None,
                 'Column order does not match this DataFrame.'
             )
 
-    # cast BOOLEAN and INTEGER columns from object to bool/int
-    # if they dont have any nulls
-    type_map = {'BOOLEAN': bool, 'INTEGER': int}
-    for field in query_results.schema:
-        if field.field_type in type_map and \
-                final_df[field.name].notnull().all():
-            final_df[field.name] = \
-                final_df[field.name].astype(type_map[field.field_type])
+    # Reindex the DataFrame on the provided column
+    if index_col:
+        if index_col in final_df.columns:
+            final_df.set_index(index_col, inplace=True)
+        else:
+            raise InvalidIndexColumn(
+                'Index column "{0}" does not exist in DataFrame.'
+                .format(index_col)
+            )
 
     return final_df
 
