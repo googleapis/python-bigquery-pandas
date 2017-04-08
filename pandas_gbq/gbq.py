@@ -6,12 +6,14 @@ import uuid
 import time
 import sys
 import os
+import uuid
 
 import numpy as np
 
 from distutils.version import StrictVersion
 from pandas import compat, DataFrame, concat
 from pandas.compat import lzip, bytes_to_str
+from google.cloud import bigquery
 
 
 def _check_google_client_version():
@@ -1011,6 +1013,132 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         datetime.now().strftime('s.\nFinished at %Y-%m-%d %H:%M:%S.'),
         0
     )
+
+    return final_df
+
+def from_gbq(query, project_id=None, index_col=None, col_order=None,
+             private_key=None, dialect='legacy', configuration = None, **kwargs):
+    r"""Load data from Google BigQuery using google-cloud-python
+
+    The main method a user calls to execute a Query in Google BigQuery
+    and read results into a pandas DataFrame.
+
+    The Google Cloud library is used.
+    Documentation is available `here
+    <https://googlecloudplatform.github.io/google-cloud-python/stable/>`__
+
+    Authentication via Google Cloud can be performed a number of ways, see:
+    <https://googlecloudplatform.github.io/google-cloud-python/stable/google-cloud-auth.html>
+    The easiest is to download a service account JSON keyfile and point to it using 
+    an environment variable:
+    `$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"`
+
+    Parameters
+    ----------
+    query : str
+        SQL-Like Query to return data values
+    project_id : str (optional)
+        Google BigQuery Account project ID.
+    index_col : str (optional)
+        Name of result column to use for index in results DataFrame
+    col_order : list(str) (optional)
+        List of BigQuery column names in the desired order for results
+        DataFrame
+    private_key : str (optional)
+        Path to service account private key in JSON format. If none is provided,
+        will default to the GOOGLE_APPLICATION_CREDENTIALS environment variable
+        or another form of authentication (see above)
+    dialect : {'legacy', 'standard'}, default 'legacy'
+        'legacy' : Use BigQuery's legacy SQL dialect.
+        'standard' : Use BigQuery's standard SQL (beta), which is
+        compliant with the SQL 2011 standard. For more information
+        see `BigQuery SQL Reference
+        <https://cloud.google.com/bigquery/sql-reference/>`__
+    configuration : dict (optional)
+        Because of current limitations (https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2765)
+        only a certain number of configuration settings are currently implemented. You can set them with
+        like: `from_gbq(q,configuration={'allow_large_results':True,'use_legacy_sql':False})`
+        Allowable settings: 
+        -allow_large_results
+        -create_disposition
+        -default_dataset
+        -destination
+        -flatten_results
+        -priority
+        -use_query_cache
+        -use_legacy_sql
+        -dry_run
+        -write_disposition
+        -maximum_billing_tier
+        -maximum_bytes_billed
+
+    Returns
+    -------
+    df: DataFrame
+        DataFrame representing results of query
+
+    """
+
+    if private_key:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = private_key
+
+    def _wait_for_job(job):
+        while True:
+            job.reload()  # Refreshes the state via a GET request.
+            if job.state == 'DONE':
+                if job.error_result:
+                    raise RuntimeError(job.errors)
+                return
+            time.sleep(1)
+            
+    client = bigquery.Client(project=project_id)
+    query_job = client.run_async_query(str(uuid.uuid4()), query)
+
+    if dialect != 'legacy':
+        query_job.use_legacy_sql = False
+
+    if configuration:
+        for setting, value in configuration.items():
+            setattr(query_job, setting, value)
+
+    query_job.begin()
+    _wait_for_job(query_job)
+
+    query_results = query_job.results()
+
+    rows, total_rows, page_token = query_results.fetch_data()
+    columns=[field.name for field in query_results.schema]
+    data = rows
+
+    final_df = DataFrame(data=data,columns=columns)
+
+    # Reindex the DataFrame on the provided column
+    if index_col is not None:
+        if index_col in final_df.columns:
+            final_df.set_index(index_col, inplace=True)
+        else:
+            raise InvalidIndexColumn(
+                'Index column "{0}" does not exist in DataFrame.'
+                .format(index_col)
+            )
+
+    # Change the order of columns in the DataFrame based on provided list
+    if col_order is not None:
+        if sorted(col_order) == sorted(final_df.columns):
+            final_df = final_df[col_order]
+        else:
+            raise InvalidColumnOrder(
+                'Column order does not match this DataFrame.'
+            )
+
+    # cast BOOLEAN and INTEGER columns from object to bool/int
+    # if they dont have any nulls
+    type_map = {'BOOLEAN': bool, 'INTEGER': int}
+    for field in query_results.schema:
+        if field.field_type in type_map and \
+                final_df[field.name].notnull().all():
+            final_df[field.name] = \
+                final_df[field.name].astype(type_map[field.field_type])
 
     return final_df
 
