@@ -455,28 +455,6 @@ class GbqConnector(object):
             sys.stdout.write(msg + end)
             sys.stdout.flush()
 
-    def _start_timer(self):
-        self.start = time.time()
-
-    def get_elapsed_seconds(self):
-        return round(time.time() - self.start, 2)
-
-    def print_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
-                              overlong=7):
-        sec = self.get_elapsed_seconds()
-        if sec > overlong:
-            self._print('{} {} {}'.format(prefix, sec, postfix))
-
-    # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
-    @staticmethod
-    def sizeof_fmt(num, suffix='B'):
-        fmt = "%3.1f %s%s"
-        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
-            if abs(num) < 1024.0:
-                return fmt % (num, unit, suffix)
-            num /= 1024.0
-        return fmt % (num, 'Y', suffix)
-
     def get_service(self):
         import httplib2
         from google_auth_httplib2 import AuthorizedHttp
@@ -833,7 +811,6 @@ class GbqConnector(object):
         table.create(table_id, table_schema)
         sleep(delay)
 
-
 def _get_credentials_file():
     return os.environ.get(
         'PANDAS_GBQ_CREDENTIALS_FILE')
@@ -1016,7 +993,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     return final_df
 
-def from_gbq(query, project_id=None, index_col=None, col_order=None,
+def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=True,
              private_key=None, dialect='legacy', configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -1044,6 +1021,8 @@ def from_gbq(query, project_id=None, index_col=None, col_order=None,
     col_order : list(str) (optional)
         List of BigQuery column names in the desired order for results
         DataFrame
+    verbose : boolean (default True)
+        Verbose output
     private_key : str (optional)
         Path to service account private key in JSON format. If none is provided,
         will default to the GOOGLE_APPLICATION_CREDENTIALS environment variable
@@ -1072,6 +1051,15 @@ def from_gbq(query, project_id=None, index_col=None, col_order=None,
 
     """
 
+    # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    def sizeof_fmt(num, suffix='B'):
+        fmt = "%3.1f %s%s"
+        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+            if abs(num) < 1024.0:
+                return fmt % (num, unit, suffix)
+            num /= 1024.0
+        return fmt % (num, 'Y', suffix)
+
     if private_key:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = private_key
 
@@ -1095,11 +1083,31 @@ def from_gbq(query, project_id=None, index_col=None, col_order=None,
             setattr(query_job, setting, value)
 
     query_job.begin()
-    _wait_for_job(query_job)
 
+    if verbose:
+        print("Query running...")
+    _wait_for_job(query_job)
+    if verbose:
+        print("Query done.")
+        if query_job._properties["statistics"]["query"].get("cacheHit", False):
+            print("Cache hit.")
+        elif "statistics" in query_job._properties and "query" in query_job._properties["statistics"]:
+            bytes_billed = int(query_job._properties["statistics"]["query"].get("totalBytesProcessed", 0))
+            bytes_processed = int(query_job._properties["statistics"]["query"].get("totalBytesBilled", 0))
+            print("Total bytes billed (processed): %s (%s)" % (sizeof_fmt(bytes_billed),sizeof_fmt(bytes_processed)))
     query_results = query_job.results()
 
+    if verbose:
+        print("\nRetrieving results...")
+
     rows, total_rows, page_token = query_results.fetch_data()
+
+    if verbose:
+        print("Got %s rows.") % total_rows
+        print("\nTotal time taken %s s" % (datetime.utcnow()-query_job.created.replace(tzinfo=None)).seconds)
+        print("Finished at %s." % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        
+
     columns = [field.name for field in query_results.schema]
     data = rows
 
