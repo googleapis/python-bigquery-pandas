@@ -557,7 +557,19 @@ class GbqConnector(object):
 
         self._print("\n")
 
-    def verify_schema(self, dataset_id, table_id, schema):
+    def schema(self, dataset_id, table_id):
+        """Retrieve the schema of the table
+
+        Obtain from BigQuery the field names and field types
+        for the table defined by the parameters
+
+        :param str dataset_id: Name of the BigQuery dataset for the table
+        :param str table_id: Name of the BigQuery table
+
+        :return: Fields representing the schema
+        :rtype: list of dicts
+        """
+
         try:
             from googleapiclient.errors import HttpError
         except:
@@ -573,14 +585,52 @@ class GbqConnector(object):
                               'type': field_remote['type']}
                              for field_remote in remote_schema['fields']]
 
-            fields_remote = set([json.dumps(field_remote)
-                                 for field_remote in remote_fields])
-            fields_local = set(json.dumps(field_local)
-                               for field_local in schema['fields'])
-
-            return fields_remote == fields_local
+            return remote_fields
         except HttpError as ex:
             self.process_http_error(ex)
+
+    def verify_schema(self, dataset_id, table_id, schema):
+        """Indicate whether schemas match exactly
+
+        Compare the BigQuery table identified in the parameters with
+        the schema passed in and indicate whether all fields in the former
+        are present in the latter. Order is not considered.
+
+        :param str dataset_id: Name of the BigQuery dataset for the table
+        :param str table_id: Name of the BigQuery table
+        :param list(dict) schema: Schema for comparison. Each item should have
+            a 'name' and a 'type'
+
+        :return: Whether the schemas match
+        :rtype: bool
+        """
+
+        fields_remote = sorted(self.schema(dataset_id, table_id),
+                               key=lambda x: x['name'])
+        fields_local = sorted(schema['fields'], key=lambda x: x['name'])
+
+        return fields_remote == fields_local
+
+    def schema_is_subset(self, dataset_id, table_id, schema):
+        """Indicate whether the schema to be uploaded is a subset
+
+        Compare the BigQuery table identified in the parameters with
+        the schema passed in and indicate whether a subset of the fields in
+        the former are present in the latter. Order is not considered.
+
+        :param str dataset_id: Name of the BigQuery dataset for the table
+        :param str table_id: Name of the BigQuery table
+        :param list(dict) schema: Schema for comparison. Each item should have
+            a 'name' and a 'type'
+
+        :return: Whether the passed schema is a subset
+        :rtype: bool
+        """
+
+        fields_remote = self.schema(dataset_id, table_id)
+        fields_local = schema['fields']
+
+        return all(field in fields_remote for field in fields_local)
 
     def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
         delay = 0
@@ -844,7 +894,9 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
             connector.delete_and_recreate_table(
                 dataset_id, table_id, table_schema)
         elif if_exists == 'append':
-            if not connector.verify_schema(dataset_id, table_id, table_schema):
+            if not connector.schema_is_subset(dataset_id,
+                                              table_id,
+                                              table_schema):
                 raise InvalidSchema("Please verify that the structure and "
                                     "data types in the DataFrame match the "
                                     "schema of the destination table.")

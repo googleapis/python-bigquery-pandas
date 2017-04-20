@@ -12,6 +12,10 @@ Changelog
 
 - All gbq errors will simply be subclasses of ``ValueError`` and no longer inherit from the deprecated ``PandasError``.
 
+0.1.5 / 2017-04-20
+------------------
+- When using ```to_gbq``` if ```if_exists``` is set to ```append```, dataframe needs to contain only a subset of the fields in the BigQuery schema. GH#24
+
 0.1.4 / 2017-03-17
 ------------------
 
