@@ -9,6 +9,7 @@ from random import randint
 import logging
 
 import numpy as np
+import pytest
 
 from distutils.version import StrictVersion
 from pandas import compat
