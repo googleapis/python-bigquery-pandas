@@ -9,7 +9,6 @@ from random import randint
 import logging
 
 import numpy as np
-import pytest
 
 from distutils.version import StrictVersion
 from pandas import compat
@@ -387,23 +386,23 @@ class GBQUnitTests(object):
 
     def test_should_return_bigquery_integers_as_python_ints(self):
         result = gbq._parse_entry(1, 'INTEGER')
-        tm.assert_equal(result, int(1))
+        assert result == int(1)
 
     def test_should_return_bigquery_floats_as_python_floats(self):
         result = gbq._parse_entry(1, 'FLOAT')
-        tm.assert_equal(result, float(1))
+        assert result == float(1)
 
     def test_should_return_bigquery_timestamps_as_numpy_datetime(self):
         result = gbq._parse_entry('0e9', 'TIMESTAMP')
-        tm.assert_equal(result, np_datetime64_compat('1970-01-01T00:00:00Z'))
+        assert result == np_datetime64_compat('1970-01-01T00:00:00Z')
 
     def test_should_return_bigquery_booleans_as_python_booleans(self):
         result = gbq._parse_entry('false', 'BOOLEAN')
-        tm.assert_equal(result, False)
+        assert not result
 
     def test_should_return_bigquery_strings_as_python_strings(self):
         result = gbq._parse_entry('STRING', 'STRING')
-        tm.assert_equal(result, 'STRING')
+        assert result == 'STRING'
 
     def test_to_gbq_should_fail_if_invalid_table_name_passed(self):
         with pytest.raises(gbq.NotFoundException):
@@ -709,7 +708,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                                     private_key=_get_private_key_path())
         correct_frame = DataFrame(
             {'string_1': ['a'], 'string_2': ['b']}).set_index("string_1")
-        tm.assert_equal(result_frame.index.name, correct_frame.index.name)
+        assert result_frame.index.name == correct_frame.index.name
 
     def test_column_order(self):
         query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
