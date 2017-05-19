@@ -22,8 +22,8 @@ INSTALL_REQUIRES = [
     'httplib2>=0.9.2',
     'google-api-python-client>=1.6.0',
     'google-auth>=1.0.0',
-    'google-auth-httplib2>=0.0.2',
-    'google-auth-oauthlib>=0.1.0',
+    'google-auth-httplib2>=0.0.1',
+    'google-auth-oauthlib>=0.0.1',
 ]
 
 

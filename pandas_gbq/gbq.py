@@ -41,14 +41,28 @@ def _test_google_api_imports():
 
     try:
         import httplib2  # noqa
-        from googleapiclient.discovery import build  # noqa
-        from googleapiclient.errors import HttpError  # noqa
-        import google.auth  # noqa
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
         import google_auth_httplib2  # noqa
-    except ImportError as e:
+    except ImportError as ex:
         raise ImportError("Missing module required for Google BigQuery "
-                          "support: {0}".format(str(e)))
+                          "support: {0}".format(str(ex)))
+
+    try:
+        from googleapiclient.discovery import build  # noqa
+        from googleapiclient.errors import HttpError  # noqa
+    except ImportError as ex:
+        raise ImportError(
+            "pandas requires google-api-python-client for Google  BigQuery "
+            "support: {0}".format(str(ex)))
+
+    try:
+        import google.auth  # noqa
+    except ImportError as ex:
+        raise ImportError(
+            "pandas requires google-auth for Google  BigQuery support: "
+            "{0}".format(str(ex)))
+
+    _check_google_client_version()
 
 
 def _try_credentials(project_id, credentials):
@@ -218,6 +232,8 @@ class GbqConnector(object):
         """
         Loads user account credentials from a local file.
 
+        .. versionadded 0.2.0
+
         Parameters
         ----------
         None
@@ -261,6 +277,8 @@ class GbqConnector(object):
     def save_user_account_credentials(self, credentials):
         """
         Saves user account credentials to a local file.
+
+        .. versionadded 0.2.0
         """
         try:
             with open('bigquery_credentials.dat', 'w') as credentials_file:
@@ -820,9 +838,15 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
         authentication (eg. jupyter iPython notebook on remote host)
-    auth_local_webserver : boolean (default False)
-        Use a local webserver when getting user credentials to handle
-        OAuth authorization flow redirects.
+    auth_local_webserver : boolean, default False
+        Use the [local webserver flow] instead of the [console flow] when
+        getting user credentials.
+
+        .. [local webserver flow]
+            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+        .. [console flow]
+            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+        .. versionadded:: 0.2.0
 
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
@@ -846,6 +870,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
+
+    _test_google_api_imports()
 
     if not project_id:
         raise TypeError("Missing required parameter: project_id")
@@ -955,10 +981,18 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
         authentication (eg. jupyter iPython notebook on remote host)
-    auth_local_webserver : boolean (default False)
-        Use a local webserver when getting user credentials to handle
-        OAuth authorization flow redirects.
+    auth_local_webserver : boolean, default False
+        Use the [local webserver flow] instead of the [console flow] when
+        getting user credentials.
+
+        .. [local webserver flow]
+            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+        .. [console flow]
+            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+        .. versionadded:: 0.2.0
     """
+
+    _test_google_api_imports()
 
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
