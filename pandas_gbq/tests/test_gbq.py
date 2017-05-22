@@ -10,7 +10,6 @@ import logging
 
 import numpy as np
 
-from distutils.version import StrictVersion
 from pandas import compat
 
 from pandas.compat import u, range
@@ -21,16 +20,6 @@ from pandas.compat.numpy import np_datetime64_compat
 
 
 TABLE_ID = 'new_test'
-
-
-_IMPORTS = False
-_GOOGLE_API_CLIENT_INSTALLED = False
-_GOOGLE_API_CLIENT_VALID_VERSION = False
-_HTTPLIB2_INSTALLED = False
-_GOOGLE_AUTH_INSTALLED = False
-_GOOGLE_AUTH_HTTPLIB2_INSTALLED = False
-_GOOGLE_AUTH_OAUTHLIB_INSTALLED = False
-_SETUPTOOLS_INSTALLED = False
 
 
 def _skip_if_no_project_id():
@@ -87,92 +76,12 @@ def _get_private_key_contents():
 
 
 def _test_imports():
-    global _GOOGLE_API_CLIENT_INSTALLED, _GOOGLE_API_CLIENT_VALID_VERSION, \
-        _GOOGLE_AUTH_INSTALLED, _GOOGLE_AUTH_HTTPLIB2_INSTALLED, \
-        _GOOGLE_AUTH_OAUTHLIB_INSTALLED, _HTTPLIB2_INSTALLED, \
-        _SETUPTOOLS_INSTALLED
-
     try:
-        import pkg_resources
-        _SETUPTOOLS_INSTALLED = True
+        import pkg_resources  # noqa
     except ImportError:
-        _SETUPTOOLS_INSTALLED = False
-
-    google_api_minimum_version = '1.6.0'
-
-    if _SETUPTOOLS_INSTALLED:
-        try:
-            from googleapiclient.discovery import build  # noqa
-            from googleapiclient.errors import HttpError  # noqa
-
-            _GOOGLE_API_CLIENT_INSTALLED = True
-            _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution(
-                'google-api-python-client').version
-
-            if (StrictVersion(_GOOGLE_API_CLIENT_VERSION) >=
-                    StrictVersion(google_api_minimum_version)):
-                _GOOGLE_API_CLIENT_VALID_VERSION = True
-
-        except ImportError:
-            _GOOGLE_API_CLIENT_INSTALLED = False
-
-        try:
-            from google.auth import default  # noqa
-            from google.auth.exceptions import DefaultCredentialsError  # noqa
-            from google.oauth2.credentials import Credentials  # noqa
-            from google.oauth2.service_account import Credentials  # noqa
-            _GOOGLE_AUTH_INSTALLED = True
-        except ImportError:
-            _GOOGLE_AUTH_INSTALLED = False
-
-        try:
-            from google_auth_httplib2 import AuthorizedHttp  # noqa
-            from google_auth_httplib2 import Request  # noqa
-            _GOOGLE_AUTH_HTTPLIB2_INSTALLED = True
-        except ImportError:
-            _GOOGLE_AUTH_HTTPLIB2_INSTALLED = False
-
-        try:
-            from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
-            from oauthlib.oauth2.rfc6749.errors import OAuth2Error  # noqa
-            _GOOGLE_AUTH_OAUTHLIB_INSTALLED = True
-        except ImportError:
-            _GOOGLE_AUTH_OAUTHLIB_INSTALLED = False
-
-        try:
-            import httplib2  # noqa
-            _HTTPLIB2_INSTALLED = True
-        except ImportError:
-            _HTTPLIB2_INSTALLED = False
-
-    if not _SETUPTOOLS_INSTALLED:
         raise ImportError('Could not import pkg_resources (setuptools).')
 
-    if not _GOOGLE_API_CLIENT_INSTALLED:
-        raise ImportError('Could not import Google API Client.')
-
-    if not _GOOGLE_API_CLIENT_VALID_VERSION:
-        raise ImportError('pandas requires google-api-python-client >= {0} '
-                          'for Google BigQuery support, '
-                          'current version {1}'
-                          .format(google_api_minimum_version,
-                                  _GOOGLE_API_CLIENT_VERSION))
-
-    if not _GOOGLE_AUTH_INSTALLED:
-        raise ImportError(
-            'pandas requires google-auth for Google BigQuery support')
-
-    if not _GOOGLE_AUTH_HTTPLIB2_INSTALLED:
-        raise ImportError(
-            'pandas requires google-auth-httplib2 for Google BigQuery support')
-
-    if not _GOOGLE_AUTH_OAUTHLIB_INSTALLED:
-        raise ImportError(
-            'pandas requires google-auth-oauthlib for Google BigQuery support')
-
-    if not _HTTPLIB2_INSTALLED:
-        raise ImportError(
-            'pandas requires httplib2 for Google BigQuery support')
+    gbq._test_google_api_imports()
 
 
 def _setup_common():
@@ -224,7 +133,7 @@ def clean_gbq_environment(dataset_prefix, private_key=None):
                         for table_id in all_tables:
                             try:
                                 table.delete(table_id)
-                            except gbq.NotFoundException as e:
+                            except gbq.NotFoundException:
                                 pass
                         sleep(1)
                         table_retry = table_retry - 1

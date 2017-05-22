@@ -30,9 +30,9 @@ def _check_google_client_version():
 
     if (StrictVersion(_GOOGLE_API_CLIENT_VERSION) <
             StrictVersion(google_api_minimum_version)):
-        raise ImportError("pandas requires google-api-python-client >= {0} "
-                          "for Google BigQuery support, "
-                          "current version {1}"
+        raise ImportError('pandas requires google-api-python-client >= {0} '
+                          'for Google BigQuery support, '
+                          'current version {1}'
                           .format(google_api_minimum_version,
                                   _GOOGLE_API_CLIENT_VERSION))
 
@@ -41,26 +41,40 @@ def _test_google_api_imports():
 
     try:
         import httplib2  # noqa
-        from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
-        import google_auth_httplib2  # noqa
     except ImportError as ex:
-        raise ImportError("Missing module required for Google BigQuery "
-                          "support: {0}".format(str(ex)))
+        raise ImportError(
+            'pandas requires httplib2 for Google BigQuery support: '
+            '{0}'.format(ex))
+
+    try:
+        from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
+    except ImportError as ex:
+        raise ImportError(
+            'pandas requires google-auth-oauthlib for Google BigQuery '
+            'support: {0}'.format(ex))
+
+    try:
+        from google_auth_httplib2 import AuthorizedHttp  # noqa
+        from google_auth_httplib2 import Request  # noqa
+    except ImportError as ex:
+        raise ImportError(
+            'pandas requires google-auth-httplib2 for Google BigQuery '
+            'support: {0}'.format(ex))
 
     try:
         from googleapiclient.discovery import build  # noqa
         from googleapiclient.errors import HttpError  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-api-python-client for Google  BigQuery "
-            "support: {0}".format(str(ex)))
+            "pandas requires google-api-python-client for Google BigQuery "
+            "support: {0}".format(ex))
 
     try:
         import google.auth  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-auth for Google  BigQuery support: "
-            "{0}".format(str(ex)))
+            "pandas requires google-auth for Google BigQuery support: "
+            "{0}".format(ex))
 
     _check_google_client_version()
 
@@ -76,8 +90,8 @@ def _try_credentials(project_id, credentials):
 
     http = httplib2.Http()
     try:
-        http = AuthorizedHttp(credentials, http=http)
-        bigquery_service = build('bigquery', 'v2', http=http)
+        authed_http = AuthorizedHttp(credentials, http=http)
+        bigquery_service = build('bigquery', 'v2', http=authed_http)
         # Check if the application has rights to the BigQuery project
         jobs = bigquery_service.jobs()
         job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
@@ -413,9 +427,9 @@ class GbqConnector(object):
         from googleapiclient.discovery import build
 
         http = httplib2.Http()
-        http = AuthorizedHttp(
+        authed_http = AuthorizedHttp(
             self.credentials, http=http)
-        bigquery_service = build('bigquery', 'v2', http=http)
+        bigquery_service = build('bigquery', 'v2', http=authed_http)
 
         return bigquery_service
 
