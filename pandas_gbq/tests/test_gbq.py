@@ -250,6 +250,21 @@ def make_mixed_dataframe_v2(test_size):
                      index=range(test_size))
 
 
+def wait_for_job(job):
+
+    # from
+    # https://github.com/GoogleCloudPlatform/python-docs-samples/blob/master/bigquery/cloud-client/snippets.py
+
+    while True:
+        job.reload()  # Refreshes the state via a GET request.
+        if job.state == 'DONE':
+            if job.error_result:
+                raise RuntimeError(job.errors)
+            return
+        logging.info("Waiting for {} to complete".format(job))
+        sleep(1)
+
+
 def test_generate_bq_schema_deprecated():
     # 11121 Deprecation of generate_bq_schema
     with tm.assert_produces_warning(FutureWarning):
@@ -1019,7 +1034,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
+        wait_for_job()
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1057,7 +1072,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    if_exists='append', private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
+        wait_for_job()
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1088,7 +1103,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                    self.destination_table + test_id, _get_project_id(),
                    if_exists='append', private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
+        wait_for_job()
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1111,7 +1126,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                    _get_project_id(), if_exists='replace',
                    private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
+        wait_for_job()
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1445,7 +1460,7 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000)
 
-        sleep(30)  # <- Curses Google!!!
+        wait_for_job()
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
             self.destination_table + test_id),
@@ -1503,7 +1518,7 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_contents())
 
-        sleep(30)  # <- Curses Google!!!
+        wait_for_job()
 
         result = gbq.read_gbq("SELECT COUNT(*) as num_rows FROM {0}".format(
             self.destination_table + test_id),
