@@ -637,7 +637,7 @@ class GbqConnector(object):
             Name of the BigQuery dataset for the table
         table_id : str
             Name of the BigQuery table
-        schema : list(dict)  
+        schema : list(dict)
             Schema for comparison. Each item should have
             a 'name' and a 'type'
 
