@@ -6,6 +6,8 @@ Changelog
 
 - Resolve issue where the optional ``--noauth_local_webserver`` command line argument would not be propagated during the authentication process. (:issue:`35`)
 - Drop support for Python 3.4 (:issue:`40`)
+- When using ```to_gbq``` if ```if_exists``` is set to ```append```, dataframe needs to contain only a subset of the fields in the BigQuery schema. (:issue: `24`)
+
 
 0.1.6 / 2017-05-03
 ------------------
@@ -13,10 +15,6 @@ Changelog
 - All gbq errors will simply be subclasses of ``ValueError`` and no longer inherit from the deprecated ``PandasError``.
 
 0.1.5 / 2017-04-20
-------------------
-- When using ```to_gbq``` if ```if_exists``` is set to ```append```, dataframe needs to contain only a subset of the fields in the BigQuery schema. GH#24
-
-0.1.4 / 2017-03-17
 ------------------
 
 - ``InvalidIndexColumn`` will be raised instead of ``InvalidColumnOrder`` in ``read_gbq`` when the index column specified does not exist in the BigQuery schema. (:issue:`6`)

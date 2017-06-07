@@ -1072,7 +1072,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                        private_key=_get_private_key_path())
 
     def test_upload_subset_columns_if_table_exists_append(self):
-        # For pull request #24
+        # Issue 24: Upload is succesful if dataframe has columns
+        # which are a subset of the current schema
         test_id = "16"
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
@@ -1283,7 +1284,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
             self.dataset_prefix + "1", TABLE_ID + test_id, test_schema_2)
 
     def test_retrieve_schema(self):
-        # For pull request #24
+        # Issue #24 schema function returns the schema in biquery
         test_id = "15"
         test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
                                   {'name': 'B', 'type': 'FLOAT'},
@@ -1296,7 +1297,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         assert expected == actual, 'Expected schema used to create table'
 
     def test_schema_is_subset_passes_if_subset(self):
-        # For pull request #24
+        # Issue #24 schema_is_subset indicates whether the schema of the
+        # dataframe is a subset of the schema of the bigquery table
         test_id = '16'
 
         table_name = TABLE_ID + test_id

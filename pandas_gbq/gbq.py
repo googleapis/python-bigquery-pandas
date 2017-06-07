@@ -563,11 +563,17 @@ class GbqConnector(object):
         Obtain from BigQuery the field names and field types
         for the table defined by the parameters
 
-        :param str dataset_id: Name of the BigQuery dataset for the table
-        :param str table_id: Name of the BigQuery table
+        Parameters
+        ----------
+        dataset_id : str
+            Name of the BigQuery dataset for the table
+        table_id : str
+            Name of the BigQuery table
 
-        :return: Fields representing the schema
-        :rtype: list of dicts
+        Returns
+        -------
+        list of dicts
+            Fields representing the schema
         """
 
         try:
@@ -596,13 +602,20 @@ class GbqConnector(object):
         the schema passed in and indicate whether all fields in the former
         are present in the latter. Order is not considered.
 
-        :param str dataset_id: Name of the BigQuery dataset for the table
-        :param str table_id: Name of the BigQuery table
-        :param list(dict) schema: Schema for comparison. Each item should have
+        Parameters
+        ----------
+        dataset_id :str
+            Name of the BigQuery dataset for the table
+        table_id : str
+            Name of the BigQuery table
+        schema : list(dict)
+            Schema for comparison. Each item should have
             a 'name' and a 'type'
 
-        :return: Whether the schemas match
-        :rtype: bool
+        Returns
+        -------
+        bool
+            Whether the schemas match
         """
 
         fields_remote = sorted(self.schema(dataset_id, table_id),
@@ -618,13 +631,20 @@ class GbqConnector(object):
         the schema passed in and indicate whether a subset of the fields in
         the former are present in the latter. Order is not considered.
 
-        :param str dataset_id: Name of the BigQuery dataset for the table
-        :param str table_id: Name of the BigQuery table
-        :param list(dict) schema: Schema for comparison. Each item should have
+        Parameters
+        ----------
+        dataset_id : str
+            Name of the BigQuery dataset for the table
+        table_id : str
+            Name of the BigQuery table
+        schema : list(dict)  
+            Schema for comparison. Each item should have
             a 'name' and a 'type'
 
-        :return: Whether the passed schema is a subset
-        :rtype: bool
+        Returns
+        -------
+        bool
+            Whether the passed schema is a subset
         """
 
         fields_remote = self.schema(dataset_id, table_id)
