@@ -6,7 +6,7 @@ Changelog
 
 - Resolve issue where the optional ``--noauth_local_webserver`` command line argument would not be propagated during the authentication process. (:issue:`35`)
 - Drop support for Python 3.4 (:issue:`40`)
-- When using ```to_gbq``` if ```if_exists``` is set to ```append```, dataframe needs to contain only a subset of the fields in the BigQuery schema. (:issue: `24`)
+- The dataframe passed to ```.to_gbq(...., if_exists='append')``` needs to contain only a subset of the fields in the BigQuery schema. To support this, ```schema_is_subset``` tests whether a local dataframe is a subset of the BigQuery schema and ```schema``` returns the remote schema. (:issue:`24`)
 
 
 0.1.6 / 2017-05-03
