@@ -6,6 +6,7 @@ Changelog
 
 - Resolve issue where the optional ``--noauth_local_webserver`` command line argument would not be propagated during the authentication process. (:issue:`35`)
 - Drop support for Python 3.4 (:issue:`40`)
+- Fix the issue that bigquery requires scoped credentials when loading application default credentials (:issue:`33`)
 
 0.1.6 / 2017-05-03
 ------------------
