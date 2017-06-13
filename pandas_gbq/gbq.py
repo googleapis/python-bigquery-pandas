@@ -880,7 +880,8 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     if_exists : {'fail', 'replace', 'append'}, default 'fail'
         'fail': If table exists, do nothing.
         'replace': If table exists, drop it, recreate it, and insert data.
-        'append': If table exists, insert data. Create if does not exist.
+        'append': If table exists and the dataframe schema is a subset of the destination table
+        schema, insert data. Create destination table if does not exist.
     private_key : str (optional)
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
