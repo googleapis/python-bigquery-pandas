@@ -4,13 +4,15 @@ import json
 from time import sleep
 import uuid
 import time
-import sys
+import logging
 
 import numpy as np
 
 from distutils.version import StrictVersion
 from pandas import compat, DataFrame, concat
 from pandas.compat import lzip, bytes_to_str
+
+logger = logging.getLogger(__name__)
 
 
 def _check_google_client_version():
@@ -195,12 +197,17 @@ class GbqConnector(object):
                  dialect='legacy'):
         self.project_id = project_id
         self.reauth = reauth
-        self.verbose = verbose
         self.private_key = private_key
         self.auth_local_webserver = auth_local_webserver
         self.dialect = dialect
         self.credentials = self.get_credentials()
         self.service = self.get_service()
+
+        if verbose is not None:
+                warnings.warn(
+                    "verbose is deprecated and will be removed in "
+                    "a future version. Set logging level in order to vary"
+                    "verbosity", FutureWarning)
 
     def get_credentials(self):
         if self.private_key:
@@ -394,22 +401,17 @@ class GbqConnector(object):
                 "Can be obtained from: https://console.developers.google."
                 "com/permissions/serviceaccounts")
 
-    def _print(self, msg, end='\n'):
-        if self.verbose:
-            sys.stdout.write(msg + end)
-            sys.stdout.flush()
-
     def _start_timer(self):
         self.start = time.time()
 
     def get_elapsed_seconds(self):
         return round(time.time() - self.start, 2)
 
-    def print_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
-                              overlong=7):
+    def log_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
+                            overlong=7):
         sec = self.get_elapsed_seconds()
         if sec > overlong:
-            self._print('{} {} {}'.format(prefix, sec, postfix))
+            logger.info('{} {} {}'.format(prefix, sec, postfix))
 
     # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     @staticmethod
@@ -464,12 +466,8 @@ class GbqConnector(object):
                                  .format(row, reason, location, message))
 
                 # Report all error messages if verbose is set
-                if self.verbose:
-                    self._print(error_message)
-                else:
-                    raise StreamingInsertError(error_message +
-                                               '\nEnable verbose logging to '
-                                               'see all errors')
+                logger.info(error_message)
+                raise StreamingInsertError(error_message)
 
         raise StreamingInsertError
 
@@ -511,10 +509,10 @@ class GbqConnector(object):
 
         self._start_timer()
         try:
-            self._print('Requesting query... ', end="")
+            logger.info('Requesting query... ', end="")
             query_reply = job_collection.insert(
                 projectId=self.project_id, body=job_data).execute()
-            self._print('ok.\nQuery running...')
+            logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
                 raise AccessDenied(
@@ -529,7 +527,7 @@ class GbqConnector(object):
         job_reference = query_reply['jobReference']
 
         while not query_reply.get('jobComplete', False):
-            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
+            self.log_elapsed_seconds('  Elapsed', 's. Waiting...')
             try:
                 query_reply = job_collection.getQueryResults(
                     projectId=job_reference['projectId'],
@@ -537,16 +535,15 @@ class GbqConnector(object):
             except HttpError as ex:
                 self.process_http_error(ex)
 
-        if self.verbose:
-            if query_reply['cacheHit']:
-                self._print('Query done.\nCache hit.\n')
-            else:
-                bytes_processed = int(query_reply.get(
-                    'totalBytesProcessed', '0'))
-                self._print('Query done.\nProcessed: {}\n'.format(
-                    self.sizeof_fmt(bytes_processed)))
+        if query_reply['cacheHit']:
+            logger.info('Query done.\nCache hit.\n')
+        else:
+            bytes_processed = int(query_reply.get(
+                'totalBytesProcessed', '0'))
+            logger.warning('Query done.\nProcessed: {}\n'.format(
+                self.sizeof_fmt(bytes_processed)))
 
-            self._print('Retrieving results...')
+            logger.info('Retrieving results...')
 
         total_rows = int(query_reply['totalRows'])
         result_pages = list()
@@ -561,7 +558,7 @@ class GbqConnector(object):
             result_pages.append(page)
             current_row += len(page)
 
-            self.print_elapsed_seconds(
+            self.log_elapsed_seconds(
                 '  Got page: {}; {}% done. Elapsed'.format(
                     len(result_pages),
                     round(100.0 * current_row / total_rows)))
@@ -592,8 +589,8 @@ class GbqConnector(object):
         if current_row < total_rows:
             raise InvalidPageToken()
 
-        # print basic query stats
-        self._print('Got {} rows.\n'.format(total_rows))
+        # log basic query stats
+        logger.info('Got {} rows.\n'.format(total_rows))
 
         return schema, result_pages
 
@@ -608,7 +605,7 @@ class GbqConnector(object):
         remaining_rows = len(dataframe)
 
         total_rows = remaining_rows
-        self._print("\n\n")
+        logger.info("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
             row_dict = dict()
@@ -620,7 +617,7 @@ class GbqConnector(object):
             remaining_rows -= 1
 
             if (len(rows) % chunksize == 0) or (remaining_rows == 0):
-                self._print("\rStreaming Insert is {0}% Complete".format(
+                logger.info("\rStreaming Insert is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
 
                 body = {'rows': rows}
@@ -651,7 +648,7 @@ class GbqConnector(object):
                 sleep(1)  # Maintains the inserts "per second" rate per API
                 rows = []
 
-        self._print("\n")
+        logger.info("\n")
 
     def schema(self, dataset_id, table_id):
         """Retrieve the schema of the table
@@ -758,7 +755,7 @@ class GbqConnector(object):
         # be a 120 second delay
 
         if not self.verify_schema(dataset_id, table_id, table_schema):
-            self._print('The existing table has a different schema. Please '
+            logger.info('The existing table has a different schema. Please '
                         'wait 2 minutes. See Google BigQuery issue #191')
             delay = 120
 
@@ -807,7 +804,7 @@ def _parse_entry(field_value, field_type):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None,
+             reauth=False, verbose=None, private_key=None,
              auth_local_webserver=False, dialect='legacy', **kwargs):
     r"""Load data from Google BigQuery.
 
@@ -884,6 +881,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
+    if verbose is not None:
+            warnings.warn(
+                "verbose is deprecated and will be removed in "
+                "a future version. Set logging level in order to vary"
+                "verbosity", FutureWarning)
 
     _test_google_api_imports()
 
@@ -935,7 +937,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             final_df[field['name']] = \
                 final_df[field['name']].astype(type_map[field['type']])
 
-    connector.print_elapsed_seconds(
+    connector.log_elapsed_seconds(
         'Total time taken',
         datetime.now().strftime('s.\nFinished at %Y-%m-%d %H:%M:%S.'),
         0
@@ -945,7 +947,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
-           verbose=True, reauth=False, if_exists='fail', private_key=None,
+           verbose=None, reauth=False, if_exists='fail', private_key=None,
            auth_local_webserver=False):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -1008,6 +1010,12 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
 
     _test_google_api_imports()
 
+    if verbose is not None:
+            warnings.warn(
+                "verbose is deprecated and will be removed in "
+                "a future version. Set logging level in order to vary"
+                "verbosity", FutureWarning)
+
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
 
@@ -1016,7 +1024,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
             "Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
     connector = GbqConnector(
-        project_id, reauth=reauth, verbose=verbose, private_key=private_key,
+        project_id, reauth=reauth, private_key=private_key,
         auth_local_webserver=auth_local_webserver)
     dataset_id, table_id = destination_table.rsplit('.', 1)
 
@@ -1087,7 +1095,7 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
-    def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
+    def __init__(self, project_id, dataset_id, reauth=False, verbose=None,
                  private_key=None):
         try:
             from googleapiclient.errors import HttpError
@@ -1186,13 +1194,14 @@ class _Table(GbqConnector):
 
 class _Dataset(GbqConnector):
 
-    def __init__(self, project_id, reauth=False, verbose=False,
+    def __init__(self, project_id, reauth=False, verbose=None,
                  private_key=None):
         try:
             from googleapiclient.errors import HttpError
         except:
             from apiclient.errors import HttpError
         self.http_error = HttpError
+
         super(_Dataset, self).__init__(project_id, reauth, verbose,
                                        private_key)
 
