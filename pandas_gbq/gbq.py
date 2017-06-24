@@ -13,6 +13,8 @@ from pandas import compat, DataFrame, concat
 from pandas.compat import lzip, bytes_to_str
 
 logger = logging.getLogger(__name__)
+# silences warnings during tests
+logger.addHandler(logging.NullHandler())
 
 
 def _check_google_client_version():
@@ -192,7 +194,7 @@ class TableCreationError(ValueError):
 class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
-    def __init__(self, project_id, reauth=False, verbose=False,
+    def __init__(self, project_id, reauth=False, verbose=None,
                  private_key=None, auth_local_webserver=False,
                  dialect='legacy'):
         self.project_id = project_id
@@ -206,7 +208,7 @@ class GbqConnector(object):
         if verbose is not None:
                 warnings.warn(
                     "verbose is deprecated and will be removed in "
-                    "a future version. Set logging level in order to vary"
+                    "a future version. Set logging level in order to vary "
                     "verbosity", FutureWarning)
 
     def get_credentials(self):
@@ -465,7 +467,6 @@ class GbqConnector(object):
                                  'Location: {2}, Message: {3}'
                                  .format(row, reason, location, message))
 
-                # Report all error messages if verbose is set
                 logger.info(error_message)
                 raise StreamingInsertError(error_message)
 
@@ -509,7 +510,7 @@ class GbqConnector(object):
 
         self._start_timer()
         try:
-            logger.info('Requesting query... ', end="")
+            logger.info('Requesting query... ')
             query_reply = job_collection.insert(
                 projectId=self.project_id, body=job_data).execute()
             logger.info('ok.\nQuery running...')
@@ -884,7 +885,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     if verbose is not None:
             warnings.warn(
                 "verbose is deprecated and will be removed in "
-                "a future version. Set logging level in order to vary"
+                "a future version. Set logging level in order to vary "
                 "verbosity", FutureWarning)
 
     _test_google_api_imports()
@@ -1013,7 +1014,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     if verbose is not None:
             warnings.warn(
                 "verbose is deprecated and will be removed in "
-                "a future version. Set logging level in order to vary"
+                "a future version. Set logging level in order to vary "
                 "verbosity", FutureWarning)
 
     if if_exists not in ('fail', 'replace', 'append'):
