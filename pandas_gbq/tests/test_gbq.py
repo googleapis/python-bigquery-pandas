@@ -1091,6 +1091,15 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
         assert schema == test_schema
 
+    def test_generate_repeated_schema(self):
+        df = DataFrame([{'A': [1, 2, 3], 'B': ['1', '2']}, {'A': [3, 5], 'B': ['8', '3']}])
+        schema = gbq._generate_bq_schema(df)
+
+        test_schema = {'fields': [{'name': 'A', 'type': 'INTEGER', 'mode': 'REPEATED'},
+                                  {'name': 'B', 'type': 'STRING', 'mode': 'REPEATED'}]}
+
+        assert schema == test_schema
+
     def test_create_table(self):
         test_id = "6"
         schema = gbq._generate_bq_schema(tm.makeMixedDataFrame())
