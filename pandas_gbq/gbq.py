@@ -844,8 +844,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-    verbose : boolean (default True)
-        Verbose output
     private_key : str (optional)
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
@@ -897,7 +895,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
 
     connector = GbqConnector(
-        project_id, reauth=reauth, verbose=verbose, private_key=private_key,
+        project_id, reauth=reauth, private_key=private_key,
         dialect=dialect, auth_local_webserver=auth_local_webserver)
     schema, pages = connector.run_query(query, **kwargs)
     dataframe_list = []
@@ -983,8 +981,6 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         Google BigQuery Account project ID.
     chunksize : int (default 10000)
         Number of rows to be inserted in each chunk from the dataframe.
-    verbose : boolean (default True)
-        Show percentage complete
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
@@ -1096,15 +1092,14 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
-    def __init__(self, project_id, dataset_id, reauth=False, verbose=None,
-                 private_key=None):
+    def __init__(self, project_id, dataset_id, reauth=False, private_key=None):
         try:
             from googleapiclient.errors import HttpError
         except:
             from apiclient.errors import HttpError
         self.http_error = HttpError
         self.dataset_id = dataset_id
-        super(_Table, self).__init__(project_id, reauth, verbose, private_key)
+        super(_Table, self).__init__(project_id, reauth, private_key)
 
     def exists(self, table_id):
         """ Check if a table exists in Google BigQuery
@@ -1195,16 +1190,14 @@ class _Table(GbqConnector):
 
 class _Dataset(GbqConnector):
 
-    def __init__(self, project_id, reauth=False, verbose=None,
-                 private_key=None):
+    def __init__(self, project_id, reauth=False, private_key=None):
         try:
             from googleapiclient.errors import HttpError
         except:
             from apiclient.errors import HttpError
         self.http_error = HttpError
 
-        super(_Dataset, self).__init__(project_id, reauth, verbose,
-                                       private_key)
+        super(_Dataset, self).__init__(project_id, reauth, private_key)
 
     def exists(self, dataset_id):
         """ Check if a dataset exists in Google BigQuery
