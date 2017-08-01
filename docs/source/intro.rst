@@ -31,26 +31,25 @@ and unnoticed precision lost for identifier is what we want to avoid.
 Authentication
 ''''''''''''''
 
-Authentication to the Google ``BigQuery`` service is via ``OAuth 2.0``
-is possible to authenticate via either user account credentials or service account credentials.
+Authentication to the Google ``BigQuery`` service via ``OAuth 2.0``
+is possible to authenticate with either user account credentials or service account credentials.
 
 Authentication via user account credentials is as simple as following the prompts in a browser window
-which automatically open for you. You will be authenticated to the specified
-``BigQuery`` account using the product name ``pandas GBQ``. It is only possible on local host.
+which automatically open for you. You authenticate to the specified
+``BigQuery`` account using the product name ``pandas GBQ``, but only possible on local host.
 The remote authentication using user account credentials is not currently supported in pandas.
 Additional information on the authentication mechanism can be found
 `here <https://developers.google.com/identity/protocols/OAuth2#clientside/>`__.
 
-Authentication with service account credentials is possible via the `'private_key'` parameter. This method
-is particularly useful when working on remote servers (eg. jupyter iPython notebook on remote host).
+Authentication via service account credentials is possible through the `'private_key'` parameter. This method
+is particularly useful when working on remote servers (eg. Jupyter Notebooks on remote host).
 Additional information on service accounts can be found
 `here <https://developers.google.com/identity/protocols/OAuth2#serviceaccount>`__.
 
-Authentication via ``application default credentials`` is also possible. This is only valid
-if the parameter ``private_key`` is not provided. This method also requires that
-the credentials can be fetched from the environment the code is running in.
-Otherwise, the OAuth2 client-side authentication is used.
-Additional information on
+Authentication via ``application default credentials`` is also possible, but only valid
+if the parameter ``private_key`` is not provided. This method requires that the 
+credentials can be fetched from the development environment. Otherwise, the OAuth2 
+client-side authentication is used. Additional information can be found on
 `application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__.
 
 .. note::
