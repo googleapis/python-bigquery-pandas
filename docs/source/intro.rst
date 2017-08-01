@@ -20,7 +20,7 @@ respectively.
 
 This is opposite to default pandas behaviour which will promote integer
 type to float in order to store NAs.
-`See here for how this works in pandas <http://pandas.pydata.org/pandas-docs/stable/gotchas.html#nan-integer-na-values-and-na-type-promotions>`__
+`See here for how this works in pandas <https://pandas.pydata.org/pandas-docs/stable/gotchas.html#nan-integer-na-values-and-na-type-promotions>`__
 
 While this trade-off works well for most cases, it breaks down for storing
 values greater than 2**53. Such values in BigQuery can represent identifiers
@@ -31,11 +31,11 @@ and unnoticed precision lost for identifier is what we want to avoid.
 Authentication
 ''''''''''''''
 
-Authentication to the Google ``BigQuery`` service is via ``OAuth 2.0``.
-Is possible to authenticate with either user account credentials or service account credentials.
+Authentication to the Google ``BigQuery`` service is via ``OAuth 2.0``
+is possible to authenticate via either user account credentials or service account credentials.
 
-Authenticating with user account credentials is as simple as following the prompts in a browser window
-which will be automatically opened for you. You will be authenticated to the specified
+Authentication via user account credentials is as simple as following the prompts in a browser window
+which automatically open for you. You will be authenticated to the specified
 ``BigQuery`` account using the product name ``pandas GBQ``. It is only possible on local host.
 The remote authentication using user account credentials is not currently supported in pandas.
 Additional information on the authentication mechanism can be found
