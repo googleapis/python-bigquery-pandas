@@ -551,7 +551,7 @@ class GbqConnector(object):
                 self.process_http_error(ex)
 
             timeoutMs = job_config['query'].get('timeoutMs')
-            if timeoutMs and timeoutMs < self.get_elapsed_seconds()*1000:
+            if timeoutMs and timeoutMs < self.get_elapsed_seconds() * 1000:
                 raise QueryTimeout('Query timeout: {} ms'.format(timeoutMs))
 
         if self.verbose:
