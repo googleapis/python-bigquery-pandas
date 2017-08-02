@@ -543,16 +543,17 @@ class GbqConnector(object):
 
         while not query_reply.get('jobComplete', False):
             self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
+
+            timeoutMs = job_config['query'].get('timeoutMs')
+            if timeoutMs and timeoutMs < self.get_elapsed_seconds() * 1000:
+                raise QueryTimeout('Query timeout: {} ms'.format(timeoutMs))
+
             try:
                 query_reply = job_collection.getQueryResults(
                     projectId=job_reference['projectId'],
                     jobId=job_id).execute()
             except HttpError as ex:
                 self.process_http_error(ex)
-
-            timeoutMs = job_config['query'].get('timeoutMs')
-            if timeoutMs and timeoutMs < self.get_elapsed_seconds() * 1000:
-                raise QueryTimeout('Query timeout: {} ms'.format(timeoutMs))
 
         if self.verbose:
             if query_reply['cacheHit']:
