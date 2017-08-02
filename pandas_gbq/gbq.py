@@ -172,6 +172,13 @@ class NotFoundException(ValueError):
     pass
 
 
+class QueryTimeout(ValueError):
+    """
+    Raised when the query job timeout
+    """
+    pass
+
+
 class StreamingInsertError(ValueError):
     """
     Raised when BigQuery reports a streaming insert error.
@@ -542,6 +549,10 @@ class GbqConnector(object):
                     jobId=job_id).execute()
             except HttpError as ex:
                 self.process_http_error(ex)
+
+            timeoutMs = job_config['query'].get('timeoutMs')
+            if timeoutMs and timeoutMs < self.get_elapsed_seconds()*1000:
+                raise QueryTimeout('Query timeout: {} ms'.format(timeoutMs))
 
         if self.verbose:
             if query_reply['cacheHit']:
