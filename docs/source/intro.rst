@@ -32,12 +32,12 @@ Authentication
 ''''''''''''''
 
 Authentication to the Google ``BigQuery`` service via ``OAuth 2.0``
-is possible to authenticate with either user account credentials or service account credentials.
+is possible to authenticate with either user or service account credentials.
 
 Authentication via user account credentials is as simple as following the prompts in a browser window
-which automatically open for you. You authenticate to the specified
-``BigQuery`` account using the product name ``pandas GBQ``, but only possible on local host.
-The remote authentication using user account credentials is not currently supported in pandas.
+which will automatically open for you. You authenticate to the specified
+``BigQuery`` account using the product name ``pandas GBQ``.
+The remote authentication is supported via specifying ``auth_local_webserver`` in ``read_gbq``.
 Additional information on the authentication mechanism can be found
 `here <https://developers.google.com/identity/protocols/OAuth2#clientside/>`__.
 
