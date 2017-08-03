@@ -32,7 +32,7 @@ Authentication
 ''''''''''''''
 
 Authentication to the Google ``BigQuery`` service via ``OAuth 2.0``
-is possible to authenticate with either user or service account credentials.
+is possible with either user or service account credentials.
 
 Authentication via user account credentials is as simple as following the prompts in a browser window
 which will automatically open for you. You authenticate to the specified
