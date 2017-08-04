@@ -544,9 +544,9 @@ class GbqConnector(object):
         while not query_reply.get('jobComplete', False):
             self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
 
-            timeoutMs = job_config['query'].get('timeoutMs')
-            if timeoutMs and timeoutMs < self.get_elapsed_seconds() * 1000:
-                raise QueryTimeout('Query timeout: {} ms'.format(timeoutMs))
+            timeout_ms = job_config['query'].get('timeoutMs')
+            if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
+                raise QueryTimeout('Query timeout: {} ms'.format(timeout_ms))
 
             try:
                 query_reply = job_collection.getQueryResults(
