@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.2.1 / ?
+0.2.1 / 2017-??-??
 ------------------
 
 - :func:`read_gbq` now handles query configuration `query.timeoutMs` and stop waiting. (:issue:`76`)
