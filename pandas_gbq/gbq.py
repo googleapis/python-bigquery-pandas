@@ -486,6 +486,101 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
+    def copy(self, source_dataset_id, source_table_id, destination_dataset_id, destination_table_id, **kwargs):
+        """ Create a table in Google BigQuery given a table and schema
+
+        Parameters
+        ----------
+        source_table_id : str
+            Name of the source dataset
+        source_table_id: str
+            Name of the source table
+        destination_table_id : str
+            Name of the destination dataset
+        destination_table_id: str
+            Name of the destination table            
+        **kwargs : Arbitrary keyword arguments
+            configuration (dict): table creation extra parameters
+            For example:
+
+                configuration = {'copy': {'writeDisposition': 'WRITE_TRUNCATE'}}
+
+            For more information see `BigQuery SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#resource>`__
+        """
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
+        from google.auth.exceptions import RefreshError
+
+        job_collection = self.service.jobs()
+
+        job_config = {
+            'copy': {
+                'destinationTable': {
+                    'projectId': self.project_id,
+                    'datasetId': destination_dataset_id,
+                    'tableId': destination_table_id
+                },
+                'sourceTable': {
+                    'projectId': self.project_id,
+                    'datasetId': source_dataset_id,
+                    'tableId': source_table_id
+                }
+            }
+        }
+        config = kwargs.get('configuration')
+        if config is not None:
+            if len(config) != 1:
+                raise ValueError("Only one job type must be specified, but "
+                                 "given {}".format(','.join(config.keys())))
+            if 'copy' in config:
+                if 'destinationTable' in config['copy'] or 'sourceTable' in config['copy']:
+                    raise ValueError("source and destination table must be specified as parameters")
+
+                job_config['copy'].update(config['copy'])
+            else:
+                raise ValueError("Only 'copy' job type is supported")
+
+        job_data = {
+            'configuration': job_config
+        }
+
+        self._start_timer()
+        try:
+            self._print('Requesting copy... ', end="")
+            job_reply = job_collection.insert(
+                projectId=self.project_id, body=job_data).execute()
+            self._print('ok.')
+        except (RefreshError, ValueError):
+            if self.private_key:
+                raise AccessDenied(
+                    "The service account credentials are not valid")
+            else:
+                raise AccessDenied(
+                    "The credentials have been revoked or expired, "
+                    "please re-run the application to re-authorize")
+        except HttpError as ex:
+            self.process_http_error(ex)
+
+        job_reference = job_reply['jobReference']
+        job_id = job_reference['jobId']
+        self._print('Job ID: %s\nCopy running...' % job_id)
+
+        while job_reply['status']['state'] == 'RUNNING':
+            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
+
+            try:
+                job_reply = job_collection.get(
+                    projectId=job_reference['projectId'],
+                    jobId=job_id).execute()
+            except HttpError as ex:
+                self.process_http_error(ex)
+
+        if self.verbose:
+            self._print('Copy completed.')
+
     def run_query(self, query, **kwargs):
         try:
             from googleapiclient.errors import HttpError
