@@ -15,7 +15,6 @@ from pandas.compat import lzip, bytes_to_str
 
 
 def _check_google_client_version():
-
     try:
         import pkg_resources
 
@@ -39,7 +38,6 @@ def _check_google_client_version():
 
 
 def _test_google_api_imports():
-
     try:
         import httplib2  # noqa
     except ImportError as ex:
@@ -213,7 +211,7 @@ class GbqConnector(object):
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
-        self.query_price_for_TB = 5. / 2**40  # USD/TB
+        self.query_price_for_TB = 5. / 2 ** 40  # USD/TB
 
     def get_credentials(self):
         if self.private_key:
@@ -486,7 +484,8 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def copy(self, source_dataset_id, source_table_id, destination_dataset_id, destination_table_id, **kwargs):
+    def copy(self, source_dataset_id, source_table_id, destination_dataset_id,
+             destination_table_id, **kwargs):
         """ Create a table in Google BigQuery given a table and schema
 
         Parameters
@@ -495,15 +494,17 @@ class GbqConnector(object):
             Name of the source dataset
         source_table_id: str
             Name of the source table
-        destination_table_id : str
+        destination_dataset_id : str
             Name of the destination dataset
         destination_table_id: str
-            Name of the destination table            
+            Name of the destination table
         **kwargs : Arbitrary keyword arguments
             configuration (dict): table creation extra parameters
             For example:
 
-                configuration = {'copy': {'writeDisposition': 'WRITE_TRUNCATE'}}
+                configuration = {'copy':
+                                    {'writeDisposition': 'WRITE_TRUNCATE'}
+                                }
 
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#resource>`__
@@ -536,8 +537,10 @@ class GbqConnector(object):
                 raise ValueError("Only one job type must be specified, but "
                                  "given {}".format(','.join(config.keys())))
             if 'copy' in config:
-                if 'destinationTable' in config['copy'] or 'sourceTable' in config['copy']:
-                    raise ValueError("source and destination table must be specified as parameters")
+                if 'destinationTable' in config['copy'] or 'sourceTable' in \
+                        config['copy']:
+                    raise ValueError("source and destination table must "
+                                     "be specified as parameters")
 
                 job_config['copy'].update(config['copy'])
             else:
@@ -1194,8 +1197,8 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
 
         if partition_exists:
             if if_exists == 'fail':
-                raise TableCreationError("Could not create the partition because it "
-                                         "already exists. "
+                raise TableCreationError("Could not create the partition "
+                                         "because it already exists. "
                                          "Change the if_exists parameter to "
                                          "append or replace data.")
             elif if_exists == 'append':
@@ -1203,8 +1206,8 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                                                   root_table_id,
                                                   table_schema):
                     raise InvalidSchema("Please verify that the structure and "
-                                        "data types in the DataFrame match the "
-                                        "schema of the destination table.")
+                                        "data types in the DataFrame match "
+                                        "the schema of the destination table.")
                 connector.load_data(dataframe, dataset_id, table_id, chunksize)
 
             elif if_exists == 'replace':
@@ -1212,25 +1215,32 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                                                   root_table_id,
                                                   table_schema):
                     raise InvalidSchema("Please verify that the structure and "
-                                        "data types in the DataFrame match the "
-                                        "schema of the destination table.")
+                                        "data types in the DataFrame match "
+                                        "the schema of the destination table.")
 
-                temporary_table_id = '_'.join([root_table_id + '_' + partition_id, str(randint(1, 100000))])
+                temporary_table_id = '_'.join(
+                    [root_table_id + '_' + partition_id,
+                     str(randint(1, 100000))])
                 table.create(temporary_table_id, table_schema)
-                connector.load_data(dataframe, dataset_id, temporary_table_id, chunksize)
+                connector.load_data(dataframe, dataset_id, temporary_table_id,
+                                    chunksize)
                 sleep(30)  # <- Curses Google!!!
-                connector.run_query('select * from {0}.{1}'.format(dataset_id, temporary_table_id), configuration={
-                    'query': {
-                        'destinationTable': {
-                            'projectId': project_id,
-                            'datasetId': dataset_id,
-                            'tableId': table_id
-                        },
-                        'createDisposition': 'CREATE_IF_NEEDED',
-                        'writeDisposition': 'WRITE_TRUNCATE',
-                        'allowLargeResults': True
-                    }
-                })
+                connector.run_query('select * from {0}.{1}'
+                                    .format(dataset_id, temporary_table_id),
+                                    configuration={
+                                        'query': {
+                                            'destinationTable': {
+                                                'projectId': project_id,
+                                                'datasetId': dataset_id,
+                                                'tableId': table_id
+                                            },
+                                            'createDisposition':
+                                                'CREATE_IF_NEEDED',
+                                            'writeDisposition':
+                                                'WRITE_TRUNCATE',
+                                            'allowLargeResults': True
+                                        }
+                                    })
                 table.delete(temporary_table_id)
 
         else:
@@ -1239,10 +1249,11 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     else:
         if table.exists(table_id):
             if if_exists == 'fail':
-                raise TableCreationError("Could not create the table because it "
-                                         "already exists. "
-                                         "Change the if_exists parameter to "
-                                         "append or replace data.")
+                raise TableCreationError(
+                    "Could not create the table because it "
+                    "already exists. "
+                    "Change the if_exists parameter to "
+                    "append or replace data.")
             elif if_exists == 'replace':
                 connector.delete_and_recreate_table(
                     dataset_id, table_id, table_schema)
@@ -1251,8 +1262,8 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                                                   table_id,
                                                   table_schema):
                     raise InvalidSchema("Please verify that the structure and "
-                                        "data types in the DataFrame match the "
-                                        "schema of the destination table.")
+                                        "data types in the DataFrame match "
+                                        "the schema of the destination table.")
         else:
             table.create(table_id, table_schema)
 
@@ -1297,7 +1308,6 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 
 class _Table(GbqConnector):
-
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
         try:
@@ -1347,15 +1357,15 @@ class _Table(GbqConnector):
         table : str
             Name of table to be written
         schema : str
-            Use the generate_bq_schema to generate your table schema from a
-            dataframe.
-            
+            Use the generate_bq_schema to generate
+             your table schema from a dataframe.
+
         **kwargs : Arbitrary keyword arguments
             body (dict): table creation extra parameters
             For example:
-    
+
                 body = {'timePartitioning': {'type': 'DAY'}}
-    
+
             For more information see `BigQuery SQL Reference
             <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#resource>`__
         """
@@ -1418,7 +1428,6 @@ class _Table(GbqConnector):
 
 
 class _Dataset(GbqConnector):
-
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None):
         try:

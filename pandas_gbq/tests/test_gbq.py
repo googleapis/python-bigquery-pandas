@@ -1521,8 +1521,10 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
                                   {'name': 'B', 'type': 'FLOAT'},
                                   {'name': 'C', 'type': 'STRING'},
                                   {'name': 'D', 'type': 'TIMESTAMP'}]}
-        self.table.create(TABLE_ID + test_id, test_schema, body={'timePartitioning': {'type': 'DAY'}})
-        actual = self.sut.resource(self.dataset_prefix + "1", TABLE_ID + test_id)
+        self.table.create(TABLE_ID + test_id, test_schema,
+                          body={'timePartitioning': {'type': 'DAY'}})
+        actual = self.sut.resource(self.dataset_prefix +
+                                   "1", TABLE_ID + test_id)
         assert actual['timePartitioning']['type'] == 'DAY'
 
     def test_upload_data_to_partition(self):
@@ -1533,7 +1535,8 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
         self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
                           body={'timePartitioning': {'type': 'DAY'}})
 
-        partition_name = self.destination_table + test_id + '$' + datetime.today().strftime("%Y%m%d")
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
 
         gbq.to_gbq(df, partition_name, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
@@ -1551,7 +1554,8 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
         test_size = 20001
         df = make_mixed_dataframe_v2(test_size)
 
-        partition_name = self.destination_table + test_id + '$' + datetime.today().strftime("%Y%m%d")
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
 
         with pytest.raises(gbq.NotFoundException):
             gbq.to_gbq(df, partition_name, _get_project_id(),
@@ -1564,7 +1568,8 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
 
         self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df))
 
-        partition_name = self.destination_table + test_id + '$' + datetime.today().strftime("%Y%m%d")
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
 
         with pytest.raises(gbq.InvalidSchema):
             gbq.to_gbq(df, partition_name, _get_project_id(),
@@ -1574,9 +1579,11 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
         test_id = "3"
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
-        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df), body={'timePartitioning': {'type': 'DAY'}})
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
 
-        partition_name = self.destination_table + test_id + '$' + datetime.today().strftime("%Y%m%d")
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
 
         gbq.to_gbq(df, partition_name, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
@@ -1596,9 +1603,11 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
         df_different_schema = tm.makeMixedDataFrame()
-        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df), body={'timePartitioning': {'type': 'DAY'}})
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
 
-        partition_name = self.destination_table + test_id + '$' + datetime.today().strftime("%Y%m%d")
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
 
         gbq.to_gbq(df, partition_name, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
@@ -1628,9 +1637,11 @@ class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
         df = make_mixed_dataframe_v2(test_size)
         df2 = make_mixed_dataframe_v2(expected_size)
         df_different_schema = tm.makeMixedDataFrame()
-        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df), body={'timePartitioning': {'type': 'DAY'}})
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
 
-        partition_name = self.destination_table + test_id + '$' + datetime.today().strftime("%Y%m%d")
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
 
         gbq.to_gbq(df, partition_name, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
