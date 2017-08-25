@@ -4,6 +4,11 @@ Changelog
 0.2.1 / 2017-??-??
 ------------------
 
+- Added support for replacing date partitioned tables (:issue:`43`), :func:`to_tbq` can be used regularly with a partition decorator
+- :func:`GbqConnector.copy` allows to create a copy job
+- :func:`_Table.contains_partition_decorator` returns whether the table_id contains a $ character
+- :func:`_Table.exists` correctly ignores the partition decorator in case it is provided
+- :func:`_Table.create` now supports the possibility to pass extra table resource details, allowing partitioned table creationsphinx-quickstart
 - :func:`read_gbq` now raises ``QueryTimeout`` if the request exceeds the ``query.timeoutMs`` value specified in the BigQuery configuration. (:issue:`76`)
 
 0.2.0 / 2017-07-24
