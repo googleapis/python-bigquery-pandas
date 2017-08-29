@@ -1066,7 +1066,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         else:
             raise InvalidIndexColumn(
                 'Index column "{0}" does not exist in DataFrame.'
-                .format(index_col)
+                    .format(index_col)
             )
 
     # Change the order of columns in the DataFrame based on provided list
@@ -1533,13 +1533,17 @@ class _Dataset(GbqConnector):
         except self.http_error as ex:
             self.process_http_error(ex)
 
-    def delete(self, dataset_id):
+    def delete(self, dataset_id, delete_contents=False):
         """ Delete a dataset in Google BigQuery
 
         Parameters
         ----------
         dataset : str
             Name of dataset to be deleted
+        delete_contents : boolean
+            If True, delete all the tables in the dataset. 
+            If False and the dataset contains tables, 
+            the request will fail. Default is False
         """
 
         if not self.exists(dataset_id):
@@ -1549,7 +1553,8 @@ class _Dataset(GbqConnector):
         try:
             self.service.datasets().delete(
                 datasetId=dataset_id,
-                projectId=self.project_id).execute()
+                projectId=self.project_id,
+                deleteContents=delete_contents).execute()
 
         except self.http_error as ex:
             # Ignore 404 error which may occur if dataset already deleted
