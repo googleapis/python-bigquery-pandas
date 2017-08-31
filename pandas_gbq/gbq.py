@@ -866,9 +866,11 @@ class GbqConnector(object):
             Whether the schemas match
         """
 
-        fields_remote = sorted(self.schema(dataset_id, table_id),
-                               key=lambda x: x['name'])
+        fields_remote = sorted(self.schema(dataset_id, table_id), key=lambda x: x['name'])
         fields_local = sorted(schema['fields'], key=lambda x: x['name'])
+
+        fields_remote = [{'name': f['name'].lower(), 'type': f['type']} for f in fields_remote]
+        fields_local = [{'name': f['name'].lower(), 'type': f['type']} for f in fields_local]
 
         return fields_remote == fields_local
 
@@ -897,6 +899,9 @@ class GbqConnector(object):
 
         fields_remote = self.schema(dataset_id, table_id)
         fields_local = schema['fields']
+
+        fields_remote = [{'name': f['name'].lower(), 'type': f['type']} for f in fields_remote]
+        fields_local = [{'name': f['name'].lower(), 'type': f['type']} for f in fields_local]
 
         return all(field in fields_remote for field in fields_local)
 
