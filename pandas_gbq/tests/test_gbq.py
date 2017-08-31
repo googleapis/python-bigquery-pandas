@@ -1471,3 +1471,193 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
             project_id=_get_project_id(),
             private_key=_get_private_key_contents())
         assert result['num_rows'][0] == test_size
+
+
+class TestToPartitionGBQIntegrationWithServiceAccountKeyPath(object):
+    @classmethod
+    def setup_class(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *BEFORE*
+        # executing *ALL* tests described below.
+
+        _skip_if_no_project_id()
+        _skip_if_no_private_key_path()
+
+        _setup_common()
+
+    def setup_method(self, method):
+        # - PER-TEST FIXTURES -
+        # put here any instruction you want to be run *BEFORE* *EVERY* test is
+        # executed.
+
+        self.dataset_prefix = _get_dataset_prefix_random()
+        clean_gbq_environment(self.dataset_prefix, _get_private_key_path())
+        self.dataset = gbq._Dataset(_get_project_id(),
+                                    private_key=_get_private_key_path())
+        self.table = gbq._Table(_get_project_id(), self.dataset_prefix + "1",
+                                private_key=_get_private_key_path())
+        self.sut = gbq.GbqConnector(_get_project_id(),
+                                    private_key=_get_private_key_path())
+        self.destination_table = "{0}{1}.{2}".format(self.dataset_prefix, "1",
+                                                     TABLE_ID)
+        self.dataset.create(self.dataset_prefix + "1")
+
+    @classmethod
+    def teardown_class(cls):
+        # - GLOBAL CLASS FIXTURES -
+        # put here any instruction you want to execute only *ONCE* *AFTER*
+        # executing all tests.
+        pass
+
+    def teardown_method(self, method):
+        # - PER-TEST FIXTURES -
+        # put here any instructions you want to be run *AFTER* *EVERY* test is
+        # executed.
+        clean_gbq_environment(self.dataset_prefix, _get_private_key_path())
+
+    def test_create_partitioned_table(self):
+        test_id = "1"
+        test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
+                                  {'name': 'B', 'type': 'FLOAT'},
+                                  {'name': 'C', 'type': 'STRING'},
+                                  {'name': 'D', 'type': 'TIMESTAMP'}]}
+        self.table.create(TABLE_ID + test_id, test_schema,
+                          body={'timePartitioning': {'type': 'DAY'}})
+        actual = self.sut.resource(self.dataset_prefix +
+                                   "1", TABLE_ID + test_id)
+        assert actual['timePartitioning']['type'] == 'DAY'
+
+    def test_upload_data_to_partition(self):
+        test_id = "2"
+        test_size = 20001
+        df = make_mixed_dataframe_v2(test_size)
+
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
+
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
+
+        gbq.to_gbq(df, partition_name, _get_project_id(),
+                   chunksize=10000, private_key=_get_private_key_path())
+
+        sleep(30)  # <- Curses Google!!!
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
+                              .format(partition_name),
+                              project_id=_get_project_id(),
+                              private_key=_get_private_key_path())
+        assert result['num_rows'][0] == test_size
+
+    def test_upload_data_to_partition_non_existing_table(self):
+        test_id = "2"
+        test_size = 20001
+        df = make_mixed_dataframe_v2(test_size)
+
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
+
+        with pytest.raises(gbq.NotFoundException):
+            gbq.to_gbq(df, partition_name, _get_project_id(),
+                       chunksize=10000, private_key=_get_private_key_path())
+
+    def test_upload_data_to_partition_non_partitioned_table(self):
+        test_id = "2"
+        test_size = 20001
+        df = make_mixed_dataframe_v2(test_size)
+
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df))
+
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
+
+        with pytest.raises(gbq.InvalidSchema):
+            gbq.to_gbq(df, partition_name, _get_project_id(),
+                       chunksize=10000, private_key=_get_private_key_path())
+
+    def test_upload_data_if_partition_exists_fail(self):
+        test_id = "3"
+        test_size = 10
+        df = make_mixed_dataframe_v2(test_size)
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
+
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
+
+        gbq.to_gbq(df, partition_name, _get_project_id(),
+                   chunksize=10000, private_key=_get_private_key_path())
+
+        # Test the default value of if_exists is 'fail'
+        with pytest.raises(gbq.TableCreationError):
+            gbq.to_gbq(df, partition_name, _get_project_id(),
+                       private_key=_get_private_key_path())
+
+        # Test the if_exists parameter with value 'fail'
+        with pytest.raises(gbq.TableCreationError):
+            gbq.to_gbq(df, partition_name, _get_project_id(),
+                       if_exists='fail', private_key=_get_private_key_path())
+
+    def test_upload_data_if_partition_exists_append(self):
+        test_id = "3"
+        test_size = 10
+        df = make_mixed_dataframe_v2(test_size)
+        df_different_schema = tm.makeMixedDataFrame()
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
+
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
+
+        gbq.to_gbq(df, partition_name, _get_project_id(),
+                   chunksize=10000, private_key=_get_private_key_path())
+
+        # Test the if_exists parameter with value 'append'
+        gbq.to_gbq(df, partition_name, _get_project_id(),
+                   if_exists='append', private_key=_get_private_key_path())
+
+        sleep(30)  # <- Curses Google!!!
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
+                              .format(partition_name),
+                              project_id=_get_project_id(),
+                              private_key=_get_private_key_path())
+        assert result['num_rows'][0] == test_size * 2
+
+        # Try inserting with a different schema, confirm failure
+        with pytest.raises(gbq.InvalidSchema):
+            gbq.to_gbq(df_different_schema, partition_name,
+                       _get_project_id(), if_exists='append',
+                       private_key=_get_private_key_path())
+
+    def test_upload_data_if_partition_exists_replace(self):
+        test_id = "4"
+        test_size = 10
+        expected_size = 25
+        df = make_mixed_dataframe_v2(test_size)
+        df2 = make_mixed_dataframe_v2(expected_size)
+        df_different_schema = tm.makeMixedDataFrame()
+        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df),
+                          body={'timePartitioning': {'type': 'DAY'}})
+
+        partition_name = self.destination_table + test_id + \
+            '$' + datetime.today().strftime("%Y%m%d")
+
+        gbq.to_gbq(df, partition_name, _get_project_id(),
+                   chunksize=10000, private_key=_get_private_key_path())
+
+        # Test the if_exists parameter with value 'replace'
+        gbq.to_gbq(df2, partition_name, _get_project_id(),
+                   if_exists='replace', private_key=_get_private_key_path())
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
+                              .format(partition_name),
+                              project_id=_get_project_id(),
+                              private_key=_get_private_key_path())
+        assert result['num_rows'][0] == expected_size
+
+        # Try inserting with a different schema, confirm failure
+        with pytest.raises(gbq.InvalidSchema):
+            gbq.to_gbq(df_different_schema, partition_name,
+                       _get_project_id(), if_exists='replace',
+                       private_key=_get_private_key_path())

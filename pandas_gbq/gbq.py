@@ -5,6 +5,7 @@ from time import sleep
 import uuid
 import time
 import sys
+from random import randint
 
 import numpy as np
 
@@ -14,7 +15,6 @@ from pandas.compat import lzip, bytes_to_str
 
 
 def _check_google_client_version():
-
     try:
         import pkg_resources
 
@@ -38,7 +38,6 @@ def _check_google_client_version():
 
 
 def _test_google_api_imports():
-
     try:
         import httplib2  # noqa
     except ImportError as ex:
@@ -212,7 +211,7 @@ class GbqConnector(object):
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
-        self.query_price_for_TB = 5. / 2**40  # USD/TB
+        self.query_price_for_TB = 5. / 2 ** 40  # USD/TB
 
     def get_credentials(self):
         if self.private_key:
@@ -485,6 +484,106 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
+    def copy(self, source_dataset_id, source_table_id, destination_dataset_id,
+             destination_table_id, **kwargs):
+        """ Create a table in Google BigQuery given a table and schema
+
+        Parameters
+        ----------
+        source_table_id : str
+            Name of the source dataset
+        source_table_id: str
+            Name of the source table
+        destination_dataset_id : str
+            Name of the destination dataset
+        destination_table_id: str
+            Name of the destination table
+        **kwargs : Arbitrary keyword arguments
+            configuration (dict): table creation extra parameters
+            For example:
+
+                configuration = {'copy':
+                                    {'writeDisposition': 'WRITE_TRUNCATE'}
+                                }
+
+            For more information see `BigQuery SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#resource>`__
+        """
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
+        from google.auth.exceptions import RefreshError
+
+        job_collection = self.service.jobs()
+
+        job_config = {
+            'copy': {
+                'destinationTable': {
+                    'projectId': self.project_id,
+                    'datasetId': destination_dataset_id,
+                    'tableId': destination_table_id
+                },
+                'sourceTable': {
+                    'projectId': self.project_id,
+                    'datasetId': source_dataset_id,
+                    'tableId': source_table_id
+                }
+            }
+        }
+        config = kwargs.get('configuration')
+        if config is not None:
+            if len(config) != 1:
+                raise ValueError("Only one job type must be specified, but "
+                                 "given {}".format(','.join(config.keys())))
+            if 'copy' in config:
+                if 'destinationTable' in config['copy'] or 'sourceTable' in \
+                        config['copy']:
+                    raise ValueError("source and destination table must "
+                                     "be specified as parameters")
+
+                job_config['copy'].update(config['copy'])
+            else:
+                raise ValueError("Only 'copy' job type is supported")
+
+        job_data = {
+            'configuration': job_config
+        }
+
+        self._start_timer()
+        try:
+            self._print('Requesting copy... ', end="")
+            job_reply = job_collection.insert(
+                projectId=self.project_id, body=job_data).execute()
+            self._print('ok.')
+        except (RefreshError, ValueError):
+            if self.private_key:
+                raise AccessDenied(
+                    "The service account credentials are not valid")
+            else:
+                raise AccessDenied(
+                    "The credentials have been revoked or expired, "
+                    "please re-run the application to re-authorize")
+        except HttpError as ex:
+            self.process_http_error(ex)
+
+        job_reference = job_reply['jobReference']
+        job_id = job_reference['jobId']
+        self._print('Job ID: %s\nCopy running...' % job_id)
+
+        while job_reply['status']['state'] == 'RUNNING':
+            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
+
+            try:
+                job_reply = job_collection.get(
+                    projectId=job_reference['projectId'],
+                    jobId=job_id).execute()
+            except HttpError as ex:
+                self.process_http_error(ex)
+
+        if self.verbose:
+            self._print('Copy completed.')
+
     def run_query(self, query, **kwargs):
         try:
             from googleapiclient.errors import HttpError
@@ -674,6 +773,38 @@ class GbqConnector(object):
 
         self._print("\n")
 
+    def resource(self, dataset_id, table_id):
+        """Retrieve the resource describing a table
+
+        Obtain from BigQuery complete description
+        for the table defined by the parameters
+
+        Parameters
+        ----------
+        dataset_id : str
+            Name of the BigQuery dataset for the table
+        table_id : str
+            Name of the BigQuery table
+
+        Returns
+        -------
+        object
+            Table resource
+        """
+
+        try:
+            from googleapiclient.errors import HttpError
+        except:
+            from apiclient.errors import HttpError
+
+        try:
+            return self.service.tables().get(
+                projectId=self.project_id,
+                datasetId=dataset_id,
+                tableId=table_id).execute()
+        except HttpError as ex:
+            self.process_http_error(ex)
+
     def schema(self, dataset_id, table_id):
         """Retrieve the schema of the table
 
@@ -735,9 +866,12 @@ class GbqConnector(object):
             Whether the schemas match
         """
 
-        fields_remote = sorted(self.schema(dataset_id, table_id),
+        fields_remote = sorted([{'name': f['name'].lower(), 'type': f['type']}
+                                for f in self.schema(dataset_id, table_id)],
                                key=lambda x: x['name'])
-        fields_local = sorted(schema['fields'], key=lambda x: x['name'])
+        fields_local = sorted([{'name': f['name'].lower(), 'type': f['type']}
+                               for f in schema['fields']],
+                              key=lambda x: x['name'])
 
         return fields_remote == fields_local
 
@@ -764,8 +898,10 @@ class GbqConnector(object):
             Whether the passed schema is a subset
         """
 
-        fields_remote = self.schema(dataset_id, table_id)
-        fields_local = schema['fields']
+        fields_remote = [{'name': f['name'].lower(), 'type': f['type']}
+                         for f in self.schema(dataset_id, table_id)]
+        fields_local = [{'name': f['name'].lower(), 'type': f['type']}
+                        for f in schema['fields']]
 
         return all(field in fields_remote for field in fields_local)
 
@@ -935,7 +1071,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         else:
             raise InvalidIndexColumn(
                 'Index column "{0}" does not exist in DataFrame.'
-                .format(index_col)
+                    .format(index_col)
             )
 
     # Change the order of columns in the DataFrame based on provided list
@@ -1046,27 +1182,97 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
 
     table_schema = _generate_bq_schema(dataframe)
 
-    # If table exists, check if_exists parameter
-    if table.exists(table_id):
-        if if_exists == 'fail':
-            raise TableCreationError("Could not create the table because it "
-                                     "already exists. "
-                                     "Change the if_exists parameter to "
-                                     "append or replace data.")
-        elif if_exists == 'replace':
-            connector.delete_and_recreate_table(
-                dataset_id, table_id, table_schema)
-        elif if_exists == 'append':
-            if not connector.schema_is_subset(dataset_id,
-                                              table_id,
-                                              table_schema):
-                raise InvalidSchema("Please verify that the structure and "
-                                    "data types in the DataFrame match the "
-                                    "schema of the destination table.")
-    else:
-        table.create(table_id, table_schema)
+    if _Table.contains_partition_decorator(table_id):
+        root_table_id, partition_id = table_id.rsplit('$', 1)
 
-    connector.load_data(dataframe, dataset_id, table_id, chunksize)
+        if not table.exists(root_table_id):
+            raise NotFoundException("Could not write to the partition because "
+                                    "the table does not exist.")
+
+        table_resource = table.resource(dataset_id, root_table_id)
+
+        if 'timePartitioning' not in table_resource:
+            raise InvalidSchema("Could not write to the partition because "
+                                "the table is not partitioned.")
+
+        partition_exists = read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
+                                    .format(destination_table),
+                                    project_id=project_id,
+                                    private_key=private_key)['num_rows'][0] > 0
+
+        if partition_exists:
+            if if_exists == 'fail':
+                raise TableCreationError("Could not create the partition "
+                                         "because it already exists. "
+                                         "Change the if_exists parameter to "
+                                         "append or replace data.")
+            elif if_exists == 'append':
+                if not connector.schema_is_subset(dataset_id,
+                                                  root_table_id,
+                                                  table_schema):
+                    raise InvalidSchema("Please verify that the structure and "
+                                        "data types in the DataFrame match "
+                                        "the schema of the destination table.")
+                connector.load_data(dataframe, dataset_id, table_id, chunksize)
+
+            elif if_exists == 'replace':
+                if not connector.schema_is_subset(dataset_id,
+                                                  root_table_id,
+                                                  table_schema):
+                    raise InvalidSchema("Please verify that the structure and "
+                                        "data types in the DataFrame match "
+                                        "the schema of the destination table.")
+
+                temporary_table_id = '_'.join(
+                    [root_table_id + '_' + partition_id,
+                     str(randint(1, 100000))])
+                table.create(temporary_table_id, table_schema)
+                connector.load_data(dataframe, dataset_id, temporary_table_id,
+                                    chunksize)
+                sleep(30)  # <- Curses Google!!!
+                connector.run_query('select * from {0}.{1}'
+                                    .format(dataset_id, temporary_table_id),
+                                    configuration={
+                                        'query': {
+                                            'destinationTable': {
+                                                'projectId': project_id,
+                                                'datasetId': dataset_id,
+                                                'tableId': table_id
+                                            },
+                                            'createDisposition':
+                                                'CREATE_IF_NEEDED',
+                                            'writeDisposition':
+                                                'WRITE_TRUNCATE',
+                                            'allowLargeResults': True
+                                        }
+                                    })
+                table.delete(temporary_table_id)
+
+        else:
+            connector.load_data(dataframe, dataset_id, table_id, chunksize)
+
+    else:
+        if table.exists(table_id):
+            if if_exists == 'fail':
+                raise TableCreationError(
+                    "Could not create the table because it "
+                    "already exists. "
+                    "Change the if_exists parameter to "
+                    "append or replace data.")
+            elif if_exists == 'replace':
+                connector.delete_and_recreate_table(
+                    dataset_id, table_id, table_schema)
+            elif if_exists == 'append':
+                if not connector.schema_is_subset(dataset_id,
+                                                  table_id,
+                                                  table_schema):
+                    raise InvalidSchema("Please verify that the structure and "
+                                        "data types in the DataFrame match "
+                                        "the schema of the destination table.")
+        else:
+            table.create(table_id, table_schema)
+
+        connector.load_data(dataframe, dataset_id, table_id, chunksize)
 
 
 def generate_bq_schema(df, default_type='STRING'):
@@ -1107,7 +1313,6 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 
 class _Table(GbqConnector):
-
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
         try:
@@ -1132,11 +1337,16 @@ class _Table(GbqConnector):
             true if table exists, otherwise false
         """
 
+        if _Table.contains_partition_decorator(table_id):
+            root_table_id, partition_id = table_id.rsplit('$', 1)
+        else:
+            root_table_id = table_id
+
         try:
             self.service.tables().get(
                 projectId=self.project_id,
                 datasetId=self.dataset_id,
-                tableId=table_id).execute()
+                tableId=root_table_id).execute()
             return True
         except self.http_error as ex:
             if ex.resp.status == 404:
@@ -1144,7 +1354,7 @@ class _Table(GbqConnector):
             else:
                 self.process_http_error(ex)
 
-    def create(self, table_id, schema):
+    def create(self, table_id, schema, **kwargs):
         """ Create a table in Google BigQuery given a table and schema
 
         Parameters
@@ -1152,8 +1362,17 @@ class _Table(GbqConnector):
         table : str
             Name of table to be written
         schema : str
-            Use the generate_bq_schema to generate your table schema from a
-            dataframe.
+            Use the generate_bq_schema to generate
+             your table schema from a dataframe.
+
+        **kwargs : Arbitrary keyword arguments
+            body (dict): table creation extra parameters
+            For example:
+
+                body = {'timePartitioning': {'type': 'DAY'}}
+
+            For more information see `BigQuery SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/rest/v2/tables#resource>`__
         """
 
         if self.exists(table_id):
@@ -1173,6 +1392,10 @@ class _Table(GbqConnector):
                 'datasetId': self.dataset_id
             }
         }
+
+        config = kwargs.get('body')
+        if config is not None:
+            body.update(config)
 
         try:
             self.service.tables().insert(
@@ -1204,9 +1427,12 @@ class _Table(GbqConnector):
             if ex.resp.status != 404:
                 self.process_http_error(ex)
 
+    @staticmethod
+    def contains_partition_decorator(table_id):
+        return "$" in table_id
+
 
 class _Dataset(GbqConnector):
-
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None):
         try:
@@ -1312,13 +1538,17 @@ class _Dataset(GbqConnector):
         except self.http_error as ex:
             self.process_http_error(ex)
 
-    def delete(self, dataset_id):
+    def delete(self, dataset_id, delete_contents=False):
         """ Delete a dataset in Google BigQuery
 
         Parameters
         ----------
         dataset : str
             Name of dataset to be deleted
+        delete_contents : boolean
+            If True, delete all the tables in the dataset. 
+            If False and the dataset contains tables, 
+            the request will fail. Default is False
         """
 
         if not self.exists(dataset_id):
@@ -1328,7 +1558,8 @@ class _Dataset(GbqConnector):
         try:
             self.service.datasets().delete(
                 datasetId=dataset_id,
-                projectId=self.project_id).execute()
+                projectId=self.project_id,
+                deleteContents=delete_contents).execute()
 
         except self.http_error as ex:
             # Ignore 404 error which may occur if dataset already deleted
