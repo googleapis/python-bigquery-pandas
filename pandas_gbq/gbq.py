@@ -1099,8 +1099,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
 
     if verbose:
         print("\nRetrieving results...")
-
-    rows, total_rows, page_token = query_results.fetch_data()
+    rows = list(query_results.fetch_data())
+    total_rows = len(rows)
 
     if verbose:
         print("Got %s rows.") % total_rows
