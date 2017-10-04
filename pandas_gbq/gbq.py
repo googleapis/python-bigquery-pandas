@@ -920,9 +920,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
             num /= 1024.0
         return fmt % (num, 'Y', suffix)
 
-    if private_key:
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = private_key
-
     def _wait_for_job(job):
         while True:
             job.reload()  # Refreshes the state via a GET request.
@@ -931,8 +928,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
                     raise RuntimeError(job.errors)
                 return
             time.sleep(1)
-            
-    client = bigquery.Client(project=project_id)
+    if private_key:
+        client = bigquery.Client(project=project_id).from_service_account_json(private_key)
+    else:        
+        client = bigquery.Client(project=project_id)
     query_job = client.run_async_query(str(uuid.uuid4()), query)
 
     if dialect != 'legacy':
