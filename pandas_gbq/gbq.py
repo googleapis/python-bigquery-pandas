@@ -683,7 +683,7 @@ def _get_credentials_file():
     return os.environ.get(
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=True,
+def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True,
              private_key=None, auth_local_webserver=False, dialect='legacy', 
              configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
@@ -721,6 +721,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
     col_order : list(str) (optional)
         List of BigQuery column names in the desired order for results
         DataFrame
+    reauth : boolean (default False)
+        Force Google BigQuery to reauthenticate the user. This is useful
+        if multiple accounts are used.
     verbose : boolean (default True)
         Verbose output
     private_key : str (optional)
@@ -774,12 +777,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
                     raise RuntimeError(job.errors)
                 return
             time.sleep(1)
-    if private_key:
-        client = bigquery.Client(project=project_id).from_service_account_json(private_key)
-    elif auth_local_webserver:
-        GbqConnector(project_id=project_id,auth_local_webserver=True).get_user_account_credentials()
-    else:        
-        client = bigquery.Client(project=project_id)
+
+    credentials = GbqConnector(project_id=project_id,
+                               reauth=reauth,
+                               auth_local_webserver=auth_local_webserver,
+                               private_key=private_key).credentials  
+    client = bigquery.Client(project=project_id, credentials=credentials)
     query_job = client.run_async_query(str(uuid.uuid4()), query)
 
     if dialect != 'legacy':
