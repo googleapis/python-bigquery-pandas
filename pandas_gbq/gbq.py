@@ -507,138 +507,6 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-    def run_query(self, query, **kwargs):
-        try:
-            from googleapiclient.errors import HttpError
-        except:
-            from apiclient.errors import HttpError
-        from google.auth.exceptions import RefreshError
-
-        job_collection = self.service.jobs()
-
-        job_config = {
-            'query': {
-                'query': query,
-                'useLegacySql': self.dialect == 'legacy'
-                # 'allowLargeResults', 'createDisposition',
-                # 'preserveNulls', destinationTable, useQueryCache
-            }
-        }
-        config = kwargs.get('configuration')
-        if config is not None:
-            if len(config) != 1:
-                raise ValueError("Only one job type must be specified, but "
-                                 "given {}".format(','.join(config.keys())))
-            if 'query' in config:
-                if 'query' in config['query'] and query is not None:
-                    raise ValueError("Query statement can't be specified "
-                                     "inside config while it is specified "
-                                     "as parameter")
-
-                job_config['query'].update(config['query'])
-            else:
-                raise ValueError("Only 'query' job type is supported")
-
-        job_data = {
-            'configuration': job_config
-        }
-
-        self._start_timer()
-        try:
-            self._print('Requesting query... ', end="")
-            query_reply = job_collection.insert(
-                projectId=self.project_id, body=job_data).execute()
-            self._print('ok.')
-        except (RefreshError, ValueError):
-            if self.private_key:
-                raise AccessDenied(
-                    "The service account credentials are not valid")
-            else:
-                raise AccessDenied(
-                    "The credentials have been revoked or expired, "
-                    "please re-run the application to re-authorize")
-        except HttpError as ex:
-            self.process_http_error(ex)
-
-        job_reference = query_reply['jobReference']
-        job_id = job_reference['jobId']
-        self._print('Job ID: %s\nQuery running...' % job_id)
-
-        while not query_reply.get('jobComplete', False):
-            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
-
-            timeout_ms = job_config['query'].get('timeoutMs')
-            if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
-                raise QueryTimeout('Query timeout: {} ms'.format(timeout_ms))
-
-            try:
-                query_reply = job_collection.getQueryResults(
-                    projectId=job_reference['projectId'],
-                    jobId=job_id).execute()
-            except HttpError as ex:
-                self.process_http_error(ex)
-
-        if self.verbose:
-            if query_reply['cacheHit']:
-                self._print('Query done.\nCache hit.\n')
-            else:
-                bytes_processed = int(query_reply.get(
-                    'totalBytesProcessed', '0'))
-                self._print('Query done.\nProcessed: {}'.format(
-                    self.sizeof_fmt(bytes_processed)))
-                self._print('Standard price: ${:,.2f} USD\n'.format(
-                    bytes_processed * self.query_price_for_TB))
-
-            self._print('Retrieving results...')
-
-        total_rows = int(query_reply['totalRows'])
-        result_pages = list()
-        seen_page_tokens = list()
-        current_row = 0
-        # Only read schema on first page
-        schema = query_reply['schema']
-
-        # Loop through each page of data
-        while 'rows' in query_reply and current_row < total_rows:
-            page = query_reply['rows']
-            result_pages.append(page)
-            current_row += len(page)
-
-            self.print_elapsed_seconds(
-                '  Got page: {}; {}% done. Elapsed'.format(
-                    len(result_pages),
-                    round(100.0 * current_row / total_rows)))
-
-            if current_row == total_rows:
-                break
-
-            page_token = query_reply.get('pageToken', None)
-
-            if not page_token and current_row < total_rows:
-                raise InvalidPageToken("Required pageToken was missing. "
-                                       "Received {0} of {1} rows"
-                                       .format(current_row, total_rows))
-
-            elif page_token in seen_page_tokens:
-                raise InvalidPageToken("A duplicate pageToken was returned")
-
-            seen_page_tokens.append(page_token)
-
-            try:
-                query_reply = job_collection.getQueryResults(
-                    projectId=job_reference['projectId'],
-                    jobId=job_id,
-                    pageToken=page_token).execute()
-            except HttpError as ex:
-                self.process_http_error(ex)
-
-        if current_row < total_rows:
-            raise InvalidPageToken()
-
-        # print basic query stats
-        self._print('Got {} rows.\n'.format(total_rows))
-
-        return schema, result_pages
 
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
         try:
@@ -815,46 +683,9 @@ def _get_credentials_file():
     return os.environ.get(
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
-
-def _parse_data(schema, rows):
-    # see:
-    # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
-    # #missing-data-casting-rules-and-indexing
-    dtype_map = {'FLOAT': np.dtype(float),
-                 'TIMESTAMP': 'M8[ns]'}
-
-    fields = schema['fields']
-    col_types = [field['type'] for field in fields]
-    col_names = [str(field['name']) for field in fields]
-    col_dtypes = [dtype_map.get(field['type'], object) for field in fields]
-    page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
-    for row_num, raw_row in enumerate(rows):
-        entries = raw_row.get('f', [])
-        for col_num, field_type in enumerate(col_types):
-            field_value = _parse_entry(entries[col_num].get('v', ''),
-                                       field_type)
-            page_array[row_num][col_num] = field_value
-
-    return DataFrame(page_array, columns=col_names)
-
-
-def _parse_entry(field_value, field_type):
-    if field_value is None or field_value == 'null':
-        return None
-    if field_type == 'INTEGER':
-        return int(field_value)
-    elif field_type == 'FLOAT':
-        return float(field_value)
-    elif field_type == 'TIMESTAMP':
-        timestamp = datetime.utcfromtimestamp(float(field_value))
-        return np.datetime64(timestamp)
-    elif field_type == 'BOOLEAN':
-        return field_value == 'true'
-    return field_value
-    
-
 def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=True,
-             private_key=None, dialect='legacy', configuration=None, **kwargs):
+             private_key=None, auth_local_webserver=False, dialect='legacy', 
+             configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -862,15 +693,22 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
 
     The Google Cloud library is used.
     Documentation is available `here
-    <https://googlecloudplatform.github.io/google-cloud-python/stable/>`__
+    <https://googlecloudplatform.github.io/google-cloud-python/stable/>`
 
     Authentication via Google Cloud can be performed a number of ways, see:
     <https://googlecloudplatform.github.io/google-cloud-python/stable/google-cloud-auth.html>
-    The easiest is to download a service account JSON keyfile or generate user credentials via 
-    `gcloud auth application-default login` 
+
+    The easiest is to generate user credentials via `gcloud auth application-default login` 
     <https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login>
     and point to it using an environment variable:
     `$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"`
+
+    You can also download a service account private key JSON file and pass the path to the file
+    to the private_key paramater.
+
+    As a final alternative, you can also set auth_local_webserver to True, which will trigger 
+    a pop-up through which a user can auth with their Google account. This will generate a user 
+    credentials file, which is saved locally and can be re-used in the future.
 
     Parameters
     ----------
@@ -889,6 +727,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
         Path to service account private key in JSON format. If none is provided,
         will default to the GOOGLE_APPLICATION_CREDENTIALS environment variable
         or another form of authentication (see above)
+    auth_local_webserver : boolean, default False
+        Use the [local webserver flow] instead of the [console flow] when
+        getting user credentials. A file named bigquery_credentials.dat will
+        be created in ~/.config/pandas_gbq/. You can also set PANDAS_GBQ_CREDENTIALS_FILE
+        environment variable so as to define a specific path to store this
+        credential (eg. /etc/keys/bigquery.dat).
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
         'standard' : Use BigQuery's standard SQL (beta), which is
@@ -900,7 +744,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
         only some configuration settings are currently implemented. You can pass them 
         along like in the following: 
         `from_gbq(q,configuration={'allow_large_results':True,'maximum_billing_tier':2})`
-        
         Example allowable settings: 
             allow_large_results, create_disposition, default_dataset, destination
             flatten_results, priority, use_query_cache, use_legacy_sql, dry_run, 
@@ -914,6 +757,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
     """
 
     # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+
     def sizeof_fmt(num, suffix='B'):
         fmt = "%3.1f %s%s"
         for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
@@ -932,6 +776,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
             time.sleep(1)
     if private_key:
         client = bigquery.Client(project=project_id).from_service_account_json(private_key)
+    elif auth_local_webserver:
+        GbqConnector(project_id=project_id,auth_local_webserver=True).get_user_account_credentials()
     else:        
         client = bigquery.Client(project=project_id)
     query_job = client.run_async_query(str(uuid.uuid4()), query)
