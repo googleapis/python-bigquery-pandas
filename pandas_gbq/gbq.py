@@ -14,7 +14,7 @@ from pandas.compat import lzip, bytes_to_str
 
 logger = logging.getLogger(__name__)
 # silences warnings during tests
-logger.addHandler(logging.NullHandler())
+# logger.addHandler(logging.NullHandler())
 
 
 def _check_google_client_version():
