@@ -956,7 +956,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
             bytes_billed = int(query_job._properties["statistics"]["query"].get("totalBytesProcessed", 0))
             bytes_processed = int(query_job._properties["statistics"]["query"].get("totalBytesBilled", 0))
             print("Total bytes billed (processed): %s (%s)" % (sizeof_fmt(bytes_billed),sizeof_fmt(bytes_processed)))
-    query_results = query_job.results()
+    try:
+        query_results = query_job.results()
+    except:
+        query_results = query_job.result()
 
     if verbose:
         print("\nRetrieving results...")
