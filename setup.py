@@ -24,6 +24,7 @@ INSTALL_REQUIRES = [
     'google-auth>=1.0.0',
     'google-auth-httplib2>=0.0.1',
     'google-auth-oauthlib>=0.0.1',
+    'google-cloud-bigquery==0.25.0',
 ]
 
 

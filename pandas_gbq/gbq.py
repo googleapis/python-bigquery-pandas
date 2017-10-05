@@ -866,8 +866,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, verbose=Tru
 
     Authentication via Google Cloud can be performed a number of ways, see:
     <https://googlecloudplatform.github.io/google-cloud-python/stable/google-cloud-auth.html>
-    The easiest is to download a service account JSON keyfile and point to it using 
-    an environment variable:
+    The easiest is to download a service account JSON keyfile or generate user credentials via 
+    `gcloud auth application-default login` 
+    <https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login>
+    and point to it using an environment variable:
     `$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"`
 
     Parameters
