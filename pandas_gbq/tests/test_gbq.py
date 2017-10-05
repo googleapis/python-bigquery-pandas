@@ -198,12 +198,14 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
+        credentials = self.sut.credentials
+        schema = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials,get_schema=True)
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert pages is not None
+        credentials = self.sut.credentials
+        results = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials)
+        assert results is not None
 
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
@@ -261,12 +263,14 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
+        credentials = self.sut.credentials
+        schema = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials,get_schema=True)
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert pages is not None
+        credentials = self.sut.credentials
+        results = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials)
+        assert results is not None
 
 
 class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
@@ -292,12 +296,14 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
+        credentials = self.sut.credentials
+        schema = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials,get_schema=True)
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert pages is not None
+        credentials = self.sut.credentials
+        results = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials)
+        assert results is not None
 
 
 class GBQUnitTests(object):
@@ -906,19 +912,19 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                          configuration=config)
 
     def test_query_response_bytes(self):
-        assert self.gbq_connector.sizeof_fmt(999) == "999.0 B"
-        assert self.gbq_connector.sizeof_fmt(1024) == "1.0 KB"
-        assert self.gbq_connector.sizeof_fmt(1099) == "1.1 KB"
-        assert self.gbq_connector.sizeof_fmt(1044480) == "1020.0 KB"
-        assert self.gbq_connector.sizeof_fmt(1048576) == "1.0 MB"
-        assert self.gbq_connector.sizeof_fmt(1048576000) == "1000.0 MB"
-        assert self.gbq_connector.sizeof_fmt(1073741824) == "1.0 GB"
-        assert self.gbq_connector.sizeof_fmt(1.099512E12) == "1.0 TB"
-        assert self.gbq_connector.sizeof_fmt(1.125900E15) == "1.0 PB"
-        assert self.gbq_connector.sizeof_fmt(1.152922E18) == "1.0 EB"
-        assert self.gbq_connector.sizeof_fmt(1.180592E21) == "1.0 ZB"
-        assert self.gbq_connector.sizeof_fmt(1.208926E24) == "1.0 YB"
-        assert self.gbq_connector.sizeof_fmt(1.208926E28) == "10000.0 YB"
+        assert gbq.sizeof_fmt(999) == "999.0 B"
+        assert gbq.sizeof_fmt(1024) == "1.0 KB"
+        assert gbq.sizeof_fmt(1099) == "1.1 KB"
+        assert gbq.sizeof_fmt(1044480) == "1020.0 KB"
+        assert gbq.sizeof_fmt(1048576) == "1.0 MB"
+        assert gbq.sizeof_fmt(1048576000) == "1000.0 MB"
+        assert gbq.sizeof_fmt(1073741824) == "1.0 GB"
+        assert gbq.sizeof_fmt(1.099512E12) == "1.0 TB"
+        assert gbq.sizeof_fmt(1.125900E15) == "1.0 PB"
+        assert gbq.sizeof_fmt(1.152922E18) == "1.0 EB"
+        assert gbq.sizeof_fmt(1.180592E21) == "1.0 ZB"
+        assert gbq.sizeof_fmt(1.208926E24) == "1.0 YB"
+        assert gbq.sizeof_fmt(1.208926E28) == "10000.0 YB"
 
 
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):

@@ -683,9 +683,19 @@ def _get_credentials_file():
     return os.environ.get(
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
+
+def sizeof_fmt(num, suffix='B'):
+    fmt = "%3.1f %s%s"
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(num) < 1024.0:
+            return fmt % (num, unit, suffix)
+        num /= 1024.0
+    return fmt % (num, 'Y', suffix)
+        
+
 def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True,
-             private_key=None, auth_local_webserver=False, dialect='legacy', 
-             configuration=None, **kwargs):
+             private_key=None, auth_local_webserver=False, dialect='legacy', credentials=None,
+             get_schema=False, configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -741,7 +751,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         'standard' : Use BigQuery's standard SQL (beta), which is
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
-        <https://cloud.google.com/bigquery/sql-reference/>`__
+        <https://cloud.google.com/bigquery/sql-reference/>`
+    credentials: credentials object (default None)
+        If generating credentials on your own, pass in. Otherwise, will attempt to generate automatically
+    get_schema: boolean, default False
+        Set to True if you only want to return the schema, otherwise by default will return dataframe
     configuration : dict (optional)
         Because of current limitations (https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2765)
         only some configuration settings are currently implemented. You can pass them 
@@ -761,14 +775,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
 
     # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
 
-    def sizeof_fmt(num, suffix='B'):
-        fmt = "%3.1f %s%s"
-        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
-            if abs(num) < 1024.0:
-                return fmt % (num, unit, suffix)
-            num /= 1024.0
-        return fmt % (num, 'Y', suffix)
-
     def _wait_for_job(job):
         while True:
             job.reload()  # Refreshes the state via a GET request.
@@ -778,10 +784,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
                 return
             time.sleep(1)
 
-    credentials = GbqConnector(project_id=project_id,
-                               reauth=reauth,
-                               auth_local_webserver=auth_local_webserver,
-                               private_key=private_key).credentials  
+    if credentials is None:
+        credentials = GbqConnector(project_id=project_id,
+                                   reauth=reauth,
+                                   auth_local_webserver=auth_local_webserver,
+                                   private_key=private_key).credentials  
     client = bigquery.Client(project=project_id, credentials=credentials)
     query_job = client.run_async_query(str(uuid.uuid4()), query)
 
@@ -820,6 +827,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         print("\nTotal time taken %s s" % (datetime.utcnow()-query_job.created.replace(tzinfo=None)).seconds)
         print("Finished at %s." % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         
+    if get_schema:
+        return query_results.schema
 
     columns = [field.name for field in query_results.schema]
     data = rows
