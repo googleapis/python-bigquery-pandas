@@ -794,7 +794,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     """
 
     if dialect not in ('legacy', 'standard'):
-        raise ValueError("'{0}' is not valid for dialect".format(dialect))    
+        raise ValueError("'{0}' is not valid for dialect".format(dialect))
+    if configuration and any(key in configuration for key in 
+                             ["query", "copy", "load", "extract"]):
+        raise ValueError("New API handles configuration settings differently")
 
     def _wait_for_job(job):
         while True:

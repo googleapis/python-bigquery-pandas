@@ -832,27 +832,6 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(df, DataFrame({'valid_result': [3]}))
 
-    def test_query_inside_configuration(self):
-        query_no_use = 'SELECT "PI_WRONG" AS valid_string'
-        query = 'SELECT "PI" AS valid_string'
-        config = {
-            'query': {
-                "query": query,
-                "useQueryCache": False,
-            }
-        }
-        # Test that it can't pass query both
-        # inside config and as parameter
-        with pytest.raises(ValueError):
-            gbq.read_gbq(query_no_use, project_id=_get_project_id(),
-                         private_key=_get_private_key_path(),
-                         configuration=config)
-
-        df = gbq.read_gbq(None, project_id=_get_project_id(),
-                          private_key=_get_private_key_path(),
-                          configuration=config)
-        tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
-
     def test_configuration_without_query(self):
         sql_statement = 'SELECT 1'
         config = {
@@ -871,24 +850,6 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         }
         # Test that only 'query' configurations are supported
         # nor 'copy','load','extract'
-        with pytest.raises(ValueError):
-            gbq.read_gbq(sql_statement, project_id=_get_project_id(),
-                         private_key=_get_private_key_path(),
-                         configuration=config)
-
-    def test_configuration_raises_value_error_with_multiple_config(self):
-        sql_statement = 'SELECT 1'
-        config = {
-            'query': {
-                "query": sql_statement,
-                "useQueryCache": False,
-            },
-            'load': {
-                "query": sql_statement,
-                "useQueryCache": False,
-            }
-        }
-        # Test that only ValueError is raised with multiple configurations
         with pytest.raises(ValueError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path(),
