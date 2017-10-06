@@ -608,19 +608,19 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         query = 'SELECT TIMESTAMP("1970-01-01 00:00:00") AS unix_epoch'
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
-        expected = DataFrame({'unix_epoch': 
-                               [np.datetime64('1970-01-01T00:00:00.000000Z')]})
+        expected = DataFrame({'unix_epoch':
+                             [np.datetime64('1970-01-01T00:00:00.000000Z')]})
         tm.assert_frame_equal(df, to_datetime(expected.unix_epoch).dt
-                                              .tz_localize('UTC').to_frame())
+                              .tz_localize('UTC').to_frame())
 
     def test_should_properly_handle_arbitrary_timestamp(self):
         query = 'SELECT TIMESTAMP("2004-09-15 05:00:00") AS valid_timestamp'
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
-        expected = DataFrame({'valid_timestamp': 
-                               [np.datetime64('2004-09-15T05:00:00.000000Z')]})
+        expected = DataFrame({'valid_timestamp':
+                             [np.datetime64('2004-09-15T05:00:00.000000Z')]})
         tm.assert_frame_equal(df, to_datetime(expected.valid_timestamp).dt
-                                              .tz_localize('UTC').to_frame())
+                              .tz_localize('UTC').to_frame())
 
     def test_should_properly_handle_null_timestamp(self):
         query = 'SELECT TIMESTAMP(NULL) AS null_timestamp'
@@ -830,9 +830,9 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                           configuration=config,
                           query_parameters=(bigquery.ScalarQueryParameter(
-                                                      'param1', 'INT64', 1),
+                                            'param1', 'INT64', 1),
                                             bigquery.ScalarQueryParameter(
-                                                      'param2', 'INT64', 2)),
+                                            'param2', 'INT64', 2)),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(df, DataFrame({'valid_result': [3]}))
 
@@ -861,9 +861,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
     def test_timeout_configuration(self):
         sql_statement = 'SELECT 1'
-        config = {
-                "timeout_ms": 1
-        }
+        config = {"timeout_ms": 1}
         # Test that QueryTimeout error raises
         with pytest.raises(gbq.QueryTimeout):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),

@@ -4,5 +4,5 @@ google-api-python-client
 google-auth
 google-auth-httplib2
 google-auth-oauthlib
-google-cloud-bigquery>=0.25.0,<=0.26.0
+google-cloud-bigquery==0.26.0
 uuid

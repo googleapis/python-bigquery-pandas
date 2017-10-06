@@ -708,7 +708,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     <https://googlecloudplatform.github.io/google-cloud-python/stable/google-
     cloud-auth.html>
 
-    The easiest is to generate user credentials via
+    One method is to generate user credentials via
     `gcloud auth application-default login` <https://cloud.google.com/sdk/
     gcloud/reference/auth/application-default/login> and point to it using an
     environment variable:
@@ -717,10 +717,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     You can also download a service account private key JSON file and pass the
     path to the file to the private_key paramater.
 
-    As a final alternative, you can also set auth_local_webserver to True,
-    which will trigger a pop-up through which a user can auth with their Google
-    account. This will generate a user credentials file, which is saved locally
-    and can be re-used in the future.
+    If default credentials are not located and a private key is not passed,
+    an auth flow will begin where a user can auth via a link or via a pop-up
+    through which a user can auth with their Google account. This will
+    generate a user credentials file, which is saved locally and can be re-used
+    in the future.
 
     Parameters
     ----------
@@ -799,7 +800,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     if dialect not in ('legacy', 'standard'):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
-    if configuration and any(key in configuration for key in 
+    if configuration and any(key in configuration for key in
                              ["query", "copy", "load", "extract"]):
         raise ValueError("New API handles configuration settings differently")
 
@@ -870,7 +871,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         _wait_for_job(query_job)
         if verbose:
             print("Query done.")
-            if query_job._properties["statistics"]["query"].get("cacheHit", 
+            if query_job._properties["statistics"]["query"].get("cacheHit",
                                                                 False):
                 print("Cache hit.")
             elif ("statistics" in query_job._properties and
@@ -903,9 +904,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             print("Finished at %s." % datetime.now()
                   .strftime('%Y-%m-%d %H:%M:%S'))
 
-    if return_type=='schema':
+    if return_type == 'schema':
         return query_results.schema
-    elif return_type=='list':
+    elif return_type == 'list':
         return rows
 
     columns = [field.name for field in query_results.schema]
@@ -916,10 +917,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     # Manual field type conversion. Inserted to handle tests
     # with only null rows, otherwise type conversion works automatically
     for field in query_results.schema:
-        if field.field_type=='TIMESTAMP':
+        if field.field_type == 'TIMESTAMP':
             if final_df[field.name].isnull().values.all():
                 final_df[field.name] = to_datetime(final_df[field.name])
-        if field.field_type=='FLOAT':
+        if field.field_type == 'FLOAT':
             if final_df[field.name].isnull().values.all():
                 final_df[field.name] = to_numeric(final_df[field.name])
 
@@ -930,8 +931,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         else:
             raise InvalidIndexColumn(
                 'Index column "{0}" does not exist in DataFrame.'
-                .format(index_col)
-        )
+                .format(index_col))
 
     # Change the order of columns in the DataFrame based on provided list
     if col_order:
@@ -939,8 +939,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             final_df = final_df[col_order]
         else:
             raise InvalidColumnOrder(
-                'Column order does not match this DataFrame.'
-        )
+                'Column order does not match this DataFrame.')
 
     return final_df
 
