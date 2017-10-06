@@ -19,6 +19,8 @@ import pandas.util.testing as tm
 from pandas.compat.numpy import np_datetime64_compat
 from google.cloud import bigquery
 
+from google.cloud.exceptions import BadRequest
+
 
 TABLE_ID = 'new_test'
 
@@ -765,7 +767,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
         # Test that a legacy sql statement fails when
         # setting dialect='standard'
-        with pytest.raises(gbq.GenericGBQException):
+        with pytest.raises((RuntimeError,BadRequest)):
             gbq.read_gbq(legacy_sql, project_id=_get_project_id(),
                          dialect='standard',
                          private_key=_get_private_key_path())
@@ -783,7 +785,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
         # Test that a standard sql statement fails when using
         # the legacy SQL dialect (default value)
-        with pytest.raises(gbq.GenericGBQException):
+        with pytest.raises((RuntimeError,BadRequest)):
             gbq.read_gbq(standard_sql, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
@@ -814,7 +816,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         config = {"use_legacy_sql": False}
         # Test that a query that relies on parameters fails
         # when parameters are not supplied via configuration
-        with pytest.raises(RuntimeError):
+        with pytest.raises((RuntimeError,BadRequest)):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
@@ -895,9 +897,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
     def test_timeout_configuration(self):
         sql_statement = 'SELECT 1'
         config = {
-            'query': {
-                "timeoutMs": 1
-            }
+                "timeout_ms": 1
         }
         # Test that QueryTimeout error raises
         with pytest.raises(gbq.QueryTimeout):

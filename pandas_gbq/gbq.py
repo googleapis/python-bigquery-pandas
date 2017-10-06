@@ -694,7 +694,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy', credentials=None,
              get_schema=False, query_parameters=(), configuration=None,
-             **kwargs):
+             timeout_ms=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -780,6 +780,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             maximum_billing_tier, maximum_bytes_billed
             <http://google-cloud-python.readthedocs.io/en/latest/_modules/
             google/cloud/bigquery/job.html?highlight=_AsyncQueryConfiguration>
+    timeout_ms: int (optional) If set or found in config, triggers a sync query
+        that times out with no results if it can't be completed in the time
+        desired
+        <http://google-cloud-python.readthedocs.io/en/latest/bigquery/
+        query.html#google.cloud.bigquery.query.QueryResults.fetch_data>
 
     Returns
     -------
@@ -787,6 +792,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
+
+    if dialect not in ('legacy', 'standard'):
+        raise ValueError("'{0}' is not valid for dialect".format(dialect))    
 
     def _wait_for_job(job):
         while True:
@@ -802,55 +810,88 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                    reauth=reauth,
                                    auth_local_webserver=auth_local_webserver,
                                    private_key=private_key).credentials
-
     client = bigquery.Client(project=project_id, credentials=credentials)
-    query_job = client.run_async_query(str(uuid.uuid4()),
-                                       query,
-                                       query_parameters=query_parameters)
 
-    if dialect == 'legacy':
-        query_job.use_legacy_sql = True
-    elif dialect == 'standard':
-        query_job.use_legacy_sql = False
+    def _set_common_query_settings(query_job):
+        if dialect == 'legacy':
+            query_job.use_legacy_sql = True
+        elif dialect == 'standard':
+            query_job.use_legacy_sql = False
+
+        if configuration:
+            for setting, value in configuration.items():
+                setattr(query_job, setting, value)
+        return query_job
+
+    def sync_query():
+        query_job = client.run_sync_query(query,
+                                          query_parameters=query_parameters)
+        query_job = _set_common_query_settings(query_job)
+        if verbose:
+            print("Query running...")
+        if timeout_ms:
+            query_job.timeout_ms = timeout_ms
+        query_job.run()
+        if not query_job._properties.get("jobComplete", False):
+            raise QueryTimeout("Sync query timed out")
+        if verbose:
+            print("Query done.")
+            if query_job._properties.get("cacheHit", False):
+                print("Cache hit.")
+            else:
+                bytes_billed = int(query_job._properties
+                                   .get("totalBytesProcessed", 0))
+                bytes_processed = int(query_job._properties
+                                      .get("totalBytesBilled", 0))
+                print("Total bytes billed (processed): %s (%s)" %
+                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+            print("\nRetrieving results...")
+        return query_job, None
+
+    def async_query():
+        query_job = client.run_async_query(str(uuid.uuid4()),
+                                           query,
+                                           query_parameters=query_parameters)
+        query_job = _set_common_query_settings(query_job)
+        query_job.begin()
+        try:
+            query_results = query_job.results().fetch_data()
+        except:
+            query_results = query_job.result().fetch_data()
+        if verbose:
+            print("Query running...")
+        _wait_for_job(query_job)
+        if verbose:
+            print("Query done.")
+            if query_job._properties["statistics"]["query"].get("cacheHit", False):
+                print("Cache hit.")
+            elif ("statistics" in query_job._properties and
+                    "query" in query_job._properties["statistics"]):
+                bytes_billed = int(query_job._properties["statistics"]["query"]
+                                   .get("totalBytesProcessed", 0))
+                bytes_processed = int(query_job._properties["statistics"]["query"]
+                                      .get("totalBytesBilled", 0))
+                print("Total bytes billed (processed): %s (%s)" %
+                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+            print("\nRetrieving results...")
+        return query_results, query_job
+
+    if (configuration and "timeout_ms" in configuration) or timeout_ms:
+        query_results, query_job = sync_query()
+        rows = list(query_results.rows)
+        total_rows = len(rows)
     else:
-        raise ValueError("'{0}' is not valid for dialect".format(dialect))
-
-    if configuration:
-        for setting, value in configuration.items():
-            setattr(query_job, setting, value)
-
-    query_job.begin()
-
-    if verbose:
-        print("Query running...")
-    _wait_for_job(query_job)
-    if verbose:
-        print("Query done.")
-        if query_job._properties["statistics"]["query"].get("cacheHit", False):
-            print("Cache hit.")
-        elif ("statistics" in query_job._properties and
-                "query" in query_job._properties["statistics"]):
-            bytes_billed = int(query_job._properties["statistics"]["query"]
-                               .get("totalBytesProcessed", 0))
-            bytes_processed = int(query_job._properties["statistics"]["query"]
-                                  .get("totalBytesBilled", 0))
-            print("Total bytes billed (processed): %s (%s)" %
-                  (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
-    try:
-        query_results = query_job.results()
-    except:
-        query_results = query_job.result()
-
-    if verbose:
-        print("\nRetrieving results...")
-    rows = list(query_results.fetch_data())
-    total_rows = len(rows)
+        query_results, query_job = async_query()
+        rows = list(query_results)
+        total_rows = len(rows)
 
     if verbose:
         print("Got %s rows.") % total_rows
-        print("\nTotal time taken %ss" % (datetime.utcnow() -
-              query_job.created.replace(tzinfo=None)).seconds)
-        print("Finished at %s." % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        if query_job:
+            print("\nTotal time taken %ss" % (datetime.utcnow() -
+                  query_job.created.replace(tzinfo=None)).seconds)
+            print("Finished at %s." % datetime.now()
+                  .strftime('%Y-%m-%d %H:%M:%S'))
 
     if get_schema:
         return query_results.schema
