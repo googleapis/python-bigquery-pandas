@@ -8,7 +8,7 @@ import sys
 import os
 
 from distutils.version import StrictVersion
-from pandas import compat, DataFrame
+from pandas import compat, DataFrame, to_datetime, to_numeric
 from pandas.compat import bytes_to_str
 from google.cloud import bigquery
 
@@ -693,7 +693,7 @@ def sizeof_fmt(num, suffix='B'):
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy', credentials=None,
-             get_schema=False, query_parameters=(), configuration=None,
+             return_type='df', query_parameters=(), configuration=None,
              timeout_ms=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -757,9 +757,13 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     credentials: credentials object (default None)
         If generating credentials on your own, pass in. Otherwise, will attempt
         to generate automatically
-    get_schema: boolean, default False (optional)
-        Set to True if you only want to return the schema, otherwise by default
-        will return dataframe
+    return_type: {'schema','list','df'}, default 'df'
+        schema returns an array of SchemaField objects, which you can access
+            `from pprint import pprint
+            [pprint(vars(field)) for field in schema]`
+        list returns a list of lists of the rows of the results; column names
+            are not included
+        df returns a dataframe by default
     query_parameters: tuple (optional) Can only be used in Standard SQL
         example: gbq.read_gbq("SELECT @param1 + @param2",
                           query_parameters = (bigquery.ScalarQueryParameter(
@@ -866,13 +870,16 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         _wait_for_job(query_job)
         if verbose:
             print("Query done.")
-            if query_job._properties["statistics"]["query"].get("cacheHit", False):
+            if query_job._properties["statistics"]["query"].get("cacheHit", 
+                                                                False):
                 print("Cache hit.")
             elif ("statistics" in query_job._properties and
                     "query" in query_job._properties["statistics"]):
-                bytes_billed = int(query_job._properties["statistics"]["query"]
+                bytes_billed = int(query_job
+                                   ._properties["statistics"]["query"]
                                    .get("totalBytesProcessed", 0))
-                bytes_processed = int(query_job._properties["statistics"]["query"]
+                bytes_processed = int(query_job
+                                      ._properties["statistics"]["query"]
                                       .get("totalBytesBilled", 0))
                 print("Total bytes billed (processed): %s (%s)" %
                       (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
@@ -896,22 +903,25 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             print("Finished at %s." % datetime.now()
                   .strftime('%Y-%m-%d %H:%M:%S'))
 
-    if get_schema:
+    if return_type=='schema':
         return query_results.schema
+    elif return_type=='list':
+        return rows
 
     columns = [field.name for field in query_results.schema]
     data = rows
 
     final_df = DataFrame(data=data, columns=columns)
 
-    # Change the order of columns in the DataFrame based on provided list
-    if col_order:
-        if sorted(col_order) == sorted(final_df.columns):
-            final_df = final_df[col_order]
-        else:
-            raise InvalidColumnOrder(
-                'Column order does not match this DataFrame.'
-            )
+    # Manual field type conversion. Inserted to handle tests
+    # with only null rows, otherwise type conversion works automatically
+    for field in query_results.schema:
+        if field.field_type=='TIMESTAMP':
+            if final_df[field.name].isnull().values.all():
+                final_df[field.name] = to_datetime(final_df[field.name])
+        if field.field_type=='FLOAT':
+            if final_df[field.name].isnull().values.all():
+                final_df[field.name] = to_numeric(final_df[field.name])
 
     # Reindex the DataFrame on the provided column
     if index_col:
@@ -921,7 +931,16 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             raise InvalidIndexColumn(
                 'Index column "{0}" does not exist in DataFrame.'
                 .format(index_col)
-            )
+        )
+
+    # Change the order of columns in the DataFrame based on provided list
+    if col_order:
+        if sorted(col_order) == sorted(final_df.columns):
+            final_df = final_df[col_order]
+        else:
+            raise InvalidColumnOrder(
+                'Column order does not match this DataFrame.'
+        )
 
     return final_df
 
