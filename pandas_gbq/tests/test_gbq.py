@@ -17,6 +17,7 @@ from pandas import NaT, DataFrame
 from pandas_gbq import gbq
 import pandas.util.testing as tm
 from pandas.compat.numpy import np_datetime64_compat
+from google.cloud import bigquery
 
 
 TABLE_ID = 'new_test'
@@ -813,15 +814,20 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         config = {"use_legacy_sql": False}
         # Test that a query that relies on parameters fails
         # when parameters are not supplied via configuration
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
         # Test that the query is successful because we have supplied
-        # the correct query parameters via the 'config' option
+        # the correct query parameters via the 'config' and query_parameters
+        # option
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
-                          private_key=_get_private_key_path(),
-                          configuration=config)
+                          configuration = config,
+                          query_parameters = (bigquery.ScalarQueryParameter(
+                                                      'param1', 'INT64', 1),
+                                              bigquery.ScalarQueryParameter(
+                                                      'param2', 'INT64', 2)),
+                          private_key=_get_private_key_path())
         tm.assert_frame_equal(df, DataFrame({'valid_result': [3]}))
 
     def test_query_inside_configuration(self):

@@ -691,9 +691,10 @@ def sizeof_fmt(num, suffix='B'):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, auth_local_webserver=False,
-             dialect='legacy', credentials=None, get_schema=False, query_parameters=(),
-             configuration=None, **kwargs):
+             reauth=False, verbose=True, private_key=None,
+             auth_local_webserver=False, dialect='legacy', credentials=None,
+             get_schema=False, query_parameters=(), configuration=None,
+             **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -741,7 +742,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         Path to service account private key in JSON format. If none is
         provided, will default to the GOOGLE_APPLICATION_CREDENTIALS
         environment variable or another form of authentication (see above)
-    auth_local_webserver : boolean, default False
+    auth_local_webserver : boolean, default False (optional)
         Use the [local webserver flow] instead of the [console flow] when
         getting user credentials. A file named bigquery_credentials.dat will
         be created in ~/.config/pandas_gbq/. You can also set
@@ -756,11 +757,16 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     credentials: credentials object (default None)
         If generating credentials on your own, pass in. Otherwise, will attempt
         to generate automatically
-    get_schema: boolean, default False
+    get_schema: boolean, default False (optional)
         Set to True if you only want to return the schema, otherwise by default
         will return dataframe
-    query_parameters: dict (optional) <https://cloud.google.com/bigquery/docs/
-        parameterized-queries>
+    query_parameters: tuple (optional) Can only be used in Standard SQL
+        example: gbq.read_gbq("SELECT @param1 + @param2",
+                          query_parameters = (bigquery.ScalarQueryParameter(
+                                                      'param1', 'INT64', 1),
+                                              bigquery.ScalarQueryParameter(
+                                                      'param2', 'INT64', 2)))
+        <https://cloud.google.com/bigquery/docs/parameterized-queries>
     configuration : dict (optional)
         Because of current limitations <https://github.com/GoogleCloudPlatform/
         google-cloud-python/issues/2765> only some configuration settings are
@@ -802,8 +808,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                        query,
                                        query_parameters=query_parameters)
 
-    if dialect != 'legacy':
+    if dialect == 'legacy':
+        query_job.use_legacy_sql = True
+    elif dialect == 'standard':
         query_job.use_legacy_sql = False
+    else:
+        raise ValueError("'{0}' is not valid for dialect".format(dialect))
 
     if configuration:
         for setting, value in configuration.items():
