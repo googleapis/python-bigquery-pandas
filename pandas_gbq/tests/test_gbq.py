@@ -199,12 +199,17 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
     def test_should_be_able_to_get_schema_from_query(self):
         credentials = self.sut.credentials
-        schema = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials,get_schema=True)
+        schema = gbq.read_gbq('SELECT 1',
+                              project_id=_get_project_id(),
+                              credentials=credentials,
+                              get_schema=True)
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
         credentials = self.sut.credentials
-        results = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials)
+        results = gbq.read_gbq('SELECT 1',
+                               project_id=_get_project_id(),
+                               credentials=credentials)
         assert results is not None
 
     def test_get_application_default_credentials_does_not_throw_error(self):
@@ -264,12 +269,15 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
     def test_should_be_able_to_get_schema_from_query(self):
         credentials = self.sut.credentials
-        schema = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials,get_schema=True)
+        schema = gbq.read_gbq('SELECT 1', project_id=_get_project_id(),
+                              credentials=credentials,
+                              get_schema=True)
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
         credentials = self.sut.credentials
-        results = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials)
+        results = gbq.read_gbq('SELECT 1', project_id=_get_project_id(),
+                               credentials=credentials)
         assert results is not None
 
 
@@ -297,12 +305,17 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
     def test_should_be_able_to_get_schema_from_query(self):
         credentials = self.sut.credentials
-        schema = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials,get_schema=True)
+        schema = gbq.read_gbq('SELECT 1',
+                              project_id=_get_project_id(),
+                              credentials=credentials,
+                              get_schema=True)
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
         credentials = self.sut.credentials
-        results = gbq.read_gbq('SELECT 1',project_id=_get_project_id(),credentials=credentials)
+        results = gbq.read_gbq('SELECT 1',
+                               project_id=_get_project_id(),
+                               credentials=credentials)
         assert results is not None
 
 
@@ -522,7 +535,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(
-            df, DataFrame({'nullable_integer': [1, None]}).astype(object))
+            df, DataFrame({'nullable_integer': [1, None]}))
 
     def test_should_properly_handle_valid_longs(self):
         query = 'SELECT 1 << 62 AS valid_long'
@@ -538,7 +551,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(
-            df, DataFrame({'nullable_long': [1 << 62, None]}).astype(object))
+            df, DataFrame({'nullable_long': [1 << 62, None]}))
 
     def test_should_properly_handle_null_integers(self):
         query = 'SELECT INTEGER(NULL) AS null_integer'
@@ -634,7 +647,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(
-            df, DataFrame({'nullable_boolean': [True, None]}).astype(object))
+            df, DataFrame({'nullable_boolean': [True, None]}))
 
     def test_unicode_string_conversion_and_normalization(self):
         correct_test_datatype = DataFrame(
@@ -797,32 +810,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
     def test_query_with_parameters(self):
         sql_statement = "SELECT @param1 + @param2 AS valid_result"
-        config = {
-            'query': {
-                "useLegacySql": False,
-                "parameterMode": "named",
-                "queryParameters": [
-                    {
-                        "name": "param1",
-                        "parameterType": {
-                            "type": "INTEGER"
-                        },
-                        "parameterValue": {
-                            "value": 1
-                        }
-                    },
-                    {
-                        "name": "param2",
-                        "parameterType": {
-                            "type": "INTEGER"
-                        },
-                        "parameterValue": {
-                            "value": 2
-                        }
-                    }
-                ]
-            }
-        }
+        config = {"use_legacy_sql": False}
         # Test that a query that relies on parameters fails
         # when parameters are not supplied via configuration
         with pytest.raises(ValueError):

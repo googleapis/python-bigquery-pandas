@@ -5,3 +5,4 @@ google-auth-oauthlib
 PyCrypto
 python-gflags
 mock
+google-cloud-bigquery>=0.25.0,<=0.26.0

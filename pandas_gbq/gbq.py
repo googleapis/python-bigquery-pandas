@@ -6,13 +6,10 @@ import uuid
 import time
 import sys
 import os
-import uuid
-
-import numpy as np
 
 from distutils.version import StrictVersion
-from pandas import compat, DataFrame, concat
-from pandas.compat import lzip, bytes_to_str
+from pandas import compat, DataFrame
+from pandas.compat import bytes_to_str
 from google.cloud import bigquery
 
 
@@ -507,7 +504,6 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
-
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
         try:
             from googleapiclient.errors import HttpError
@@ -679,6 +675,7 @@ class GbqConnector(object):
         table.create(table_id, table_schema)
         sleep(delay)
 
+
 def _get_credentials_file():
     return os.environ.get(
         'PANDAS_GBQ_CREDENTIALS_FILE')
@@ -691,11 +688,12 @@ def sizeof_fmt(num, suffix='B'):
             return fmt % (num, unit, suffix)
         num /= 1024.0
     return fmt % (num, 'Y', suffix)
-        
 
-def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=False, verbose=True,
-             private_key=None, auth_local_webserver=False, dialect='legacy', credentials=None,
-             get_schema=False, configuration=None, **kwargs):
+
+def read_gbq(query, project_id=None, index_col=None, col_order=None,
+             reauth=False, verbose=True, private_key=None, auth_local_webserver=False,
+             dialect='legacy', credentials=None, get_schema=False, query_parameters=(),
+             configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -706,19 +704,22 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     <https://googlecloudplatform.github.io/google-cloud-python/stable/>`
 
     Authentication via Google Cloud can be performed a number of ways, see:
-    <https://googlecloudplatform.github.io/google-cloud-python/stable/google-cloud-auth.html>
+    <https://googlecloudplatform.github.io/google-cloud-python/stable/google-
+    cloud-auth.html>
 
-    The easiest is to generate user credentials via `gcloud auth application-default login` 
-    <https://cloud.google.com/sdk/gcloud/reference/auth/application-default/login>
-    and point to it using an environment variable:
+    The easiest is to generate user credentials via
+    `gcloud auth application-default login` <https://cloud.google.com/sdk/
+    gcloud/reference/auth/application-default/login> and point to it using an
+    environment variable:
     `$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"`
 
-    You can also download a service account private key JSON file and pass the path to the file
-    to the private_key paramater.
+    You can also download a service account private key JSON file and pass the
+    path to the file to the private_key paramater.
 
-    As a final alternative, you can also set auth_local_webserver to True, which will trigger 
-    a pop-up through which a user can auth with their Google account. This will generate a user 
-    credentials file, which is saved locally and can be re-used in the future.
+    As a final alternative, you can also set auth_local_webserver to True,
+    which will trigger a pop-up through which a user can auth with their Google
+    account. This will generate a user credentials file, which is saved locally
+    and can be re-used in the future.
 
     Parameters
     ----------
@@ -737,15 +738,15 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
     verbose : boolean (default True)
         Verbose output
     private_key : str (optional)
-        Path to service account private key in JSON format. If none is provided,
-        will default to the GOOGLE_APPLICATION_CREDENTIALS environment variable
-        or another form of authentication (see above)
+        Path to service account private key in JSON format. If none is
+        provided, will default to the GOOGLE_APPLICATION_CREDENTIALS
+        environment variable or another form of authentication (see above)
     auth_local_webserver : boolean, default False
         Use the [local webserver flow] instead of the [console flow] when
         getting user credentials. A file named bigquery_credentials.dat will
-        be created in ~/.config/pandas_gbq/. You can also set PANDAS_GBQ_CREDENTIALS_FILE
-        environment variable so as to define a specific path to store this
-        credential (eg. /etc/keys/bigquery.dat).
+        be created in ~/.config/pandas_gbq/. You can also set
+        PANDAS_GBQ_CREDENTIALS_FILE environment variable so as to define a
+        specific path to store this credential (eg. /etc/keys/bigquery.dat).
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
         'standard' : Use BigQuery's standard SQL (beta), which is
@@ -753,18 +754,26 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`
     credentials: credentials object (default None)
-        If generating credentials on your own, pass in. Otherwise, will attempt to generate automatically
+        If generating credentials on your own, pass in. Otherwise, will attempt
+        to generate automatically
     get_schema: boolean, default False
-        Set to True if you only want to return the schema, otherwise by default will return dataframe
+        Set to True if you only want to return the schema, otherwise by default
+        will return dataframe
+    query_parameters: dict (optional) <https://cloud.google.com/bigquery/docs/
+        parameterized-queries>
     configuration : dict (optional)
-        Because of current limitations (https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2765)
-        only some configuration settings are currently implemented. You can pass them 
-        along like in the following: 
-        `from_gbq(q,configuration={'allow_large_results':True,'maximum_billing_tier':2})`
-        Example allowable settings: 
-            allow_large_results, create_disposition, default_dataset, destination
-            flatten_results, priority, use_query_cache, use_legacy_sql, dry_run, 
-            write_disposition, udf_resources, maximum_billing_tier, maximum_bytes_billed
+        Because of current limitations <https://github.com/GoogleCloudPlatform/
+        google-cloud-python/issues/2765> only some configuration settings are
+        currently implemented. You can pass them along like in the following:
+        `read_gbq(q,configuration={'allow_large_results':True,
+                                   'maximum_billing_tier':2})`
+        Example allowable settings:
+            allow_large_results, create_disposition, default_dataset,
+            destination, flatten_results, priority, use_query_cache,
+            use_legacy_sql, dry_run, write_disposition, udf_resources,
+            maximum_billing_tier, maximum_bytes_billed
+            <http://google-cloud-python.readthedocs.io/en/latest/_modules/
+            google/cloud/bigquery/job.html?highlight=_AsyncQueryConfiguration>
 
     Returns
     -------
@@ -772,8 +781,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         DataFrame representing results of query
 
     """
-
-    # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
 
     def _wait_for_job(job):
         while True:
@@ -788,9 +795,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         credentials = GbqConnector(project_id=project_id,
                                    reauth=reauth,
                                    auth_local_webserver=auth_local_webserver,
-                                   private_key=private_key).credentials  
+                                   private_key=private_key).credentials
+
     client = bigquery.Client(project=project_id, credentials=credentials)
-    query_job = client.run_async_query(str(uuid.uuid4()), query)
+    query_job = client.run_async_query(str(uuid.uuid4()),
+                                       query,
+                                       query_parameters=query_parameters)
 
     if dialect != 'legacy':
         query_job.use_legacy_sql = False
@@ -808,10 +818,14 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
         print("Query done.")
         if query_job._properties["statistics"]["query"].get("cacheHit", False):
             print("Cache hit.")
-        elif "statistics" in query_job._properties and "query" in query_job._properties["statistics"]:
-            bytes_billed = int(query_job._properties["statistics"]["query"].get("totalBytesProcessed", 0))
-            bytes_processed = int(query_job._properties["statistics"]["query"].get("totalBytesBilled", 0))
-            print("Total bytes billed (processed): %s (%s)" % (sizeof_fmt(bytes_billed),sizeof_fmt(bytes_processed)))
+        elif ("statistics" in query_job._properties and
+                "query" in query_job._properties["statistics"]):
+            bytes_billed = int(query_job._properties["statistics"]["query"]
+                               .get("totalBytesProcessed", 0))
+            bytes_processed = int(query_job._properties["statistics"]["query"]
+                                  .get("totalBytesBilled", 0))
+            print("Total bytes billed (processed): %s (%s)" %
+                  (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
     try:
         query_results = query_job.results()
     except:
@@ -824,16 +838,17 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None, reauth=Fals
 
     if verbose:
         print("Got %s rows.") % total_rows
-        print("\nTotal time taken %s s" % (datetime.utcnow()-query_job.created.replace(tzinfo=None)).seconds)
+        print("\nTotal time taken %ss" % (datetime.utcnow() -
+              query_job.created.replace(tzinfo=None)).seconds)
         print("Finished at %s." % datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        
+
     if get_schema:
         return query_results.schema
 
     columns = [field.name for field in query_results.schema]
     data = rows
 
-    final_df = DataFrame(data=data,columns=columns)
+    final_df = DataFrame(data=data, columns=columns)
 
     # Change the order of columns in the DataFrame based on provided list
     if col_order:
