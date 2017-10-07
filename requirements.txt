@@ -5,4 +5,3 @@ google-auth
 google-auth-httplib2
 google-auth-oauthlib
 google-cloud-bigquery==0.26.0
-uuid
