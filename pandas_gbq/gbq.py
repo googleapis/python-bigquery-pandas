@@ -727,7 +727,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     ----------
     query : str
         SQL-Like Query to return data values
-    project_id : str (optional)
+    project_id : str
         Google BigQuery Account project ID.
     index_col : str (optional)
         Name of result column to use for index in results DataFrame
@@ -740,22 +740,27 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     verbose : boolean (default True)
         Verbose output
     private_key : str (optional)
-        Path to service account private key in JSON format. If none is
-        provided, will default to the GOOGLE_APPLICATION_CREDENTIALS
-        environment variable or another form of authentication (see above)
-    auth_local_webserver : boolean, default False (optional)
+        Service account private key in JSON format. Can be file path
+        or string contents. This is useful for remote server
+        authentication (eg. jupyter iPython notebook on remote host)
+    auth_local_webserver : boolean, default False
         Use the [local webserver flow] instead of the [console flow] when
         getting user credentials. A file named bigquery_credentials.dat will
-        be created in ~/.config/pandas_gbq/. You can also set
-        PANDAS_GBQ_CREDENTIALS_FILE environment variable so as to define a
-        specific path to store this credential (eg. /etc/keys/bigquery.dat).
+        be created in current dir. You can also set PANDAS_GBQ_CREDENTIALS_FILE
+        environment variable so as to define a specific path to store this
+        credential (eg. /etc/keys/bigquery.dat).
+        .. [local webserver flow]
+            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+        .. [console flow]
+            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+        .. versionadded:: 0.2.0
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
         'standard' : Use BigQuery's standard SQL (beta), which is
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`
-    credentials: credentials object (default None)
+    credentials: credentials object, default None (optional)
         If generating credentials on your own, pass in. Otherwise, will attempt
         to generate automatically
     return_type: {'schema','list','df'}, default 'df'
