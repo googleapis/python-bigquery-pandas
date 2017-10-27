@@ -507,7 +507,7 @@ class GbqConnector(object):
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
         try:
             from googleapiclient.errors import HttpError
-        except:
+        except ImportError:
             from apiclient.errors import HttpError
 
         job_id = uuid.uuid4().hex
@@ -581,7 +581,7 @@ class GbqConnector(object):
 
         try:
             from googleapiclient.errors import HttpError
-        except:
+        except ImportError:
             from apiclient.errors import HttpError
 
         try:
@@ -690,7 +690,7 @@ def sizeof_fmt(num, suffix='B'):
     return fmt % (num, 'Y', suffix)
 
 
-def run_query(query, client, dialect='legacy', query_parameters=(), 
+def run_query(query, client, dialect='legacy', query_parameters=(),
               configuration=None, verbose=True, async=True):
     def _wait_for_job(job):
         while True:
@@ -743,7 +743,7 @@ def run_query(query, client, dialect='legacy', query_parameters=(),
         query_job.begin()
         try:
             query_results = query_job.results().fetch_data()
-        except:
+        except AttributeError:
             query_results = query_job.result().fetch_data()
         if verbose:
             print("Query running...")
@@ -767,11 +767,11 @@ def run_query(query, client, dialect='legacy', query_parameters=(),
         return query_results, query_job
 
     def get_columns_schema(query_results):
-        schema = [{"name":f.name,
-                   "field_type":f.field_type,
-                   "mode":f.mode,
-                   "fields":f.fields,
-                   "description":f.description} for f in query_results.schema]
+        schema = [{"name": f.name,
+                   "field_type": f.field_type,
+                   "mode": f.mode,
+                   "fields": f.fields,
+                   "description": f.description} for f in query_results.schema]
         columns = [field["name"] for field in schema]
         return columns, schema
 
@@ -943,12 +943,13 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     if configuration and any(key in configuration for key in
                              ["query", "copy", "load", "extract"]):
         raise ValueError("The Google Cloud BigQuery API handles configuration "
-            "settings differently. There are now a discrete set of query "
-            "settings one can set by passing in a dictionary, e.g.: "
-            "`configuration={'maximum_billing_tier':2}`. See "
-            "http://google-cloud-python.readthedocs.io/en/latest/_modules/"
-            "google/cloud/bigquery/job.html?highlight=QueryJobConfig "
-            "for allowable paramaters.")
+                         "settings differently. There are now a discrete set "
+                         "of query settings one can set by passing in a "
+                         "dictionary, e.g.: `configuration="
+                         "{'maximum_billing_tier':2}`. See http://google-cloud"
+                         "-python.readthedocs.io/en/latest/_modules/google/"
+                         "cloud/bigquery/job.html?highlight=QueryJobConfig "
+                         "for allowable paramaters.")
 
     if credentials is None:
         credentials = GbqConnector(project_id=project_id,
@@ -956,11 +957,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                    auth_local_webserver=auth_local_webserver,
                                    private_key=private_key).credentials
     client = bigquery.Client(project=project_id, credentials=credentials)
-    
+
     if timeout_ms:
         configuration['timeout_ms'] = timeout_ms
     if (configuration and "timeout_ms" in configuration):
-        rows, columns, schema = run_query(query, client, dialect, 
+        rows, columns, schema = run_query(query, client, dialect,
                                           query_parameters, configuration,
                                           verbose,
                                           async=False)
@@ -1121,7 +1122,7 @@ class _Table(GbqConnector):
                  private_key=None):
         try:
             from googleapiclient.errors import HttpError
-        except:
+        except ImportError:
             from apiclient.errors import HttpError
         self.http_error = HttpError
         self.dataset_id = dataset_id
@@ -1220,7 +1221,7 @@ class _Dataset(GbqConnector):
                  private_key=None):
         try:
             from googleapiclient.errors import HttpError
-        except:
+        except ImportError:
             from apiclient.errors import HttpError
         self.http_error = HttpError
         super(_Dataset, self).__init__(project_id, reauth, verbose,
