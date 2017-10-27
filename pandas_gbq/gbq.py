@@ -12,6 +12,7 @@ from pandas import compat, DataFrame, to_datetime, to_numeric
 from pandas.compat import bytes_to_str
 from google.cloud import bigquery
 
+
 def _check_google_client_version():
 
     try:
@@ -689,6 +690,95 @@ def sizeof_fmt(num, suffix='B'):
     return fmt % (num, 'Y', suffix)
 
 
+def run_query(query, client, dialect, query_parameters, configuration, verbose,
+              async=True):
+    def _wait_for_job(job):
+        while True:
+            job.reload()  # Refreshes the state via a GET request.
+            if job.state == 'DONE':
+                if job.error_result:
+                    raise RuntimeError(job.errors)
+                return
+            time.sleep(1)
+
+    def _set_common_query_settings(query_job):
+        if dialect == 'legacy':
+            query_job.use_legacy_sql = True
+        elif dialect == 'standard':
+            query_job.use_legacy_sql = False
+
+        if configuration:
+            for setting, value in configuration.items():
+                setattr(query_job, setting, value)
+        return query_job
+
+    def sync_query():
+        query_job = client.run_sync_query(query,
+                                          query_parameters=query_parameters)
+        query_job = _set_common_query_settings(query_job)
+        if verbose:
+            print("Query running...")
+        query_job.run()
+        if not query_job._properties.get("jobComplete", False):
+            raise QueryTimeout("Sync query timed out")
+        if verbose:
+            print("Query done.")
+            if query_job._properties.get("cacheHit", False):
+                print("Cache hit.")
+            else:
+                bytes_billed = int(query_job._properties
+                                   .get("totalBytesProcessed", 0))
+                bytes_processed = int(query_job._properties
+                                      .get("totalBytesBilled", 0))
+                print("Total bytes billed (processed): %s (%s)" %
+                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+            print("\nRetrieving results...")
+        return query_job, None
+
+    def async_query():
+        query_job = client.run_async_query(str(uuid.uuid4()),
+                                           query,
+                                           query_parameters=query_parameters)
+        query_job = _set_common_query_settings(query_job)
+        query_job.begin()
+        try:
+            query_results = query_job.results().fetch_data()
+        except:
+            query_results = query_job.result().fetch_data()
+        if verbose:
+            print("Query running...")
+        _wait_for_job(query_job)
+        if verbose:
+            print("Query done.")
+            if query_job._properties["statistics"]["query"].get("cacheHit",
+                                                                False):
+                print("Cache hit.")
+            elif ("statistics" in query_job._properties and
+                    "query" in query_job._properties["statistics"]):
+                bytes_billed = int(query_job
+                                   ._properties["statistics"]["query"]
+                                   .get("totalBytesProcessed", 0))
+                bytes_processed = int(query_job
+                                      ._properties["statistics"]["query"]
+                                      .get("totalBytesBilled", 0))
+                print("Total bytes billed (processed): %s (%s)" %
+                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+            print("\nRetrieving results...")
+        return query_results, query_job
+
+    if async:
+        query_results, query_job = async_query()
+        rows = list(query_results)
+    else:
+        query_results, query_job = sync_query()
+        rows = list(query_results.rows)
+
+    columns = [field.name for field in query_results.schema]
+    schema = query_results.schema
+
+    return query_results, query_job, rows, schema, columns
+
+
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy', credentials=None,
@@ -818,15 +908,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             "google/cloud/bigquery/job.html?highlight=QueryJobConfig "
             "for allowable paramaters.")
 
-    def _wait_for_job(job):
-        while True:
-            job.reload()  # Refreshes the state via a GET request.
-            if job.state == 'DONE':
-                if job.error_result:
-                    raise RuntimeError(job.errors)
-                return
-            time.sleep(1)
-
     if credentials is None:
         credentials = GbqConnector(project_id=project_id,
                                    reauth=reauth,
@@ -834,84 +915,27 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                    private_key=private_key).credentials
     client = bigquery.Client(project=project_id, credentials=credentials)
 
-    def _set_common_query_settings(query_job):
-        if dialect == 'legacy':
-            query_job.use_legacy_sql = True
-        elif dialect == 'standard':
-            query_job.use_legacy_sql = False
-
-        if configuration:
-            for setting, value in configuration.items():
-                setattr(query_job, setting, value)
-        return query_job
-
-    def sync_query():
-        query_job = client.run_sync_query(query,
-                                          query_parameters=query_parameters)
-        query_job = _set_common_query_settings(query_job)
-        if verbose:
-            print("Query running...")
-        if timeout_ms:
-            query_job.timeout_ms = timeout_ms
-        query_job.run()
-        if not query_job._properties.get("jobComplete", False):
-            raise QueryTimeout("Sync query timed out")
-        if verbose:
-            print("Query done.")
-            if query_job._properties.get("cacheHit", False):
-                print("Cache hit.")
-            else:
-                bytes_billed = int(query_job._properties
-                                   .get("totalBytesProcessed", 0))
-                bytes_processed = int(query_job._properties
-                                      .get("totalBytesBilled", 0))
-                print("Total bytes billed (processed): %s (%s)" %
-                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
-            print("\nRetrieving results...")
-        return query_job, None
-
-    def async_query():
-        query_job = client.run_async_query(str(uuid.uuid4()),
-                                           query,
-                                           query_parameters=query_parameters)
-        query_job = _set_common_query_settings(query_job)
-        query_job.begin()
-        try:
-            query_results = query_job.results().fetch_data()
-        except:
-            query_results = query_job.result().fetch_data()
-        if verbose:
-            print("Query running...")
-        _wait_for_job(query_job)
-        if verbose:
-            print("Query done.")
-            if query_job._properties["statistics"]["query"].get("cacheHit",
-                                                                False):
-                print("Cache hit.")
-            elif ("statistics" in query_job._properties and
-                    "query" in query_job._properties["statistics"]):
-                bytes_billed = int(query_job
-                                   ._properties["statistics"]["query"]
-                                   .get("totalBytesProcessed", 0))
-                bytes_processed = int(query_job
-                                      ._properties["statistics"]["query"]
-                                      .get("totalBytesBilled", 0))
-                print("Total bytes billed (processed): %s (%s)" %
-                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
-            print("\nRetrieving results...")
-        return query_results, query_job
-
-    if (configuration and "timeout_ms" in configuration) or timeout_ms:
-        query_results, query_job = sync_query()
-        rows = list(query_results.rows)
-        total_rows = len(rows)
+    
+    if timeout_ms:
+        configuration['timeout_ms'] = timeout_ms
+    if (configuration and "timeout_ms" in configuration):
+        query_results, query_job, rows, schame, columns = run_query(query, 
+                                                   client,
+                                                   dialect, 
+                                                   query_parameters,
+                                                   configuration,
+                                                   verbose,
+                                                   async=False)
     else:
-        query_results, query_job = async_query()
-        rows = list(query_results)
-        total_rows = len(rows)
+        query_results, query_job, rows, schema, columns = run_query(query, 
+                                                   client,
+                                                   dialect,
+                                                   query_parameters,
+                                                   configuration,
+                                                   verbose)
 
     if verbose:
-        print("Got %s rows.") % total_rows
+        print("Got %s rows.") % len(rows)
         if query_job:
             print("\nTotal time taken %ss" % (datetime.utcnow() -
                   query_job.created.replace(tzinfo=None)).seconds)
@@ -923,10 +947,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     elif return_type == 'list':
         return rows
 
-    columns = [field.name for field in query_results.schema]
-    data = rows
-
-    final_df = DataFrame(data=data, columns=columns)
+    final_df = DataFrame(data=rows, columns=columns)
 
     # Manual field type conversion. Inserted to handle tests
     # with only null rows, otherwise type conversion works automatically
