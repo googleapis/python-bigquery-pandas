@@ -12,7 +12,6 @@ from pandas import compat, DataFrame, to_datetime, to_numeric
 from pandas.compat import bytes_to_str
 from google.cloud import bigquery
 
-
 def _check_google_client_version():
 
     try:
@@ -789,7 +788,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             use_legacy_sql, dry_run, write_disposition, udf_resources,
             maximum_billing_tier, maximum_bytes_billed
             <http://google-cloud-python.readthedocs.io/en/latest/_modules/
-            google/cloud/bigquery/job.html?highlight=_AsyncQueryConfiguration>
+            google/cloud/bigquery/job.html?highlight=QueryJobConfig>
     timeout_ms: int (optional) If set or found in config, triggers a sync query
         that times out with no results if it can't be completed in the time
         desired
@@ -802,12 +801,22 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
+    _test_google_api_imports()
+
+    if not project_id:
+        raise TypeError("Missing required parameter: project_id")
 
     if dialect not in ('legacy', 'standard'):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
     if configuration and any(key in configuration for key in
                              ["query", "copy", "load", "extract"]):
-        raise ValueError("New API handles configuration settings differently")
+        raise ValueError("The Google Cloud BigQuery API handles configuration "
+            "settings differently. There are now a discrete set of query "
+            "settings one can set by passing in a dictionary, e.g.: "
+            "`configuration={'maximum_billing_tier':2}`. See "
+            "http://google-cloud-python.readthedocs.io/en/latest/_modules/"
+            "google/cloud/bigquery/job.html?highlight=QueryJobConfig "
+            "for allowable paramaters.")
 
     def _wait_for_job(job):
         while True:
