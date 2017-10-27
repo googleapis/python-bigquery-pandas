@@ -690,8 +690,8 @@ def sizeof_fmt(num, suffix='B'):
     return fmt % (num, 'Y', suffix)
 
 
-def run_query(query, client, dialect, query_parameters, configuration, verbose,
-              async=True):
+def run_query(query, client, dialect='legacy', query_parameters=(), 
+              configuration=None, verbose=True, async=True):
     def _wait_for_job(job):
         while True:
             job.reload()  # Refreshes the state via a GET request.
@@ -766,6 +766,15 @@ def run_query(query, client, dialect, query_parameters, configuration, verbose,
             print("\nRetrieving results...")
         return query_results, query_job
 
+    def get_columns_schema(query_results):
+        schema = [{"name":f.name,
+                   "field_type":f.field_type,
+                   "mode":f.mode,
+                   "fields":f.fields,
+                   "description":f.description} for f in query_results.schema]
+        columns = [field["name"] for field in schema]
+        return columns, schema
+
     if async:
         query_results, query_job = async_query()
         rows = list(query_results)
@@ -773,16 +782,23 @@ def run_query(query, client, dialect, query_parameters, configuration, verbose,
         query_results, query_job = sync_query()
         rows = list(query_results.rows)
 
-    columns = [field.name for field in query_results.schema]
-    schema = query_results.schema
+    columns, schema = get_columns_schema(query_results)
 
-    return query_results, query_job, rows, schema, columns
+    if verbose:
+        print("Got %s rows.") % len(rows)
+        if query_job:
+            print("\nTotal time taken %ss" % (datetime.utcnow() -
+                  query_job.created.replace(tzinfo=None)).seconds)
+            print("Finished at %s." % datetime.now()
+                  .strftime('%Y-%m-%d %H:%M:%S'))
+
+    return rows, columns, schema
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy', credentials=None,
-             return_type='df', query_parameters=(), configuration=None,
+             query_parameters=(), configuration=None,
              timeout_ms=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -852,13 +868,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     credentials: credentials object, default None (optional)
         If generating credentials on your own, pass in. Otherwise, will attempt
         to generate automatically
-    return_type: {'schema','list','df'}, default 'df'
-        schema returns an array of SchemaField objects, which you can access
-            `from pprint import pprint
-            [pprint(vars(field)) for field in schema]`
-        list returns a list of lists of the rows of the results; column names
-            are not included
-        df returns a dataframe by default
     query_parameters: tuple (optional) Can only be used in Standard SQL
         example: gbq.read_gbq("SELECT @param1 + @param2",
                           query_parameters = (bigquery.ScalarQueryParameter(
@@ -891,6 +900,39 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
+
+    def _create_df(rows, columns, schema, index_col, col_order):
+        df = DataFrame(data=rows, columns=columns)
+
+        # Manual field type conversion. Inserted to handle tests
+        # with only null rows, otherwise type conversion works automatically
+        for field in schema:
+            if field["field_type"] == 'TIMESTAMP':
+                if df[field["name"]].isnull().values.all():
+                    df[field["name"]] = to_datetime(df[field["name"]])
+            if field["field_type"] == 'FLOAT':
+                if df[field["name"]].isnull().values.all():
+                    df[field["name"]] = to_numeric(df[field["name"]])
+
+        # Reindex the DataFrame on the provided column
+        if index_col:
+            if index_col in df.columns:
+                df.set_index(index_col, inplace=True)
+            else:
+                raise InvalidIndexColumn(
+                    'Index column "{0}" does not exist in DataFrame.'
+                    .format(index_col))
+
+        # Change the order of columns in the DataFrame based on provided list
+        if col_order:
+            if sorted(col_order) == sorted(df.columns):
+                df = df[col_order]
+            else:
+                raise InvalidColumnOrder(
+                    'Column order does not match this DataFrame.')
+
+        return df
+
     _test_google_api_imports()
 
     if not project_id:
@@ -914,69 +956,22 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                    auth_local_webserver=auth_local_webserver,
                                    private_key=private_key).credentials
     client = bigquery.Client(project=project_id, credentials=credentials)
-
     
     if timeout_ms:
         configuration['timeout_ms'] = timeout_ms
     if (configuration and "timeout_ms" in configuration):
-        query_results, query_job, rows, schame, columns = run_query(query, 
-                                                   client,
-                                                   dialect, 
-                                                   query_parameters,
-                                                   configuration,
-                                                   verbose,
-                                                   async=False)
+        rows, columns, schema = run_query(query, client, dialect, 
+                                          query_parameters, configuration,
+                                          verbose,
+                                          async=False)
     else:
-        query_results, query_job, rows, schema, columns = run_query(query, 
-                                                   client,
-                                                   dialect,
-                                                   query_parameters,
-                                                   configuration,
-                                                   verbose)
+        rows, columns, schema = run_query(query, client, dialect,
+                                          query_parameters, configuration,
+                                          verbose)
 
-    if verbose:
-        print("Got %s rows.") % len(rows)
-        if query_job:
-            print("\nTotal time taken %ss" % (datetime.utcnow() -
-                  query_job.created.replace(tzinfo=None)).seconds)
-            print("Finished at %s." % datetime.now()
-                  .strftime('%Y-%m-%d %H:%M:%S'))
+    df = _create_df(rows, columns, schema, index_col, col_order)
 
-    if return_type == 'schema':
-        return query_results.schema
-    elif return_type == 'list':
-        return rows
-
-    final_df = DataFrame(data=rows, columns=columns)
-
-    # Manual field type conversion. Inserted to handle tests
-    # with only null rows, otherwise type conversion works automatically
-    for field in query_results.schema:
-        if field.field_type == 'TIMESTAMP':
-            if final_df[field.name].isnull().values.all():
-                final_df[field.name] = to_datetime(final_df[field.name])
-        if field.field_type == 'FLOAT':
-            if final_df[field.name].isnull().values.all():
-                final_df[field.name] = to_numeric(final_df[field.name])
-
-    # Reindex the DataFrame on the provided column
-    if index_col:
-        if index_col in final_df.columns:
-            final_df.set_index(index_col, inplace=True)
-        else:
-            raise InvalidIndexColumn(
-                'Index column "{0}" does not exist in DataFrame.'
-                .format(index_col))
-
-    # Change the order of columns in the DataFrame based on provided list
-    if col_order:
-        if sorted(col_order) == sorted(final_df.columns):
-            final_df = final_df[col_order]
-        else:
-            raise InvalidColumnOrder(
-                'Column order does not match this DataFrame.')
-
-    return final_df
+    return df
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
