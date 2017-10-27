@@ -203,7 +203,8 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        schema = gbq.run_query('SELECT 1', client=self.client)
+        result = gbq.run_query('SELECT 1', client=self.client)
+        rows, columns, schema = result
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
@@ -271,7 +272,8 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        schema = gbq.run_query('SELECT 1', client=self.client)
+        result = gbq.run_query('SELECT 1', client=self.client)
+        rows, columns, schema = result
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
@@ -290,6 +292,8 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
         self.sut = gbq.GbqConnector(_get_project_id(),
                                     private_key=_get_private_key_contents())
+        self.client = bigquery.Client(project=_get_project_id(),
+                                      credentials=self.sut.credentials)
 
     def test_should_be_able_to_make_a_connector(self):
         assert self.sut is not None
@@ -303,18 +307,14 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        credentials = self.sut.credentials
-        schema = gbq.read_gbq('SELECT 1',
-                              project_id=_get_project_id(),
-                              credentials=credentials,
-                              get_schema=True)
+        result = gbq.run_query('SELECT 1', client=self.client)
+        rows, columns, schema = result
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        credentials = self.sut.credentials
         results = gbq.read_gbq('SELECT 1',
                                project_id=_get_project_id(),
-                               credentials=credentials)
+                               credentials=self.sut.credentials)
         assert results is not None
 
 
