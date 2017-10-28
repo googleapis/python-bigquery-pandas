@@ -807,17 +807,14 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     The Google Cloud library is used.
     Documentation is available `here
-    <https://googlecloudplatform.github.io/google-cloud-python/stable/>`
+    <https://googlecloudplatform.github.io/google-cloud-python/stable/>`__
 
-    Authentication via Google Cloud can be performed a number of ways, see:
-    <https://googlecloudplatform.github.io/google-cloud-python/stable/google-
-    cloud-auth.html>
+    Authentication via Google Cloud can be performed a number of ways.
 
     One method is to generate user credentials via
-    `gcloud auth application-default login` <https://cloud.google.com/sdk/
-    gcloud/reference/auth/application-default/login> and point to it using an
+    ``gcloud auth application-default login`` and point to it using an
     environment variable:
-    `$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"`
+    ``$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"``
 
     You can also download a service account private key JSON file and pass the
     path to the file to the private_key paramater.
@@ -854,45 +851,60 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         be created in current dir. You can also set PANDAS_GBQ_CREDENTIALS_FILE
         environment variable so as to define a specific path to store this
         credential (eg. /etc/keys/bigquery.dat).
+
         .. [local webserver flow]
             http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
         .. [console flow]
             http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
         .. versionadded:: 0.2.0
+
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
         'standard' : Use BigQuery's standard SQL (beta), which is
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
-        <https://cloud.google.com/bigquery/sql-reference/>`
+        <https://cloud.google.com/bigquery/sql-reference/>`__
     credentials: credentials object, default None (optional)
         If generating credentials on your own, pass in. Otherwise, will attempt
         to generate automatically
+
+        .. versionadded:: 0.3.0
+
     query_parameters: tuple (optional) Can only be used in Standard SQL
-        example: gbq.read_gbq("SELECT @param1 + @param2",
-                          query_parameters = (bigquery.ScalarQueryParameter(
-                                                      'param1', 'INT64', 1),
-                                              bigquery.ScalarQueryParameter(
-                                                      'param2', 'INT64', 2)))
-        <https://cloud.google.com/bigquery/docs/parameterized-queries>
+        example. `More info
+        <https://cloud.google.com/bigquery/docs/parameterized-queries>`__::
+
+            gbq.read_gbq("SELECT @param1 + @param2",
+                         query_parameters = (bigquery.ScalarQueryParameter(
+                                             'param1', 'INT64', 1),
+                                             bigquery.ScalarQueryParameter(
+                                             'param2', 'INT64', 2)))
+
+        .. versionadded:: 0.3.0
+
     configuration : dict (optional)
-        Because of current limitations <https://github.com/GoogleCloudPlatform/
-        google-cloud-python/issues/2765> only some configuration settings are
-        currently implemented. You can pass them along like in the following:
+        Due to the [current implementation in Google Cloud Python] only some
+        configuration settings are able to be set. You can pass them along like
+        in the following:
         `read_gbq(q,configuration={'allow_large_results':True,
                                    'maximum_billing_tier':2})`
-        Example allowable settings:
+        [Example allowable settings]:
             allow_large_results, create_disposition, default_dataset,
             destination, flatten_results, priority, use_query_cache,
             use_legacy_sql, dry_run, write_disposition, udf_resources,
             maximum_billing_tier, maximum_bytes_billed
-            <http://google-cloud-python.readthedocs.io/en/latest/_modules/
-            google/cloud/bigquery/job.html?highlight=QueryJobConfig>
+
+        .. [current implementation in Google Cloud Python]
+            https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2765
+        .. [Example allowable settings]
+            http://google-cloud-python.readthedocs.io/en/latest/_modules/google/cloud/bigquery/job.html?highlight=QueryJobConfig
+        .. versionadded:: 0.3.0
+
     timeout_ms: int (optional) If set or found in config, triggers a sync query
         that times out with no results if it can't be completed in the time
         desired
-        <http://google-cloud-python.readthedocs.io/en/latest/bigquery/
-        query.html#google.cloud.bigquery.query.QueryResults.fetch_data>
+
+        .. versionadded:: 0.3.0
 
     Returns
     -------
