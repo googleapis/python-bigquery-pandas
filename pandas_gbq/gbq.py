@@ -798,8 +798,7 @@ def run_query(query, client, dialect='legacy', query_parameters=(),
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy', credentials=None,
-             query_parameters=(), configuration=None,
-             timeout_ms=None, **kwargs):
+             query_parameters=(), configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -900,12 +899,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             http://google-cloud-python.readthedocs.io/en/latest/_modules/google/cloud/bigquery/job.html?highlight=QueryJobConfig
         .. versionadded:: 0.3.0
 
-    timeout_ms: int (optional) If set or found in config, triggers a sync query
-        that times out with no results if it can't be completed in the time
-        desired
-
-        .. versionadded:: 0.3.0
-
     Returns
     -------
     df: DataFrame
@@ -970,8 +963,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                    private_key=private_key).credentials
     client = bigquery.Client(project=project_id, credentials=credentials)
 
-    if timeout_ms:
-        configuration['timeout_ms'] = timeout_ms
     if (configuration and "timeout_ms" in configuration):
         rows, columns, schema = run_query(query, client, dialect,
                                           query_parameters, configuration,
