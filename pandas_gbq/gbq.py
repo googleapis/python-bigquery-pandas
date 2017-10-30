@@ -692,6 +692,29 @@ def sizeof_fmt(num, suffix='B'):
 
 def run_query(query, client, dialect='legacy', query_parameters=(),
               configuration=None, verbose=True, async=True):
+    """Execute a query job
+
+    Parameters
+    ----------
+    query, dialect, query_paramaters, configuration, verbose : see read_gbq()
+    client : bigQuery Client object
+        Client with the specified project_id and credentials used to run the
+        query
+    async: bool
+        Whether a synchronous or asynchronous query should be run. To be
+        deprecated in future versions; synchronous queries are used as a
+        workaround to implement timeouts, and will be removed in a
+        future update once Google Cloud Python resolves the issue.
+
+    Returns
+    -------
+    Tuple
+        rows : list of lists
+        columns: list of strings
+        schema: dictionary
+            Has the following keys: name, field_type, mode, fields, description
+    """
+
     def _wait_for_job(job):
         while True:
             job.reload()  # Refreshes the state via a GET request.
@@ -775,6 +798,7 @@ def run_query(query, client, dialect='legacy', query_parameters=(),
         columns = [field["name"] for field in schema]
         return columns, schema
 
+    # sync_query code to be removed in future
     if async:
         query_results, query_job = async_query()
         rows = list(query_results)
@@ -870,8 +894,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         .. versionadded:: 0.3.0
 
     query_parameters: tuple (optional) Can only be used in Standard SQL
-        example. `More info
-        <https://cloud.google.com/bigquery/docs/parameterized-queries>`__::
+        `More info
+        <https://cloud.google.com/bigquery/docs/parameterized-queries>`__
+        Example::
 
             gbq.read_gbq("SELECT @param1 + @param2",
                          query_parameters = (bigquery.ScalarQueryParameter(
@@ -963,6 +988,9 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                                    private_key=private_key).credentials
     client = bigquery.Client(project=project_id, credentials=credentials)
 
+    # Temporary workaround in order to perform timeouts on queries.
+    # Once Google Cloud Python resolves, differentiation between sync and async
+    # code will be removed.
     if (configuration and "timeout_ms" in configuration):
         rows, columns, schema = run_query(query, client, dialect,
                                           query_parameters, configuration,
