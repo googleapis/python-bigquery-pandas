@@ -74,6 +74,13 @@ def _test_google_api_imports():
             "pandas requires google-auth for Google BigQuery support: "
             "{0}".format(ex))
 
+    try:
+        from google.cloud import bigquery  # noqa
+    except ImportError as ex:
+        raise ImportError(
+            "pandas requires google-cloud-python for Google BigQuery support: "
+            "{0}".format(ex))
+
     _check_google_client_version()
 
 
