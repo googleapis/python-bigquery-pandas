@@ -549,8 +549,8 @@ class GbqConnector(object):
             return query_job
 
         def sync_query():
-            query_job = self.client.run_sync_query(query,
-                                                   query_parameters=query_parameters)
+            query_job = self.client.run_sync_query(
+                query, query_parameters=query_parameters)
             query_job = _set_common_query_settings(query_job)
             if verbose:
                 print("Query running...")
@@ -573,9 +573,10 @@ class GbqConnector(object):
             return query_job, None
 
         def async_query():
-            query_job = self.client.run_async_query(str(uuid.uuid4()),
-                                                    query,
-                                                    query_parameters=query_parameters)
+            query_job = self.client.run_async_query(
+                str(uuid.uuid4()),
+                query,
+                query_parameters=query_parameters)
             query_job = _set_common_query_settings(query_job)
             if verbose:
                 print("Query running...")
@@ -810,6 +811,38 @@ def _get_credentials_file():
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
 
+def _create_df(rows, columns, schema, index_col, col_order):
+    df = DataFrame(data=rows, columns=columns)
+
+    # Manual field type conversion. Inserted to handle tests
+    # with only null rows, otherwise type conversion works automatically
+    for field in schema:
+        if field["field_type"] == 'TIMESTAMP':
+            if df[field["name"]].isnull().values.all():
+                df[field["name"]] = to_datetime(df[field["name"]])
+        if field["field_type"] == 'FLOAT':
+            if df[field["name"]].isnull().values.all():
+                df[field["name"]] = to_numeric(df[field["name"]])
+
+    # Reindex the DataFrame on the provided column
+    if index_col:
+        if index_col in df.columns:
+            df.set_index(index_col, inplace=True)
+        else:
+            raise InvalidIndexColumn(
+                'Index column "{0}" does not exist in DataFrame.'
+                .format(index_col))
+
+    # Change the order of columns in the DataFrame based on provided list
+    if col_order:
+        if sorted(col_order) == sorted(df.columns):
+            df = df[col_order]
+        else:
+            raise InvalidColumnOrder(
+                'Column order does not match this DataFrame.')
+    return df
+
+
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy',
@@ -921,38 +954,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
-
-    def _create_df(rows, columns, schema, index_col, col_order):
-        df = DataFrame(data=rows, columns=columns)
-
-        # Manual field type conversion. Inserted to handle tests
-        # with only null rows, otherwise type conversion works automatically
-        for field in schema:
-            if field["field_type"] == 'TIMESTAMP':
-                if df[field["name"]].isnull().values.all():
-                    df[field["name"]] = to_datetime(df[field["name"]])
-            if field["field_type"] == 'FLOAT':
-                if df[field["name"]].isnull().values.all():
-                    df[field["name"]] = to_numeric(df[field["name"]])
-
-        # Reindex the DataFrame on the provided column
-        if index_col:
-            if index_col in df.columns:
-                df.set_index(index_col, inplace=True)
-            else:
-                raise InvalidIndexColumn(
-                    'Index column "{0}" does not exist in DataFrame.'
-                    .format(index_col))
-
-        # Change the order of columns in the DataFrame based on provided list
-        if col_order:
-            if sorted(col_order) == sorted(df.columns):
-                df = df[col_order]
-            else:
-                raise InvalidColumnOrder(
-                    'Column order does not match this DataFrame.')
-
-        return df
 
     _test_google_api_imports()
 

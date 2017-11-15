@@ -855,19 +855,20 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                          configuration=config)
 
     def test_query_response_bytes(self):
-        assert gbq.sizeof_fmt(999) == "999.0 B"
-        assert gbq.sizeof_fmt(1024) == "1.0 KB"
-        assert gbq.sizeof_fmt(1099) == "1.1 KB"
-        assert gbq.sizeof_fmt(1044480) == "1020.0 KB"
-        assert gbq.sizeof_fmt(1048576) == "1.0 MB"
-        assert gbq.sizeof_fmt(1048576000) == "1000.0 MB"
-        assert gbq.sizeof_fmt(1073741824) == "1.0 GB"
-        assert gbq.sizeof_fmt(1.099512E12) == "1.0 TB"
-        assert gbq.sizeof_fmt(1.125900E15) == "1.0 PB"
-        assert gbq.sizeof_fmt(1.152922E18) == "1.0 EB"
-        assert gbq.sizeof_fmt(1.180592E21) == "1.0 ZB"
-        assert gbq.sizeof_fmt(1.208926E24) == "1.0 YB"
-        assert gbq.sizeof_fmt(1.208926E28) == "10000.0 YB"
+        connector = gbq.GbqConnector(project_id=_get_project_id())
+        assert connector.sizeof_fmt(999) == "999.0 B"
+        assert connector.sizeof_fmt(1024) == "1.0 KB"
+        assert connector.sizeof_fmt(1099) == "1.1 KB"
+        assert connector.sizeof_fmt(1044480) == "1020.0 KB"
+        assert connector.sizeof_fmt(1048576) == "1.0 MB"
+        assert connector.sizeof_fmt(1048576000) == "1000.0 MB"
+        assert connector.sizeof_fmt(1073741824) == "1.0 GB"
+        assert connector.sizeof_fmt(1.099512E12) == "1.0 TB"
+        assert connector.sizeof_fmt(1.125900E15) == "1.0 PB"
+        assert connector.sizeof_fmt(1.152922E18) == "1.0 EB"
+        assert connector.sizeof_fmt(1.180592E21) == "1.0 ZB"
+        assert connector.sizeof_fmt(1.208926E24) == "1.0 YB"
+        assert connector.sizeof_fmt(1.208926E28) == "10000.0 YB"
 
 
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
