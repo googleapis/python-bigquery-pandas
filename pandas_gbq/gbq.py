@@ -3,7 +3,6 @@ from datetime import datetime
 import json
 from time import sleep
 import uuid
-import time
 import sys
 import os
 
@@ -210,7 +209,7 @@ class GbqConnector(object):
         self.credentials_path = _get_credentials_file()
         self.credentials = self.get_credentials()
         self.service = self.get_service()
-        self.client = bigquery.Client(project=project_id, 
+        self.client = bigquery.Client(project=project_id,
                                       credentials=self.credentials)
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
@@ -454,6 +453,16 @@ class GbqConnector(object):
             sys.stdout.write(msg + end)
             sys.stdout.flush()
 
+    # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
+    @staticmethod
+    def sizeof_fmt(num, suffix='B'):
+        fmt = "%3.1f %s%s"
+        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+            if abs(num) < 1024.0:
+                return fmt % (num, unit, suffix)
+            num /= 1024.0
+        return fmt % (num, 'Y', suffix)
+
     def get_service(self):
         import httplib2
         from google_auth_httplib2 import AuthorizedHttp
@@ -512,7 +521,7 @@ class GbqConnector(object):
 
         Parameters
         ----------
-        query, dialect, query_paramaters, configuration, verbose : see read_gbq()
+        query, dialect, query_paramaters, configuration, verbose: see read_gbq
         async: bool
             Whether a synchronous or asynchronous query should be run. To be
             deprecated in future versions; synchronous queries are used as a
@@ -525,7 +534,7 @@ class GbqConnector(object):
             rows : list of lists
             columns: list of strings
             schema: dictionary
-                Has the following keys: name, field_type, mode, fields, description
+                Has keys: name, field_type, mode, fields, description
         """
 
         def _set_common_query_settings(query_job):
@@ -541,7 +550,7 @@ class GbqConnector(object):
 
         def sync_query():
             query_job = self.client.run_sync_query(query,
-                                              query_parameters=query_parameters)
+                                                   query_parameters=query_parameters)
             query_job = _set_common_query_settings(query_job)
             if verbose:
                 print("Query running...")
@@ -558,15 +567,18 @@ class GbqConnector(object):
                     bytes_processed = int(query_job._properties
                                           .get("totalBytesBilled", 0))
                     print("Total bytes billed (processed): %s (%s)" %
-                          (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+                          (self.sizeof_fmt(bytes_billed),
+                           self.sizeof_fmt(bytes_processed)))
                 print("\nRetrieving results...")
             return query_job, None
 
         def async_query():
             query_job = self.client.run_async_query(str(uuid.uuid4()),
-                                               query,
-                                               query_parameters=query_parameters)
+                                                    query,
+                                                    query_parameters=query_parameters)
             query_job = _set_common_query_settings(query_job)
+            if verbose:
+                print("Query running...")
             query_job.begin()
             try:
                 query_results = query_job.results().fetch_data()
@@ -586,7 +598,8 @@ class GbqConnector(object):
                                           ._properties["statistics"]["query"]
                                           .get("totalBytesBilled", 0))
                     print("Total bytes billed (processed): %s (%s)" %
-                          (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+                          (self.sizeof_fmt(bytes_billed),
+                           self.sizeof_fmt(bytes_processed)))
                 print("\nRetrieving results...")
             return query_results, query_job
 
@@ -595,7 +608,8 @@ class GbqConnector(object):
                        "field_type": f.field_type,
                        "mode": f.mode,
                        "fields": f.fields,
-                       "description": f.description} for f in query_results.schema]
+                       "description": f.description}
+                      for f in query_results.schema]
             columns = [field["name"] for field in schema]
             return columns, schema
 
@@ -796,15 +810,6 @@ def _get_credentials_file():
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
 
-def sizeof_fmt(num, suffix='B'):
-    fmt = "%3.1f %s%s"
-    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
-        if abs(num) < 1024.0:
-            return fmt % (num, unit, suffix)
-        num /= 1024.0
-    return fmt % (num, 'Y', suffix)
-
-
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
              auth_local_webserver=False, dialect='legacy',
@@ -976,14 +981,18 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     # Once Google Cloud Python resolves, differentiation between sync and async
     # code will be removed.
     if (configuration and "timeout_ms" in configuration):
-        rows, columns, schema = connector.run_query(query, dialect,
-                                          query_parameters, configuration,
-                                          verbose,
-                                          async=False)
+        rows, columns, schema = connector.run_query(query,
+                                                    dialect,
+                                                    query_parameters,
+                                                    configuration,
+                                                    verbose,
+                                                    async=False)
     else:
-        rows, columns, schema = connector.run_query(query, dialect,
-                                          query_parameters, configuration,
-                                          verbose)
+        rows, columns, schema = connector.run_query(query,
+                                                    dialect,
+                                                    query_parameters,
+                                                    configuration,
+                                                    verbose)
 
     df = _create_df(rows, columns, schema, index_col, col_order)
 
