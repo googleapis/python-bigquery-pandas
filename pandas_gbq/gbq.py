@@ -10,7 +10,6 @@ import os
 from distutils.version import StrictVersion
 from pandas import compat, DataFrame, to_datetime, to_numeric
 from pandas.compat import bytes_to_str
-from google.cloud import bigquery
 
 
 def _check_google_client_version():
@@ -201,6 +200,7 @@ class GbqConnector(object):
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None, auth_local_webserver=False,
                  dialect='legacy'):
+        from google.cloud import bigquery
         self.project_id = project_id
         self.reauth = reauth
         self.verbose = verbose
@@ -210,6 +210,8 @@ class GbqConnector(object):
         self.credentials_path = _get_credentials_file()
         self.credentials = self.get_credentials()
         self.service = self.get_service()
+        self.client = bigquery.Client(project=project_id, 
+                                      credentials=self.credentials)
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
@@ -504,6 +506,119 @@ class GbqConnector(object):
 
         raise StreamingInsertError
 
+    def run_query(self, query, dialect='legacy', query_parameters=(),
+                  configuration=None, verbose=True, async=True):
+        """Execute a query job
+
+        Parameters
+        ----------
+        query, dialect, query_paramaters, configuration, verbose : see read_gbq()
+        async: bool
+            Whether a synchronous or asynchronous query should be run. To be
+            deprecated in future versions; synchronous queries are used as a
+            workaround to implement timeouts, and will be removed in a
+            future update once Google Cloud Python resolves the issue.
+
+        Returns
+        -------
+        Tuple
+            rows : list of lists
+            columns: list of strings
+            schema: dictionary
+                Has the following keys: name, field_type, mode, fields, description
+        """
+
+        def _set_common_query_settings(query_job):
+            if dialect == 'legacy':
+                query_job.use_legacy_sql = True
+            elif dialect == 'standard':
+                query_job.use_legacy_sql = False
+
+            if configuration:
+                for setting, value in configuration.items():
+                    setattr(query_job, setting, value)
+            return query_job
+
+        def sync_query():
+            query_job = self.client.run_sync_query(query,
+                                              query_parameters=query_parameters)
+            query_job = _set_common_query_settings(query_job)
+            if verbose:
+                print("Query running...")
+            query_job.run()
+            if not query_job._properties.get("jobComplete", False):
+                raise QueryTimeout("Sync query timed out")
+            if verbose:
+                print("Query done.")
+                if query_job._properties.get("cacheHit", False):
+                    print("Cache hit.")
+                else:
+                    bytes_billed = int(query_job._properties
+                                       .get("totalBytesProcessed", 0))
+                    bytes_processed = int(query_job._properties
+                                          .get("totalBytesBilled", 0))
+                    print("Total bytes billed (processed): %s (%s)" %
+                          (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+                print("\nRetrieving results...")
+            return query_job, None
+
+        def async_query():
+            query_job = self.client.run_async_query(str(uuid.uuid4()),
+                                               query,
+                                               query_parameters=query_parameters)
+            query_job = _set_common_query_settings(query_job)
+            query_job.begin()
+            try:
+                query_results = query_job.results().fetch_data()
+            except AttributeError:
+                query_results = query_job.result().fetch_data()
+            if verbose:
+                print("Query done.")
+                if query_job._properties["statistics"]["query"].get("cacheHit",
+                                                                    False):
+                    print("Cache hit.")
+                elif ("statistics" in query_job._properties and
+                        "query" in query_job._properties["statistics"]):
+                    bytes_billed = int(query_job
+                                       ._properties["statistics"]["query"]
+                                       .get("totalBytesProcessed", 0))
+                    bytes_processed = int(query_job
+                                          ._properties["statistics"]["query"]
+                                          .get("totalBytesBilled", 0))
+                    print("Total bytes billed (processed): %s (%s)" %
+                          (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
+                print("\nRetrieving results...")
+            return query_results, query_job
+
+        def get_columns_schema(query_results):
+            schema = [{"name": f.name,
+                       "field_type": f.field_type,
+                       "mode": f.mode,
+                       "fields": f.fields,
+                       "description": f.description} for f in query_results.schema]
+            columns = [field["name"] for field in schema]
+            return columns, schema
+
+        # sync_query code to be removed in future
+        if async:
+            query_results, query_job = async_query()
+            rows = list(query_results)
+        else:
+            query_results, query_job = sync_query()
+            rows = list(query_results.rows)
+
+        columns, schema = get_columns_schema(query_results)
+
+        if verbose:
+            print("Got %s rows.") % len(rows)
+            if query_job:
+                print("\nTotal time taken %ss" % (datetime.utcnow() -
+                      query_job.created.replace(tzinfo=None)).seconds)
+                print("Finished at %s." % datetime.now()
+                      .strftime('%Y-%m-%d %H:%M:%S'))
+
+        return rows, columns, schema
+
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
         try:
             from googleapiclient.errors import HttpError
@@ -690,138 +805,9 @@ def sizeof_fmt(num, suffix='B'):
     return fmt % (num, 'Y', suffix)
 
 
-def run_query(query, client, dialect='legacy', query_parameters=(),
-              configuration=None, verbose=True, async=True):
-    """Execute a query job
-
-    Parameters
-    ----------
-    query, dialect, query_paramaters, configuration, verbose : see read_gbq()
-    client : bigQuery Client object
-        Client with the specified project_id and credentials used to run the
-        query
-    async: bool
-        Whether a synchronous or asynchronous query should be run. To be
-        deprecated in future versions; synchronous queries are used as a
-        workaround to implement timeouts, and will be removed in a
-        future update once Google Cloud Python resolves the issue.
-
-    Returns
-    -------
-    Tuple
-        rows : list of lists
-        columns: list of strings
-        schema: dictionary
-            Has the following keys: name, field_type, mode, fields, description
-    """
-
-    def _wait_for_job(job):
-        while True:
-            job.reload()  # Refreshes the state via a GET request.
-            if job.state == 'DONE':
-                if job.error_result:
-                    raise RuntimeError(job.errors)
-                return
-            time.sleep(1)
-
-    def _set_common_query_settings(query_job):
-        if dialect == 'legacy':
-            query_job.use_legacy_sql = True
-        elif dialect == 'standard':
-            query_job.use_legacy_sql = False
-
-        if configuration:
-            for setting, value in configuration.items():
-                setattr(query_job, setting, value)
-        return query_job
-
-    def sync_query():
-        query_job = client.run_sync_query(query,
-                                          query_parameters=query_parameters)
-        query_job = _set_common_query_settings(query_job)
-        if verbose:
-            print("Query running...")
-        query_job.run()
-        if not query_job._properties.get("jobComplete", False):
-            raise QueryTimeout("Sync query timed out")
-        if verbose:
-            print("Query done.")
-            if query_job._properties.get("cacheHit", False):
-                print("Cache hit.")
-            else:
-                bytes_billed = int(query_job._properties
-                                   .get("totalBytesProcessed", 0))
-                bytes_processed = int(query_job._properties
-                                      .get("totalBytesBilled", 0))
-                print("Total bytes billed (processed): %s (%s)" %
-                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
-            print("\nRetrieving results...")
-        return query_job, None
-
-    def async_query():
-        query_job = client.run_async_query(str(uuid.uuid4()),
-                                           query,
-                                           query_parameters=query_parameters)
-        query_job = _set_common_query_settings(query_job)
-        query_job.begin()
-        try:
-            query_results = query_job.results().fetch_data()
-        except AttributeError:
-            query_results = query_job.result().fetch_data()
-        if verbose:
-            print("Query running...")
-        _wait_for_job(query_job)
-        if verbose:
-            print("Query done.")
-            if query_job._properties["statistics"]["query"].get("cacheHit",
-                                                                False):
-                print("Cache hit.")
-            elif ("statistics" in query_job._properties and
-                    "query" in query_job._properties["statistics"]):
-                bytes_billed = int(query_job
-                                   ._properties["statistics"]["query"]
-                                   .get("totalBytesProcessed", 0))
-                bytes_processed = int(query_job
-                                      ._properties["statistics"]["query"]
-                                      .get("totalBytesBilled", 0))
-                print("Total bytes billed (processed): %s (%s)" %
-                      (sizeof_fmt(bytes_billed), sizeof_fmt(bytes_processed)))
-            print("\nRetrieving results...")
-        return query_results, query_job
-
-    def get_columns_schema(query_results):
-        schema = [{"name": f.name,
-                   "field_type": f.field_type,
-                   "mode": f.mode,
-                   "fields": f.fields,
-                   "description": f.description} for f in query_results.schema]
-        columns = [field["name"] for field in schema]
-        return columns, schema
-
-    # sync_query code to be removed in future
-    if async:
-        query_results, query_job = async_query()
-        rows = list(query_results)
-    else:
-        query_results, query_job = sync_query()
-        rows = list(query_results.rows)
-
-    columns, schema = get_columns_schema(query_results)
-
-    if verbose:
-        print("Got %s rows.") % len(rows)
-        if query_job:
-            print("\nTotal time taken %ss" % (datetime.utcnow() -
-                  query_job.created.replace(tzinfo=None)).seconds)
-            print("Finished at %s." % datetime.now()
-                  .strftime('%Y-%m-%d %H:%M:%S'))
-
-    return rows, columns, schema
-
-
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
-             auth_local_webserver=False, dialect='legacy', credentials=None,
+             auth_local_webserver=False, dialect='legacy',
              query_parameters=(), configuration=None, **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -981,23 +967,21 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
                          "cloud/bigquery/job.html?highlight=QueryJobConfig "
                          "for allowable paramaters.")
 
-    if credentials is None:
-        credentials = GbqConnector(project_id=project_id,
-                                   reauth=reauth,
-                                   auth_local_webserver=auth_local_webserver,
-                                   private_key=private_key).credentials
-    client = bigquery.Client(project=project_id, credentials=credentials)
+    connector = GbqConnector(project_id=project_id,
+                             reauth=reauth,
+                             auth_local_webserver=auth_local_webserver,
+                             private_key=private_key)
 
     # Temporary workaround in order to perform timeouts on queries.
     # Once Google Cloud Python resolves, differentiation between sync and async
     # code will be removed.
     if (configuration and "timeout_ms" in configuration):
-        rows, columns, schema = run_query(query, client, dialect,
+        rows, columns, schema = connector.run_query(query, dialect,
                                           query_parameters, configuration,
                                           verbose,
                                           async=False)
     else:
-        rows, columns, schema = run_query(query, client, dialect,
+        rows, columns, schema = connector.run_query(query, dialect,
                                           query_parameters, configuration,
                                           verbose)
 

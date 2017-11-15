@@ -188,8 +188,6 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
         self.sut = gbq.GbqConnector(
             _get_project_id(), auth_local_webserver=True)
-        self.client = bigquery.Client(project=_get_project_id(),
-                                      credentials=self.sut.credentials)
 
     def test_should_be_able_to_make_a_connector(self):
         assert self.sut is not None, 'Could not create a GbqConnector'
@@ -203,15 +201,13 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        result = gbq.run_query('SELECT 1', client=self.client)
+        result = self.sut.run_query('SELECT 1')
         rows, columns, schema = result
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        credentials = self.sut.credentials
         results = gbq.read_gbq('SELECT 1',
-                               project_id=_get_project_id(),
-                               credentials=credentials)
+                               project_id=_get_project_id())
         assert results is not None
 
     def test_get_application_default_credentials_does_not_throw_error(self):
@@ -257,8 +253,6 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
         self.sut = gbq.GbqConnector(_get_project_id(),
                                     private_key=_get_private_key_path())
-        self.client = bigquery.Client(project=_get_project_id(),
-                                      credentials=self.sut.credentials)
 
     def test_should_be_able_to_make_a_connector(self):
         assert self.sut is not None
@@ -272,13 +266,12 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        result = gbq.run_query('SELECT 1', client=self.client)
+        result = self.sut.run_query('SELECT 1')
         rows, columns, schema = result
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        results = gbq.read_gbq('SELECT 1', project_id=_get_project_id(),
-                               credentials=self.sut.credentials)
+        results = gbq.read_gbq('SELECT 1', project_id=_get_project_id())
         assert results is not None
 
 
@@ -292,8 +285,6 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
         self.sut = gbq.GbqConnector(_get_project_id(),
                                     private_key=_get_private_key_contents())
-        self.client = bigquery.Client(project=_get_project_id(),
-                                      credentials=self.sut.credentials)
 
     def test_should_be_able_to_make_a_connector(self):
         assert self.sut is not None
@@ -307,14 +298,13 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         assert bigquery_service is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        result = gbq.run_query('SELECT 1', client=self.client)
+        result = self.sut.run_query('SELECT 1')
         rows, columns, schema = result
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
         results = gbq.read_gbq('SELECT 1',
-                               project_id=_get_project_id(),
-                               credentials=self.sut.credentials)
+                               project_id=_get_project_id())
         assert results is not None
 
 
