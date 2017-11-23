@@ -13,13 +13,10 @@ import numpy as np
 from pandas import compat
 
 from pandas.compat import u, range
-from pandas import NaT, DataFrame, to_datetime
+from pandas import NaT, DataFrame
 from pandas_gbq import gbq
 import pandas.util.testing as tm
 from pandas.compat.numpy import np_datetime64_compat
-from google.cloud import bigquery
-
-from google.cloud.exceptions import BadRequest, NotFound
 
 
 TABLE_ID = 'new_test'
@@ -196,19 +193,17 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         credentials = self.sut.get_credentials()
         assert credentials.valid
 
-    def test_should_be_able_to_get_a_bigquery_service(self):
-        bigquery_service = self.sut.get_service()
-        assert bigquery_service is not None
+    def test_should_be_able_to_get_a_bigquery_client(self):
+        bigquery_client = self.sut.get_client()
+        assert bigquery_client is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        result = self.sut.run_query('SELECT 1')
-        rows, columns, schema = result
+        schema, pages = self.sut.run_query('SELECT 1')
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        results = gbq.read_gbq('SELECT 1',
-                               project_id=_get_project_id())
-        assert results is not None
+        schema, pages = self.sut.run_query('SELECT 1')
+        assert pages is not None
 
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
@@ -261,18 +256,17 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
         credentials = self.sut.get_credentials()
         assert credentials.valid
 
-    def test_should_be_able_to_get_a_bigquery_service(self):
-        bigquery_service = self.sut.get_service()
-        assert bigquery_service is not None
+    def test_should_be_able_to_get_a_bigquery_client(self):
+        bigquery_client = self.sut.get_client()
+        assert bigquery_client is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        result = self.sut.run_query('SELECT 1')
-        rows, columns, schema = result
+        schema, pages = self.sut.run_query('SELECT 1')
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        results = gbq.read_gbq('SELECT 1', project_id=_get_project_id())
-        assert results is not None
+        schema, pages = self.sut.run_query('SELECT 1')
+        assert pages is not None
 
 
 class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
@@ -293,19 +287,17 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         credentials = self.sut.get_credentials()
         assert credentials.valid
 
-    def test_should_be_able_to_get_a_bigquery_service(self):
-        bigquery_service = self.sut.get_service()
-        assert bigquery_service is not None
+    def test_should_be_able_to_get_a_bigquery_client(self):
+        bigquery_client = self.sut.get_client()
+        assert bigquery_client is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
-        result = self.sut.run_query('SELECT 1')
-        rows, columns, schema = result
+        schema, pages = self.sut.run_query('SELECT 1')
         assert schema is not None
 
     def test_should_be_able_to_get_results_from_query(self):
-        results = gbq.read_gbq('SELECT 1',
-                               project_id=_get_project_id())
-        assert results is not None
+        schema, pages = self.sut.run_query('SELECT 1')
+        assert pages is not None
 
 
 class GBQUnitTests(object):
@@ -524,7 +516,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(
-            df, DataFrame({'nullable_integer': [1, None]}))
+            df, DataFrame({'nullable_integer': [1, None]}).astype(object))
 
     def test_should_properly_handle_valid_longs(self):
         query = 'SELECT 1 << 62 AS valid_long'
@@ -540,7 +532,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(
-            df, DataFrame({'nullable_long': [1 << 62, None]}))
+            df, DataFrame({'nullable_long': [1 << 62, None]}).astype(object))
 
     def test_should_properly_handle_null_integers(self):
         query = 'SELECT INTEGER(NULL) AS null_integer'
@@ -594,19 +586,16 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         query = 'SELECT TIMESTAMP("1970-01-01 00:00:00") AS unix_epoch'
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
-        expected = DataFrame({'unix_epoch':
-                             [np.datetime64('1970-01-01T00:00:00.000000Z')]})
-        tm.assert_frame_equal(df, to_datetime(expected.unix_epoch).dt
-                              .tz_localize('UTC').to_frame())
+        tm.assert_frame_equal(df, DataFrame(
+            {'unix_epoch': [np.datetime64('1970-01-01T00:00:00.000000Z')]}))
 
     def test_should_properly_handle_arbitrary_timestamp(self):
         query = 'SELECT TIMESTAMP("2004-09-15 05:00:00") AS valid_timestamp'
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
-        expected = DataFrame({'valid_timestamp':
-                             [np.datetime64('2004-09-15T05:00:00.000000Z')]})
-        tm.assert_frame_equal(df, to_datetime(expected.valid_timestamp).dt
-                              .tz_localize('UTC').to_frame())
+        tm.assert_frame_equal(df, DataFrame({
+            'valid_timestamp': [np.datetime64('2004-09-15T05:00:00.000000Z')]
+        }))
 
     def test_should_properly_handle_null_timestamp(self):
         query = 'SELECT TIMESTAMP(NULL) AS null_timestamp'
@@ -639,7 +628,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path())
         tm.assert_frame_equal(
-            df, DataFrame({'nullable_boolean': [True, None]}))
+            df, DataFrame({'nullable_boolean': [True, None]}).astype(object))
 
     def test_unicode_string_conversion_and_normalization(self):
         correct_test_datatype = DataFrame(
@@ -700,7 +689,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
     def test_read_gbq_raises_invalid_index_column(self):
         query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
-        col_order = ['string_3', 'string_2', 'string_1']
+        col_order = ['string_3', 'string_2']
 
         # Column string_bbb does not exist. Should raise InvalidIndexColumn
         with pytest.raises(gbq.InvalidIndexColumn):
@@ -709,18 +698,18 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                          private_key=_get_private_key_path())
 
     def test_malformed_query(self):
-        with pytest.raises(BadRequest):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq("SELCET * FORM [publicdata:samples.shakespeare]",
                          project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
     def test_bad_project_id(self):
-        with pytest.raises(NotFound):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq("SELECT 1", project_id='001',
                          private_key=_get_private_key_path())
 
     def test_bad_table_name(self):
-        with pytest.raises(NotFound):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq("SELECT * FROM [publicdata:samples.nope]",
                          project_id=_get_project_id(),
                          private_key=_get_private_key_path())
@@ -749,15 +738,14 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                          ('is_bot', np.dtype(bool)), ('ts', 'M8[ns]')])
         expected_result = DataFrame(
             page_array, columns=['title', 'id', 'is_bot', 'ts'])
-        tm.assert_frame_equal(expected_result.astype(object),
-                              df.reset_index(drop=True).astype(object))
+        tm.assert_frame_equal(df, expected_result)
 
     def test_legacy_sql(self):
         legacy_sql = "SELECT id FROM [publicdata.samples.wikipedia] LIMIT 10"
 
         # Test that a legacy sql statement fails when
         # setting dialect='standard'
-        with pytest.raises((RuntimeError, BadRequest)):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(legacy_sql, project_id=_get_project_id(),
                          dialect='standard',
                          private_key=_get_private_key_path())
@@ -775,7 +763,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
         # Test that a standard sql statement fails when using
         # the legacy SQL dialect (default value)
-        with pytest.raises((RuntimeError, BadRequest)):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(standard_sql, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
@@ -803,24 +791,65 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
     def test_query_with_parameters(self):
         sql_statement = "SELECT @param1 + @param2 AS valid_result"
-        config = {"use_legacy_sql": False}
+        config = {
+            'query': {
+                "useLegacySql": False,
+                "parameterMode": "named",
+                "queryParameters": [
+                    {
+                        "name": "param1",
+                        "parameterType": {
+                            "type": "INTEGER"
+                        },
+                        "parameterValue": {
+                            "value": 1
+                        }
+                    },
+                    {
+                        "name": "param2",
+                        "parameterType": {
+                            "type": "INTEGER"
+                        },
+                        "parameterValue": {
+                            "value": 2
+                        }
+                    }
+                ]
+            }
+        }
         # Test that a query that relies on parameters fails
         # when parameters are not supplied via configuration
-        with pytest.raises((RuntimeError, BadRequest)):
+        with pytest.raises(ValueError):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
                          private_key=_get_private_key_path())
 
         # Test that the query is successful because we have supplied
-        # the correct query parameters via the 'config' and query_parameters
-        # option
+        # the correct query parameters via the 'config' option
         df = gbq.read_gbq(sql_statement, project_id=_get_project_id(),
-                          configuration=config,
-                          query_parameters=(bigquery.ScalarQueryParameter(
-                                            'param1', 'INT64', 1),
-                                            bigquery.ScalarQueryParameter(
-                                            'param2', 'INT64', 2)),
-                          private_key=_get_private_key_path())
+                          private_key=_get_private_key_path(),
+                          configuration=config)
         tm.assert_frame_equal(df, DataFrame({'valid_result': [3]}))
+
+    def test_query_inside_configuration(self):
+        query_no_use = 'SELECT "PI_WRONG" AS valid_string'
+        query = 'SELECT "PI" AS valid_string'
+        config = {
+            'query': {
+                "query": query,
+                "useQueryCache": False,
+            }
+        }
+        # Test that it can't pass query both
+        # inside config and as parameter
+        with pytest.raises(ValueError):
+            gbq.read_gbq(query_no_use, project_id=_get_project_id(),
+                         private_key=_get_private_key_path(),
+                         configuration=config)
+
+        df = gbq.read_gbq(None, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          configuration=config)
+        tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
 
     def test_configuration_without_query(self):
         sql_statement = 'SELECT 1'
@@ -845,9 +874,31 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                          private_key=_get_private_key_path(),
                          configuration=config)
 
+    def test_configuration_raises_value_error_with_multiple_config(self):
+        sql_statement = 'SELECT 1'
+        config = {
+            'query': {
+                "query": sql_statement,
+                "useQueryCache": False,
+            },
+            'load': {
+                "query": sql_statement,
+                "useQueryCache": False,
+            }
+        }
+        # Test that only ValueError is raised with multiple configurations
+        with pytest.raises(ValueError):
+            gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                         private_key=_get_private_key_path(),
+                         configuration=config)
+
     def test_timeout_configuration(self):
         sql_statement = 'SELECT 1'
-        config = {"timeout_ms": 1}
+        config = {
+            'query': {
+                "timeoutMs": 1
+            }
+        }
         # Test that QueryTimeout error raises
         with pytest.raises(gbq.QueryTimeout):
             gbq.read_gbq(sql_statement, project_id=_get_project_id(),
@@ -926,8 +977,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
-
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
                               project_id=_get_project_id(),
@@ -964,8 +1013,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    if_exists='append', private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
-
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
                               project_id=_get_project_id(),
@@ -994,8 +1041,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df_subset_cols,
                    self.destination_table + test_id, _get_project_id(),
                    if_exists='append', private_key=_get_private_key_path())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1028,8 +1073,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df_different_schema, self.destination_table + test_id,
                    _get_project_id(), if_exists='replace',
                    private_key=_get_private_key_path())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1204,10 +1247,14 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
     def test_retrieve_schema(self):
         # Issue #24 schema function returns the schema in biquery
         test_id = "15"
-        test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
-                                  {'name': 'B', 'type': 'FLOAT'},
-                                  {'name': 'C', 'type': 'STRING'},
-                                  {'name': 'D', 'type': 'TIMESTAMP'}]}
+        test_schema = {
+            'fields': [
+                {'name': 'A', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                {'name': 'B', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                {'name': 'C', 'type': 'STRING', 'mode': 'NULLABLE'},
+                {'name': 'D', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'}
+            ]
+        }
 
         self.table.create(TABLE_ID + test_id, test_schema)
         actual = self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id)
@@ -1364,8 +1411,6 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000)
 
-        sleep(30)  # <- Curses Google!!!
-
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
             self.destination_table + test_id),
             project_id=_get_project_id())
@@ -1421,8 +1466,6 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
 
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_contents())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) as num_rows FROM {0}".format(
             self.destination_table + test_id),

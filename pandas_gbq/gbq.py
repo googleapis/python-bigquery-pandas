@@ -1,14 +1,16 @@
 import warnings
 from datetime import datetime
 import json
+import time
 from time import sleep
-import uuid
 import sys
 import os
 
+import numpy as np
+
 from distutils.version import StrictVersion
-from pandas import compat, DataFrame, to_datetime, to_numeric
-from pandas.compat import bytes_to_str
+from pandas import compat, DataFrame
+from pandas.compat import lzip
 
 
 def _check_google_client_version():
@@ -19,30 +21,23 @@ def _check_google_client_version():
     except ImportError:
         raise ImportError('Could not import pkg_resources (setuptools).')
 
-    # Version 1.6.0 is the first version to support google-auth.
-    # https://github.com/google/google-api-python-client/blob/master/CHANGELOG
-    google_api_minimum_version = '1.6.0'
+    # Version 0.28.0 includes many changes compared to previous versions
+    # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
+    bigquery_client_minimum_version = '0.28.0'
 
-    _GOOGLE_API_CLIENT_VERSION = pkg_resources.get_distribution(
-        'google-api-python-client').version
+    _BIGQUERY_CLIENT_VERSION = pkg_resources.get_distribution(
+        'google-cloud-bigquery').version
 
-    if (StrictVersion(_GOOGLE_API_CLIENT_VERSION) <
-            StrictVersion(google_api_minimum_version)):
-        raise ImportError('pandas requires google-api-python-client >= {0} '
+    if (StrictVersion(_BIGQUERY_CLIENT_VERSION) <
+            StrictVersion(bigquery_client_minimum_version)):
+        raise ImportError('pandas requires google-cloud-bigquery >= {0} '
                           'for Google BigQuery support, '
                           'current version {1}'
-                          .format(google_api_minimum_version,
-                                  _GOOGLE_API_CLIENT_VERSION))
+                          .format(bigquery_client_minimum_version,
+                                  _BIGQUERY_CLIENT_VERSION))
 
 
 def _test_google_api_imports():
-
-    try:
-        import httplib2  # noqa
-    except ImportError as ex:
-        raise ImportError(
-            'pandas requires httplib2 for Google BigQuery support: '
-            '{0}'.format(ex))
 
     try:
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
@@ -50,22 +45,6 @@ def _test_google_api_imports():
         raise ImportError(
             'pandas requires google-auth-oauthlib for Google BigQuery '
             'support: {0}'.format(ex))
-
-    try:
-        from google_auth_httplib2 import AuthorizedHttp  # noqa
-        from google_auth_httplib2 import Request  # noqa
-    except ImportError as ex:
-        raise ImportError(
-            'pandas requires google-auth-httplib2 for Google BigQuery '
-            'support: {0}'.format(ex))
-
-    try:
-        from googleapiclient.discovery import build  # noqa
-        from googleapiclient.errors import HttpError  # noqa
-    except ImportError as ex:
-        raise ImportError(
-            "pandas requires google-api-python-client for Google BigQuery "
-            "support: {0}".format(ex))
 
     try:
         import google.auth  # noqa
@@ -85,24 +64,18 @@ def _test_google_api_imports():
 
 
 def _try_credentials(project_id, credentials):
-    import httplib2
-    from googleapiclient.discovery import build
-    import googleapiclient.errors
-    from google_auth_httplib2 import AuthorizedHttp
+    from google.cloud import bigquery
+    import google.api_core.exceptions
 
     if credentials is None:
         return None
 
-    http = httplib2.Http()
     try:
-        authed_http = AuthorizedHttp(credentials, http=http)
-        bigquery_service = build('bigquery', 'v2', http=authed_http)
+        client = bigquery.Client(project=project_id, credentials=credentials)
         # Check if the application has rights to the BigQuery project
-        jobs = bigquery_service.jobs()
-        job_data = {'configuration': {'query': {'query': 'SELECT 1'}}}
-        jobs.insert(projectId=project_id, body=job_data).execute()
+        client.query('SELECT 1').result()
         return credentials
-    except googleapiclient.errors.Error:
+    except google.api_core.exceptions.GoogleAPIError:
         return None
 
 
@@ -185,14 +158,6 @@ class QueryTimeout(ValueError):
     pass
 
 
-class StreamingInsertError(ValueError):
-    """
-    Raised when BigQuery reports a streaming insert error.
-    For more information see `Streaming Data Into BigQuery
-    <https://cloud.google.com/bigquery/streaming-data-into-bigquery>`__
-    """
-
-
 class TableCreationError(ValueError):
     """
     Raised when the create table method fails
@@ -206,7 +171,9 @@ class GbqConnector(object):
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None, auth_local_webserver=False,
                  dialect='legacy'):
-        from google.cloud import bigquery
+        from google.api_core.exceptions import GoogleAPIError
+        from google.api_core.exceptions import ClientError
+        self.http_error = (ClientError, GoogleAPIError)
         self.project_id = project_id
         self.reauth = reauth
         self.verbose = verbose
@@ -215,9 +182,7 @@ class GbqConnector(object):
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
         self.credentials = self.get_credentials()
-        self.service = self.get_service()
-        self.client = bigquery.Client(project=project_id,
-                                      credentials=self.credentials)
+        self.client = self.get_client()
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
@@ -283,8 +248,7 @@ class GbqConnector(object):
             credentials do not have access to the project (self.project_id)
             on BigQuery.
         """
-        import httplib2
-        from google_auth_httplib2 import Request
+        import google.auth.transport.requests
         from google.oauth2.credentials import Credentials
 
         # Use the default credentials location under ~/.config and the
@@ -316,8 +280,7 @@ class GbqConnector(object):
             scopes=credentials_json.get('scopes'))
 
         # Refresh the token before trying to use it.
-        http = httplib2.Http()
-        request = Request(http)
+        request = google.auth.transport.requests.Request()
         credentials.refresh(request)
 
         return _try_credentials(self.project_id, credentials)
@@ -418,8 +381,7 @@ class GbqConnector(object):
         return credentials
 
     def get_service_account_credentials(self):
-        import httplib2
-        from google_auth_httplib2 import Request
+        import google.auth.transport.requests
         from google.oauth2.service_account import Credentials
         from os.path import isfile
 
@@ -442,8 +404,7 @@ class GbqConnector(object):
             credentials = credentials.with_scopes([self.scope])
 
             # Refresh the token before trying to use it.
-            http = httplib2.Http()
-            request = Request(http)
+            request = google.auth.transport.requests.Request()
             credentials.refresh(request)
 
             return credentials
@@ -460,6 +421,18 @@ class GbqConnector(object):
             sys.stdout.write(msg + end)
             sys.stdout.flush()
 
+    def _start_timer(self):
+        self.start = time.time()
+
+    def get_elapsed_seconds(self):
+        return round(time.time() - self.start, 2)
+
+    def print_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
+                              overlong=7):
+        sec = self.get_elapsed_seconds()
+        if sec > overlong:
+            self._print('{} {} {}'.format(prefix, sec, postfix))
+
     # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     @staticmethod
     def sizeof_fmt(num, suffix='B'):
@@ -470,184 +443,128 @@ class GbqConnector(object):
             num /= 1024.0
         return fmt % (num, 'Y', suffix)
 
-    def get_service(self):
-        import httplib2
-        from google_auth_httplib2 import AuthorizedHttp
-        from googleapiclient.discovery import build
-
-        http = httplib2.Http()
-        authed_http = AuthorizedHttp(
-            self.credentials, http=http)
-        bigquery_service = build('bigquery', 'v2', http=authed_http)
-
-        return bigquery_service
+    def get_client(self):
+        from google.cloud import bigquery
+        return bigquery.Client(
+            project=self.project_id, credentials=self.credentials)
 
     @staticmethod
     def process_http_error(ex):
         # See `BigQuery Troubleshooting Errors
         # <https://cloud.google.com/bigquery/troubleshooting-errors>`__
 
-        status = json.loads(bytes_to_str(ex.content))['error']
-        errors = status.get('errors', None)
+        raise GenericGBQException("Reason: {0}".format(ex))
 
-        if errors:
-            for error in errors:
-                reason = error['reason']
-                message = error['message']
+    def run_query(self, query, **kwargs):
+        from google.auth.exceptions import RefreshError
+        from google.cloud.bigquery import QueryJobConfig
+        from concurrent.futures import TimeoutError
 
-                raise GenericGBQException(
-                    "Reason: {0}, Message: {1}".format(reason, message))
+        job_config = {
+            'query': {
+                'useLegacySql': self.dialect == 'legacy'
+                # 'allowLargeResults', 'createDisposition',
+                # 'preserveNulls', destinationTable, useQueryCache
+            }
+        }
+        config = kwargs.get('configuration')
+        if config is not None:
+            if len(config) != 1:
+                raise ValueError("Only one job type must be specified, but "
+                                 "given {}".format(','.join(config.keys())))
+            if 'query' in config:
+                if 'query' in config['query']:
+                    if query is not None:
+                        raise ValueError("Query statement can't be specified "
+                                        "inside config while it is specified "
+                                        "as parameter")
+                    query = config['query']['query']
+                    del config['query']['query']
 
-        raise GenericGBQException(errors)
+                job_config['query'].update(config['query'])
+            else:
+                raise ValueError("Only 'query' job type is supported")
 
-    def process_insert_errors(self, insert_errors):
-        for insert_error in insert_errors:
-            row = insert_error['index']
-            errors = insert_error.get('errors', None)
-            for error in errors:
-                reason = error['reason']
-                message = error['message']
-                location = error['location']
-                error_message = ('Error at Row: {0}, Reason: {1}, '
-                                 'Location: {2}, Message: {3}'
-                                 .format(row, reason, location, message))
-
-                # Report all error messages if verbose is set
-                if self.verbose:
-                    self._print(error_message)
-                else:
-                    raise StreamingInsertError(error_message +
-                                               '\nEnable verbose logging to '
-                                               'see all errors')
-
-        raise StreamingInsertError
-
-    def run_query(self, query, dialect='legacy', query_parameters=(),
-                  configuration=None, verbose=True, async=True):
-        """Execute a query job
-
-        Parameters
-        ----------
-        query, dialect, query_paramaters, configuration, verbose: see read_gbq
-        async: bool
-            Whether a synchronous or asynchronous query should be run. To be
-            deprecated in future versions; synchronous queries are used as a
-            workaround to implement timeouts, and will be removed in a
-            future update once Google Cloud Python resolves the issue.
-
-        Returns
-        -------
-        Tuple
-            rows : list of lists
-            columns: list of strings
-            schema: dictionary
-                Has keys: name, field_type, mode, fields, description
-        """
-
-        def _set_common_query_settings(query_job):
-            if dialect == 'legacy':
-                query_job.use_legacy_sql = True
-            elif dialect == 'standard':
-                query_job.use_legacy_sql = False
-
-            if configuration:
-                for setting, value in configuration.items():
-                    setattr(query_job, setting, value)
-            return query_job
-
-        def sync_query():
-            query_job = self.client.run_sync_query(
-                query, query_parameters=query_parameters)
-            query_job = _set_common_query_settings(query_job)
-            if verbose:
-                print("Query running...")
-            query_job.run()
-            if not query_job._properties.get("jobComplete", False):
-                raise QueryTimeout("Sync query timed out")
-            if verbose:
-                print("Query done.")
-                if query_job._properties.get("cacheHit", False):
-                    print("Cache hit.")
-                else:
-                    bytes_billed = int(query_job._properties
-                                       .get("totalBytesProcessed", 0))
-                    bytes_processed = int(query_job._properties
-                                          .get("totalBytesBilled", 0))
-                    print("Total bytes billed (processed): %s (%s)" %
-                          (self.sizeof_fmt(bytes_billed),
-                           self.sizeof_fmt(bytes_processed)))
-                print("\nRetrieving results...")
-            return query_job, None
-
-        def async_query():
-            query_job = self.client.run_async_query(
-                str(uuid.uuid4()),
+        self._start_timer()
+        try:
+            self._print('Requesting query... ', end="")
+            query_reply = self.client.query(
                 query,
-                query_parameters=query_parameters)
-            query_job = _set_common_query_settings(query_job)
-            if verbose:
-                print("Query running...")
-            query_job.begin()
+                job_config=QueryJobConfig.from_api_repr(job_config['query']))
+            self._print('ok.')
+        except (RefreshError, ValueError):
+            if self.private_key:
+                raise AccessDenied(
+                    "The service account credentials are not valid")
+            else:
+                raise AccessDenied(
+                    "The credentials have been revoked or expired, "
+                    "please re-run the application to re-authorize")
+        except self.http_error as ex:
+            self.process_http_error(ex)
+
+        job_id = query_reply.job_id
+        self._print('Job ID: %s\nQuery running...' % job_id)
+
+        while query_reply.state != 'DONE':
+            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
+
+            timeout_ms = job_config['query'].get('timeoutMs')
+            if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
+                raise QueryTimeout('Query timeout: {} ms'.format(timeout_ms))
+
+            timeout_sec = 1.0
+            if timeout_ms:
+                # Wait at most 1 second so we can show progress bar
+                timeout_sec = min(1.0, timeout_ms / 1000.0)
+
             try:
-                query_results = query_job.results().fetch_data()
-            except AttributeError:
-                query_results = query_job.result().fetch_data()
-            if verbose:
-                print("Query done.")
-                if query_job._properties["statistics"]["query"].get("cacheHit",
-                                                                    False):
-                    print("Cache hit.")
-                elif ("statistics" in query_job._properties and
-                        "query" in query_job._properties["statistics"]):
-                    bytes_billed = int(query_job
-                                       ._properties["statistics"]["query"]
-                                       .get("totalBytesProcessed", 0))
-                    bytes_processed = int(query_job
-                                          ._properties["statistics"]["query"]
-                                          .get("totalBytesBilled", 0))
-                    print("Total bytes billed (processed): %s (%s)" %
-                          (self.sizeof_fmt(bytes_billed),
-                           self.sizeof_fmt(bytes_processed)))
-                print("\nRetrieving results...")
-            return query_results, query_job
+                query_reply.result(timeout=timeout_sec)
+            except TimeoutError:
+                # Use our own timeout logic
+                pass
+            except self.http_error as ex:
+                self.process_http_error(ex)
 
-        def get_columns_schema(query_results):
-            schema = [{"name": f.name,
-                       "field_type": f.field_type,
-                       "mode": f.mode,
-                       "fields": f.fields,
-                       "description": f.description}
-                      for f in query_results.schema]
-            columns = [field["name"] for field in schema]
-            return columns, schema
+        if self.verbose:
+            if query_reply.cache_hit:
+                self._print('Query done.\nCache hit.\n')
+            else:
+                bytes_processed = query_reply.total_bytes_processed or 0
+                bytes_billed = query_reply.total_bytes_billed or 0
+                self._print('Query done.\nProcessed: {} Billed: {}'.format(
+                    self.sizeof_fmt(bytes_processed),
+                    self.sizeof_fmt(bytes_billed)))
+                self._print('Standard price: ${:,.2f} USD\n'.format(
+                    bytes_billed * self.query_price_for_TB))
 
-        # sync_query code to be removed in future
-        if async:
-            query_results, query_job = async_query()
-            rows = list(query_results)
-        else:
-            query_results, query_job = sync_query()
-            rows = list(query_results.rows)
+            self._print('Retrieving results...')
 
-        columns, schema = get_columns_schema(query_results)
+        try:
+            rows_iter = query_reply.result()
+        except self.http_error as ex:
+            self.process_http_error(ex)
+        result_rows = list(rows_iter)
+        total_rows = rows_iter.total_rows
+        schema = {
+            'fields': [
+                field.to_api_repr()
+                for field in rows_iter.schema],
+        }
 
-        if verbose:
-            print("Got %s rows.") % len(rows)
-            if query_job:
-                print("\nTotal time taken %ss" % (datetime.utcnow() -
-                      query_job.created.replace(tzinfo=None)).seconds)
-                print("Finished at %s." % datetime.now()
-                      .strftime('%Y-%m-%d %H:%M:%S'))
+        # print basic query stats
+        self._print('Got {} rows.\n'.format(total_rows))
 
-        return rows, columns, schema
+        return schema, result_rows
 
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
-        try:
-            from googleapiclient.errors import HttpError
-        except ImportError:
-            from apiclient.errors import HttpError
+        from google.cloud.bigquery import LoadJobConfig
+        from six import StringIO
 
-        job_id = uuid.uuid4().hex
+        destination_table = self.client.dataset(dataset_id).table(table_id)
+        job_config = LoadJobConfig()
+        job_config.write_disposition = 'WRITE_APPEND'
+        job_config.source_format = 'NEWLINE_DELIMITED_JSON'
         rows = []
         remaining_rows = len(dataframe)
 
@@ -655,44 +572,25 @@ class GbqConnector(object):
         self._print("\n\n")
 
         for index, row in dataframe.reset_index(drop=True).iterrows():
-            row_dict = dict()
-            row_dict['json'] = json.loads(row.to_json(force_ascii=False,
-                                                      date_unit='s',
-                                                      date_format='iso'))
-            row_dict['insertId'] = job_id + str(index)
-            rows.append(row_dict)
+            row_json = row.to_json(
+                force_ascii=False, date_unit='s', date_format='iso')
+            rows.append(row_json)
             remaining_rows -= 1
 
             if (len(rows) % chunksize == 0) or (remaining_rows == 0):
-                self._print("\rStreaming Insert is {0}% Complete".format(
+                self._print("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
 
-                body = {'rows': rows}
+                body = StringIO('{}\n'.format('\n'.join(rows)))
 
                 try:
-                    response = self.service.tabledata().insertAll(
-                        projectId=self.project_id,
-                        datasetId=dataset_id,
-                        tableId=table_id,
-                        body=body).execute()
-                except HttpError as ex:
+                    self.client.load_table_from_file(
+                        body,
+                        destination_table,
+                        job_config=job_config).result()
+                except self.http_error as ex:
                     self.process_http_error(ex)
 
-                # For streaming inserts, even if you receive a success HTTP
-                # response code, you'll need to check the insertErrors property
-                # of the response to determine if the row insertions were
-                # successful, because it's possible that BigQuery was only
-                # partially successful at inserting the rows.  See the `Success
-                # HTTP Response Codes
-                # <https://cloud.google.com/bigquery/
-                #       streaming-data-into-bigquery#troubleshooting>`__
-                # section
-
-                insert_errors = response.get('insertErrors', None)
-                if insert_errors:
-                    self.process_insert_errors(insert_errors)
-
-                sleep(1)  # Maintains the inserts "per second" rate per API
                 rows = []
 
         self._print("\n")
@@ -716,23 +614,18 @@ class GbqConnector(object):
             Fields representing the schema
         """
 
-        try:
-            from googleapiclient.errors import HttpError
-        except ImportError:
-            from apiclient.errors import HttpError
+        table_ref = self.client.dataset(dataset_id).table(table_id)
 
         try:
-            remote_schema = self.service.tables().get(
-                projectId=self.project_id,
-                datasetId=dataset_id,
-                tableId=table_id).execute()['schema']
+            table = self.client.get_table(table_ref)
+            remote_schema = table.schema
 
-            remote_fields = [{'name': field_remote['name'],
-                              'type': field_remote['type']}
-                             for field_remote in remote_schema['fields']]
+            remote_fields = [{'name': field_remote.name,
+                              'type': field_remote.field_type}
+                             for field_remote in remote_schema]
 
             return remote_fields
-        except HttpError as ex:
+        except self.http_error as ex:
             self.process_http_error(ex)
 
     def verify_schema(self, dataset_id, table_id, schema):
@@ -818,42 +711,33 @@ def _get_credentials_file():
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
 
-def _create_df(rows, columns, schema, index_col, col_order):
-    df = DataFrame(data=rows, columns=columns)
+def _parse_data(schema, rows):
+    # see:
+    # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
+    # #missing-data-casting-rules-and-indexing
+    dtype_map = {'FLOAT': np.dtype(float),
+                 'TIMESTAMP': 'M8[ns]'}
 
-    # Manual field type conversion. Inserted to handle tests
-    # with only null rows, otherwise type conversion works automatically
-    for field in schema:
-        if field["field_type"] == 'TIMESTAMP':
-            if df[field["name"]].isnull().values.all():
-                df[field["name"]] = to_datetime(df[field["name"]])
-        if field["field_type"] == 'FLOAT':
-            if df[field["name"]].isnull().values.all():
-                df[field["name"]] = to_numeric(df[field["name"]])
+    fields = schema['fields']
+    col_types = [field['type'] for field in fields]
+    col_names = [str(field['name']) for field in fields]
+    col_dtypes = [
+        dtype_map.get(field['type'].upper(), object)
+        for field in fields
+    ]
+    print(fields)
+    page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
+    for row_num, entries in enumerate(rows):
+        for col_num in range(len(col_types)):
+            field_value = entries[col_num]
+            page_array[row_num][col_num] = field_value
 
-    # Reindex the DataFrame on the provided column
-    if index_col:
-        if index_col in df.columns:
-            df.set_index(index_col, inplace=True)
-        else:
-            raise InvalidIndexColumn(
-                'Index column "{0}" does not exist in DataFrame.'
-                .format(index_col))
-
-    # Change the order of columns in the DataFrame based on provided list
-    if col_order:
-        if sorted(col_order) == sorted(df.columns):
-            df = df[col_order]
-        else:
-            raise InvalidColumnOrder(
-                'Column order does not match this DataFrame.')
-    return df
+    return DataFrame(page_array, columns=col_names)
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
-             auth_local_webserver=False, dialect='legacy',
-             query_parameters=(), configuration=None, **kwargs):
+             auth_local_webserver=False, dialect='legacy', **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -863,21 +747,19 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     Documentation is available `here
     <https://googlecloudplatform.github.io/google-cloud-python/stable/>`__
 
-    Authentication via Google Cloud can be performed a number of ways.
+    Authentication to the Google BigQuery service is via OAuth 2.0.
 
-    One method is to generate user credentials via
-    ``gcloud auth application-default login`` and point to it using an
-    environment variable:
-    ``$ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/keyfile.json"``
+    - If "private_key" is not provided:
 
-    You can also download a service account private key JSON file and pass the
-    path to the file to the private_key paramater.
+      By default "application default credentials" are used.
 
-    If default credentials are not located and a private key is not passed,
-    an auth flow will begin where a user can auth via a link or via a pop-up
-    through which a user can auth with their Google account. This will
-    generate a user credentials file, which is saved locally and can be re-used
-    in the future.
+      If default application credentials are not found or are restrictive,
+      user account credentials are used. In this case, you will be asked to
+      grant permissions for product name 'pandas GBQ'.
+
+    - If "private_key" is provided:
+
+      Service account credentials will be used to authenticate.
 
     Parameters
     ----------
@@ -918,42 +800,15 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
-    credentials: credentials object, default None (optional)
-        If generating credentials on your own, pass in. Otherwise, will attempt
-        to generate automatically
 
-        .. versionadded:: 0.3.0
+    **kwargs : Arbitrary keyword arguments
+        configuration (dict): query config parameters for job processing.
+        For example:
 
-    query_parameters: tuple (optional) Can only be used in Standard SQL
-        `More info
-        <https://cloud.google.com/bigquery/docs/parameterized-queries>`__
-        Example::
+            configuration = {'query': {'useQueryCache': False}}
 
-            gbq.read_gbq("SELECT @param1 + @param2",
-                         query_parameters = (bigquery.ScalarQueryParameter(
-                                             'param1', 'INT64', 1),
-                                             bigquery.ScalarQueryParameter(
-                                             'param2', 'INT64', 2)))
-
-        .. versionadded:: 0.3.0
-
-    configuration : dict (optional)
-        Due to the [current implementation in Google Cloud Python] only some
-        configuration settings are able to be set. You can pass them along like
-        in the following:
-        `read_gbq(q,configuration={'allow_large_results':True,
-                                   'maximum_billing_tier':2})`
-        [Example allowable settings]:
-            allow_large_results, create_disposition, default_dataset,
-            destination, flatten_results, priority, use_query_cache,
-            use_legacy_sql, dry_run, write_disposition, udf_resources,
-            maximum_billing_tier, maximum_bytes_billed
-
-        .. [current implementation in Google Cloud Python]
-            https://github.com/GoogleCloudPlatform/google-cloud-python/issues/2765
-        .. [Example allowable settings]
-            http://google-cloud-python.readthedocs.io/en/latest/_modules/google/cloud/bigquery/job.html?highlight=QueryJobConfig
-        .. versionadded:: 0.3.0
+        For more information see `BigQuery SQL Reference
+        <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__
 
     Returns
     -------
@@ -969,42 +824,48 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     if dialect not in ('legacy', 'standard'):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
-    if configuration and any(key in configuration for key in
-                             ["query", "copy", "load", "extract"]):
-        raise ValueError("The Google Cloud BigQuery API handles configuration "
-                         "settings differently. There are now a discrete set "
-                         "of query settings one can set by passing in a "
-                         "dictionary, e.g.: `configuration="
-                         "{'maximum_billing_tier':2}`. See http://google-cloud"
-                         "-python.readthedocs.io/en/latest/_modules/google/"
-                         "cloud/bigquery/job.html?highlight=QueryJobConfig "
-                         "for allowable paramaters.")
 
-    connector = GbqConnector(project_id=project_id,
-                             reauth=reauth,
-                             auth_local_webserver=auth_local_webserver,
-                             private_key=private_key)
+    connector = GbqConnector(
+        project_id, reauth=reauth, verbose=verbose, private_key=private_key,
+        dialect=dialect, auth_local_webserver=auth_local_webserver)
+    schema, rows = connector.run_query(query, **kwargs)
+    final_df = _parse_data(schema, rows)
 
-    # Temporary workaround in order to perform timeouts on queries.
-    # Once Google Cloud Python resolves, differentiation between sync and async
-    # code will be removed.
-    if (configuration and "timeout_ms" in configuration):
-        rows, columns, schema = connector.run_query(query,
-                                                    dialect,
-                                                    query_parameters,
-                                                    configuration,
-                                                    verbose,
-                                                    async=False)
-    else:
-        rows, columns, schema = connector.run_query(query,
-                                                    dialect,
-                                                    query_parameters,
-                                                    configuration,
-                                                    verbose)
+    # Reindex the DataFrame on the provided column
+    if index_col is not None:
+        if index_col in final_df.columns:
+            final_df.set_index(index_col, inplace=True)
+        else:
+            raise InvalidIndexColumn(
+                'Index column "{0}" does not exist in DataFrame.'
+                .format(index_col)
+            )
 
-    df = _create_df(rows, columns, schema, index_col, col_order)
+    # Change the order of columns in the DataFrame based on provided list
+    if col_order is not None:
+        if sorted(col_order) == sorted(final_df.columns):
+            final_df = final_df[col_order]
+        else:
+            raise InvalidColumnOrder(
+                'Column order does not match this DataFrame.'
+            )
 
-    return df
+    # cast BOOLEAN and INTEGER columns from object to bool/int
+    # if they dont have any nulls
+    type_map = {'BOOLEAN': bool, 'INTEGER': int}
+    for field in schema['fields']:
+        if field['type'].upper() in type_map and \
+                final_df[field['name']].notnull().all():
+            final_df[field['name']] = \
+                final_df[field['name']].astype(type_map[field['type'].upper()])
+
+    connector.print_elapsed_seconds(
+        'Total time taken',
+        datetime.now().strftime('s.\nFinished at %Y-%m-%d %H:%M:%S.'),
+        0
+    )
+
+    return final_df
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
@@ -1152,11 +1013,6 @@ class _Table(GbqConnector):
 
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
-        try:
-            from googleapiclient.errors import HttpError
-        except ImportError:
-            from apiclient.errors import HttpError
-        self.http_error = HttpError
         self.dataset_id = dataset_id
         super(_Table, self).__init__(project_id, reauth, verbose, private_key)
 
@@ -1173,18 +1029,16 @@ class _Table(GbqConnector):
         boolean
             true if table exists, otherwise false
         """
+        from google.api_core.exceptions import NotFound
 
+        table_ref = self.client.dataset(self.dataset_id).table(table_id)
         try:
-            self.service.tables().get(
-                projectId=self.project_id,
-                datasetId=self.dataset_id,
-                tableId=table_id).execute()
+            self.client.get_table(table_ref)
             return True
+        except NotFound:
+            return False
         except self.http_error as ex:
-            if ex.resp.status == 404:
-                return False
-            else:
-                self.process_http_error(ex)
+            self.process_http_error(ex)
 
     def create(self, table_id, schema):
         """ Create a table in Google BigQuery given a table and schema
@@ -1197,6 +1051,8 @@ class _Table(GbqConnector):
             Use the generate_bq_schema to generate your table schema from a
             dataframe.
         """
+        from google.cloud.bigquery import SchemaField
+        from google.cloud.bigquery import Table
 
         if self.exists(table_id):
             raise TableCreationError("Table {0} already "
@@ -1207,20 +1063,20 @@ class _Table(GbqConnector):
             _Dataset(self.project_id,
                      private_key=self.private_key).create(self.dataset_id)
 
-        body = {
-            'schema': schema,
-            'tableReference': {
-                'tableId': table_id,
-                'projectId': self.project_id,
-                'datasetId': self.dataset_id
-            }
-        }
+        table_ref = self.client.dataset(self.dataset_id).table(table_id)
+        table = Table(table_ref)
+
+        for field in schema['fields']:
+            if 'mode' not in field:
+                field['mode'] = 'NULLABLE'
+
+        table.schema = [
+            SchemaField.from_api_repr(field)
+            for field in schema['fields']
+        ]
 
         try:
-            self.service.tables().insert(
-                projectId=self.project_id,
-                datasetId=self.dataset_id,
-                body=body).execute()
+            self.client.create_table(table)
         except self.http_error as ex:
             self.process_http_error(ex)
 
@@ -1232,30 +1088,25 @@ class _Table(GbqConnector):
         table : str
             Name of table to be deleted
         """
+        from google.api_core.exceptions import NotFound
 
         if not self.exists(table_id):
             raise NotFoundException("Table does not exist")
 
+        table_ref = self.client.dataset(self.dataset_id).table(table_id)
         try:
-            self.service.tables().delete(
-                datasetId=self.dataset_id,
-                projectId=self.project_id,
-                tableId=table_id).execute()
-        except self.http_error as ex:
+            self.client.delete_table(table_ref)
+        except NotFound:
             # Ignore 404 error which may occur if table already deleted
-            if ex.resp.status != 404:
-                self.process_http_error(ex)
+            pass
+        except self.http_error as ex:
+            self.process_http_error(ex)
 
 
 class _Dataset(GbqConnector):
 
     def __init__(self, project_id, reauth=False, verbose=False,
                  private_key=None):
-        try:
-            from googleapiclient.errors import HttpError
-        except ImportError:
-            from apiclient.errors import HttpError
-        self.http_error = HttpError
         super(_Dataset, self).__init__(project_id, reauth, verbose,
                                        private_key)
 
@@ -1272,17 +1123,15 @@ class _Dataset(GbqConnector):
         boolean
             true if dataset exists, otherwise false
         """
+        from google.api_core.exceptions import NotFound
 
         try:
-            self.service.datasets().get(
-                projectId=self.project_id,
-                datasetId=dataset_id).execute()
+            self.client.get_dataset(self.client.dataset(dataset_id))
             return True
+        except NotFound:
+            return False
         except self.http_error as ex:
-            if ex.resp.status == 404:
-                return False
-            else:
-                self.process_http_error(ex)
+            self.process_http_error(ex)
 
     def datasets(self):
         """ Return a list of datasets in Google BigQuery
@@ -1298,32 +1147,15 @@ class _Dataset(GbqConnector):
         """
 
         dataset_list = []
-        next_page_token = None
-        first_query = True
 
-        while first_query or next_page_token:
-            first_query = False
+        try:
+            dataset_response = self.client.list_datasets()
 
-            try:
-                list_dataset_response = self.service.datasets().list(
-                    projectId=self.project_id,
-                    pageToken=next_page_token).execute()
+            for row in dataset_response:
+                dataset_list.append(row.dataset_id)
 
-                dataset_response = list_dataset_response.get('datasets')
-                if dataset_response is None:
-                    dataset_response = []
-
-                next_page_token = list_dataset_response.get('nextPageToken')
-
-                if dataset_response is None:
-                    dataset_response = []
-
-                for row_num, raw_row in enumerate(dataset_response):
-                    dataset_list.append(
-                        raw_row['datasetReference']['datasetId'])
-
-            except self.http_error as ex:
-                self.process_http_error(ex)
+        except self.http_error as ex:
+            self.process_http_error(ex)
 
         return dataset_list
 
@@ -1335,22 +1167,16 @@ class _Dataset(GbqConnector):
         dataset : str
             Name of dataset to be written
         """
+        from google.cloud.bigquery import Dataset
 
         if self.exists(dataset_id):
             raise DatasetCreationError("Dataset {0} already "
                                        "exists".format(dataset_id))
 
-        body = {
-            'datasetReference': {
-                'projectId': self.project_id,
-                'datasetId': dataset_id
-            }
-        }
+        dataset = Dataset(self.client.dataset(dataset_id))
 
         try:
-            self.service.datasets().insert(
-                projectId=self.project_id,
-                body=body).execute()
+            self.client.create_dataset(dataset)
         except self.http_error as ex:
             self.process_http_error(ex)
 
@@ -1362,20 +1188,20 @@ class _Dataset(GbqConnector):
         dataset : str
             Name of dataset to be deleted
         """
+        from google.api_core.exceptions import NotFound
 
         if not self.exists(dataset_id):
             raise NotFoundException(
                 "Dataset {0} does not exist".format(dataset_id))
 
         try:
-            self.service.datasets().delete(
-                datasetId=dataset_id,
-                projectId=self.project_id).execute()
+            self.client.delete_dataset(self.client.dataset(dataset_id))
 
-        except self.http_error as ex:
+        except NotFound:
             # Ignore 404 error which may occur if dataset already deleted
-            if ex.resp.status != 404:
-                self.process_http_error(ex)
+            pass
+        except self.http_error as ex:
+            self.process_http_error(ex)
 
     def tables(self, dataset_id):
         """ List tables in the specific dataset in Google BigQuery
@@ -1392,28 +1218,15 @@ class _Dataset(GbqConnector):
         """
 
         table_list = []
-        next_page_token = None
-        first_query = True
 
-        while first_query or next_page_token:
-            first_query = False
+        try:
+            table_response = self.client.list_dataset_tables(
+                self.client.dataset(dataset_id))
 
-            try:
-                list_table_response = self.service.tables().list(
-                    projectId=self.project_id,
-                    datasetId=dataset_id,
-                    pageToken=next_page_token).execute()
+            for row in table_response:
+                table_list.append(row.table_id)
 
-                table_response = list_table_response.get('tables')
-                next_page_token = list_table_response.get('nextPageToken')
-
-                if not table_response:
-                    return table_list
-
-                for row_num, raw_row in enumerate(table_response):
-                    table_list.append(raw_row['tableReference']['tableId'])
-
-            except self.http_error as ex:
-                self.process_http_error(ex)
+        except self.http_error as ex:
+            self.process_http_error(ex)
 
         return table_list
