@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.0 / 2017-??-??
+------------------
+
+- Use the `google-cloud-bigquery <https://googlecloudplatform.github.io/google-cloud-python/latest/bigquery/usage.html>`__ library for API calls instead of ``google-api-client`` and ``httplib2``. (:issue:`93`)
+
 0.2.1 / 2017-??-??
 ------------------
 
