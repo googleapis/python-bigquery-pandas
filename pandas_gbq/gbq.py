@@ -620,9 +620,11 @@ class GbqConnector(object):
             table = self.client.get_table(table_ref)
             remote_schema = table.schema
 
-            remote_fields = [{'name': field_remote.name,
-                              'type': field_remote.field_type}
-                             for field_remote in remote_schema]
+            remote_fields = [
+                field_remote.to_api_repr() for field_remote in remote_schema]
+            for field in remote_fields:
+                field['type'] = field['type'].upper()
+                field['mode'] = field['mode'].upper()
 
             return remote_fields
         except self.http_error as ex:
@@ -655,6 +657,14 @@ class GbqConnector(object):
                                key=lambda x: x['name'])
         fields_local = sorted(schema['fields'], key=lambda x: x['name'])
 
+        # Ignore mode when comparing schemas.
+        for field in fields_local:
+            if 'mode' in field:
+                del field['mode']
+        for field in fields_remote:
+            if 'mode' in field:
+                del field['mode']
+
         return fields_remote == fields_local
 
     def schema_is_subset(self, dataset_id, table_id, schema):
@@ -682,6 +692,14 @@ class GbqConnector(object):
 
         fields_remote = self.schema(dataset_id, table_id)
         fields_local = schema['fields']
+
+        # Ignore mode when comparing schemas.
+        for field in fields_local:
+            if 'mode' in field:
+                del field['mode']
+        for field in fields_remote:
+            if 'mode' in field:
+                del field['mode']
 
         return all(field in fields_remote for field in fields_local)
 
