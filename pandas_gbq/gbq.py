@@ -476,8 +476,8 @@ class GbqConnector(object):
                 if 'query' in config['query']:
                     if query is not None:
                         raise ValueError("Query statement can't be specified "
-                                        "inside config while it is specified "
-                                        "as parameter")
+                                         "inside config while it is specified "
+                                         "as parameter")
                     query = config['query']['query']
                     del config['query']['query']
 
