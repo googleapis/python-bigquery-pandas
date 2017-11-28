@@ -613,7 +613,6 @@ class GbqConnector(object):
         list of dicts
             Fields representing the schema
         """
-
         table_ref = self.client.dataset(dataset_id).table(table_id)
 
         try:

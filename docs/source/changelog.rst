@@ -6,7 +6,7 @@ Changelog
 
 - Use the `google-cloud-bigquery <https://googlecloudplatform.github.io/google-cloud-python/latest/bigquery/usage.html>`__ library for API calls instead of ``google-api-client`` and ``httplib2``. (:issue:`93`)
 
-0.2.1 / 2017-??-??
+0.2.1 / 2017-11-27
 ------------------
 
 - :func:`read_gbq` now raises ``QueryTimeout`` if the request exceeds the ``query.timeoutMs`` value specified in the BigQuery configuration. (:issue:`76`)
