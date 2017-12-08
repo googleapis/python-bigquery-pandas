@@ -742,7 +742,6 @@ def _parse_data(schema, rows):
         dtype_map.get(field['type'].upper(), object)
         for field in fields
     ]
-    print(fields)
     page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
     for row_num, entries in enumerate(rows):
         for col_num in range(len(col_types)):
