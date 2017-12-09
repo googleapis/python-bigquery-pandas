@@ -811,26 +811,6 @@ class GbqConnector(object):
 
         return all(field in fields_remote for field in fields_local)
 
-    def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
-        delay = 0
-
-        # Changes to table schema may take up to 2 minutes as of May 2015 See
-        # `Issue 191
-        # <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
-        # Compare previous schema with new schema to determine if there should
-        # be a 120 second delay
-
-        if not self.verify_schema(dataset_id, table_id, table_schema):
-            self._print('The existing table has a different schema. Please '
-                        'wait 2 minutes. See Google BigQuery issue #191')
-            delay = 120
-
-        table = _Table(self.project_id, dataset_id,
-                       private_key=self.private_key)
-        table.delete(table_id)
-        table.create(table_id, table_schema)
-        sleep(delay)
-
 
 def _get_credentials_file():
     return os.environ.get(
@@ -1103,19 +1083,33 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
                                      "already exists. "
                                      "Change the if_exists parameter to "
                                      "append or replace data.")
-        elif if_exists == 'replace':
-            connector.delete_and_recreate_table(
-                dataset_id, table_id, table_schema)
-        elif if_exists == 'append':
+        else:
+            delay = 0
             if not connector.schema_is_subset(dataset_id,
                                               table_id,
                                               table_schema):
-                raise InvalidSchema("Please verify that the structure and "
-                                    "data types in the DataFrame match the "
-                                    "schema of the destination table.")
-    else:
-        table.create(table_id, table_schema)
+                if if_exists == 'append' \
+                        or table.partition_decorator in table_id:
+                    raise InvalidSchema("Please verify that the structure "
+                                        "and data types in the DataFrame "
+                                        "match the schema of the destination "
+                                        "table.")
+                elif if_exists == 'replace':
+                    table._print('The existing table has a different schema. '
+                                 'Please wait 2 minutes. See Google BigQuery '
+                                 'issue #191')
+                    delay = 120
+            if if_exists == 'replace':
+                table.delete(table_id)
+                if table.partition_decorator not in table_id:
+                    table.create(table_id, table_schema)
+                    sleep(delay)
 
+    else:
+        is_dpt = table.partition_decorator in table_id
+        table.create(table_id.split('$')[0],
+                     table_schema,
+                     date_partitioned=is_dpt)
     connector.load_data(dataframe, dataset_id, table_id, chunksize)
 
 
@@ -1158,6 +1152,8 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
+    partition_decorator = '$'
+
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
         try:
@@ -1194,7 +1190,7 @@ class _Table(GbqConnector):
             else:
                 self.process_http_error(ex)
 
-    def create(self, table_id, schema):
+    def create(self, table_id, schema, date_partitioned=False):
         """ Create a table in Google BigQuery given a table and schema
 
         Parameters
@@ -1204,6 +1200,8 @@ class _Table(GbqConnector):
         schema : str
             Use the generate_bq_schema to generate your table schema from a
             dataframe.
+        date_partitioned: boolean
+            Whether table is to be created as a date partitioned table.
         """
 
         if self.exists(table_id):
@@ -1223,6 +1221,9 @@ class _Table(GbqConnector):
                 'datasetId': self.dataset_id
             }
         }
+        if date_partitioned:
+            # The only type supported is DAY
+            body.update({'timePartitioning': {'type': 'DAY'}})
 
         try:
             self.service.tables().insert(
