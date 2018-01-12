@@ -581,7 +581,7 @@ class GbqConnector(object):
                 self._print("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
 
-                body = BytesIO('{}\n'.format('\n'.join(rows)).encode())
+                body = BytesIO('{}\n'.format('\n'.join(rows)).encode('utf-8'))
 
                 try:
                     self.client.load_table_from_file(
