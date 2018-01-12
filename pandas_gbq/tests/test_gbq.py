@@ -1468,6 +1468,23 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         assert result['num_rows'][0] == test_size
 
 
+    def test_upload_unicode_data(self):
+        test_id = "1"
+        test_size = 10
+        df = DataFrame(np.random.randn(6, 4), index=range(6), columns=list('ABCD'))
+        df.A = '信用卡'
+
+        gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
+                   chunksize=10000)
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id())
+
+        assert result['num_rows'][0] == test_size
+
+
+
 class TestToGBQIntegrationWithServiceAccountKeyContents(object):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
     # As a workaround to this issue, each test should use a unique table name.
