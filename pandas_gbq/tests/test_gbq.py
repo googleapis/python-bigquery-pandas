@@ -1156,6 +1156,22 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
             gbq.to_gbq(bad_df, self.destination_table + test_id,
                        _get_project_id(), private_key=_get_private_key_path())
 
+    def test_upload_unicode_data(self):
+        test_id = "1"
+        test_size = 10
+        df = DataFrame(np.random.randn(6, 4), index=range(6),
+                       columns=list('ABCD'))
+        df.A = u'信用卡'
+
+        gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
+                   chunksize=10000)
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id())
+
+        assert result['num_rows'][0] == test_size
+
     def test_generate_schema(self):
         df = tm.makeMixedDataFrame()
         schema = gbq._generate_bq_schema(df)
@@ -1459,22 +1475,6 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         test_id = "1"
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
-
-        gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
-                   chunksize=10000)
-
-        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
-            self.destination_table + test_id),
-            project_id=_get_project_id())
-
-        assert result['num_rows'][0] == test_size
-
-    def test_upload_unicode_data(self):
-        test_id = "1"
-        test_size = 10
-        df = DataFrame(np.random.randn(6, 4), index=range(6),
-                       columns=list('ABCD'))
-        df.A = u'信用卡'
 
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000)
