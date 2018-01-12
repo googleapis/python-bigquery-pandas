@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import pytest
 
 import re
@@ -1472,7 +1474,7 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         test_id = "1"
         test_size = 10
         df = DataFrame(np.random.randn(6, 4), index=range(6), columns=list('ABCD'))
-        df.A = '信用卡'
+        df.A = u'信用卡'
 
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000)
