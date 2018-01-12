@@ -1469,11 +1469,11 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
 
         assert result['num_rows'][0] == test_size
 
-
     def test_upload_unicode_data(self):
         test_id = "1"
         test_size = 10
-        df = DataFrame(np.random.randn(6, 4), index=range(6), columns=list('ABCD'))
+        df = DataFrame(np.random.randn(6, 4), index=range(6),
+                       columns=list('ABCD'))
         df.A = u'信用卡'
 
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
@@ -1484,7 +1484,6 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
             project_id=_get_project_id())
 
         assert result['num_rows'][0] == test_size
-
 
 
 class TestToGBQIntegrationWithServiceAccountKeyContents(object):
