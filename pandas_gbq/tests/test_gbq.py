@@ -1171,6 +1171,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
             project_id=_get_project_id())
 
         assert result['num_rows'][0] == test_size
+        tm.assert_series_equal(result['A'], df['A'])
 
     def test_upload_other_unicode_data(self):
         test_id = "3"
@@ -1191,7 +1192,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
             self.destination_table + test_id),
             project_id=_get_project_id())
 
-        assert result['num_rows'][0] == test_si
+        assert result['num_rows'][0] == test_size
+        tm.assert_series_equal(result['string'], df['string'])
 
     def test_generate_schema(self):
         df = tm.makeMixedDataFrame()
