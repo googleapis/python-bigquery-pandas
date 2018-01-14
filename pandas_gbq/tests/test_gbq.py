@@ -1507,7 +1507,45 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
             project_id=_get_project_id())
 
         assert result['num_rows'][0] == test_size
-        
+
+    def test_upload_chinese_unicode_data(self):
+        test_id = "2"
+        test_size = 6
+        df = DataFrame(np.random.randn(6, 4), index=range(6),
+                       columns=list('ABCD'))
+        df.A = u'信用卡'
+
+        gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
+                   chunksize=10000)
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id())
+
+        assert result['num_rows'][0] == test_size
+        tm.assert_series_equal(result['A'], df['A'])
+
+    def test_upload_other_unicode_data(self):
+        test_id = "3"
+        test_size = 3
+        df = DataFrame({
+            'string': ['Skywalker™', 'lego', 'hülle'],
+            'integer': [200, 300, 400],
+            'Date': [
+                '2017-12-13 17:40:39', '2017-12-13 17:40:39',
+                '2017-12-13 17:40:39'
+            ]
+        })
+
+        gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
+                   chunksize=10000)
+
+        result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id())
+
+        assert result['num_rows'][0] == test_size
+        tm.assert_series_equal(result['string'], df['string'])
 
 class TestToGBQIntegrationWithServiceAccountKeyContents(object):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
