@@ -1169,7 +1169,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
         result_df = gbq.read_gbq("SELECT * FROM {0}".format(
             self.destination_table + test_id),
-            project_id=_get_project_id())
+            project_id=_get_project_id(),
+            private_key=_get_private_key_path())
 
         assert len(result_df) == test_size
 
@@ -1198,7 +1199,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
         result_df = gbq.read_gbq("SELECT * FROM {0}".format(
             self.destination_table + test_id),
-            project_id=_get_project_id())
+            project_id=_get_project_id(),
+            private_key=_get_private_key_path())
 
         assert len(result_df) == test_size
 
