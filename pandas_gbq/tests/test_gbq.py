@@ -1170,7 +1170,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
             private_key=_get_private_key_path(),
             chunksize=10000)
 
-
         result_df = gbq.read_gbq(
             "SELECT * FROM {0}".format(self.destination_table + test_id),
             project_id=_get_project_id(),
