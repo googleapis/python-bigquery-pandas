@@ -1426,7 +1426,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         # Issue #46; tests test scenarios with user-provided
         # schemas
         df = tm.makeMixedDataFrame()
-        test_id = "15"
+        test_id = "18"
         test_schema = [{'name': 'A', 'type': 'FLOAT'},
                        {'name': 'B', 'type': 'FLOAT'},
                        {'name': 'C', 'type': 'STRING'},
@@ -1441,7 +1441,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
     def test_upload_data_with_invalid_user_schema_raises_error(self):
         df = tm.makeMixedDataFrame()
-        test_id = "16"
+        test_id = "19"
         test_schema = [{'name': 'A', 'type': 'FLOAT'},
                        {'name': 'B', 'type': 'FLOAT'},
                        {'name': 'C', 'type': 'FLOAT'},
@@ -1454,7 +1454,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
     def test_upload_data_with_missing_schema_fields_raises_error(self):
         df = tm.makeMixedDataFrame()
-        test_id = "16"
+        test_id = "20"
         test_schema = [{'name': 'A', 'type': 'FLOAT'},
                        {'name': 'B', 'type': 'FLOAT'},
                        {'name': 'C', 'type': 'FLOAT'}]
