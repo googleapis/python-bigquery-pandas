@@ -1447,7 +1447,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                        {'name': 'C', 'type': 'FLOAT'},
                        {'name': 'D', 'type': 'FLOAT'}]
         destination_table = self.destination_table + test_id
-        with tm.assertRaises(gbq.StreamingInsertError):
+        with tm.assertRaises(gbq.GenericGBQException):
             gbq.to_gbq(df, destination_table, _get_project_id(),
                        private_key=_get_private_key_path(),
                        table_schema=test_schema)
@@ -1459,7 +1459,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                        {'name': 'B', 'type': 'FLOAT'},
                        {'name': 'C', 'type': 'FLOAT'}]
         destination_table = self.destination_table + test_id
-        with tm.assertRaises(gbq.StreamingInsertError):
+        with tm.assertRaises(gbq.GenericGBQException):
             gbq.to_gbq(df, destination_table, _get_project_id(),
                        private_key=_get_private_key_path(),
                        table_schema=test_schema)
