@@ -955,7 +955,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         schema is not provided, it will be generated according to dtypes
         of DataFrame columns. See BigQuery API documentation on available
         names of a field.
-        .. versionadded:: 0.3.0
+        .. versionadded:: 0.3.1
     """
 
     _test_google_api_imports()
