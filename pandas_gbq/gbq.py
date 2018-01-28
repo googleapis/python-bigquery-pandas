@@ -1023,8 +1023,11 @@ def _generate_bq_schema(df, default_type='STRING'):
 
     fields = []
     for column_name, dtype in df.dtypes.iteritems():
-        fields.append({'name': column_name,
-                       'type': type_mapping.get(dtype.kind, default_type)})
+        definition = {'name': column_name,
+                      'type': type_mapping.get(dtype.kind, default_type)}
+        if isinstance(getattr(df, column_name)[0], list):
+            definition['mode'] = 'REPEATED'
+        fields.append(definition)
 
     return {'fields': fields}
 
