@@ -174,7 +174,7 @@ def make_mixed_dataframe_v2(test_size):
 
 def test_generate_bq_schema_deprecated():
     # 11121 Deprecation of generate_bq_schema
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.warns(FutureWarning):
         df = make_mixed_dataframe_v2(10)
         gbq.generate_bq_schema(df)
 
@@ -1447,7 +1447,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                        {'name': 'C', 'type': 'FLOAT'},
                        {'name': 'D', 'type': 'FLOAT'}]
         destination_table = self.destination_table + test_id
-        with tm.assertRaises(gbq.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.to_gbq(df, destination_table, _get_project_id(),
                        private_key=_get_private_key_path(),
                        table_schema=test_schema)
@@ -1459,7 +1459,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                        {'name': 'B', 'type': 'FLOAT'},
                        {'name': 'C', 'type': 'FLOAT'}]
         destination_table = self.destination_table + test_id
-        with tm.assertRaises(gbq.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.to_gbq(df, destination_table, _get_project_id(),
                        private_key=_get_private_key_path(),
                        table_schema=test_schema)
