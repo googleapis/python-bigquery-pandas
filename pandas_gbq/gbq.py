@@ -557,44 +557,18 @@ class GbqConnector(object):
         return schema, result_rows
 
     def load_data(self, dataframe, dataset_id, table_id, chunksize):
-        from google.cloud.bigquery import LoadJobConfig
-        from six import BytesIO
+        from pandas_gbq import _load
 
-        destination_table = self.client.dataset(dataset_id).table(table_id)
-        job_config = LoadJobConfig()
-        job_config.write_disposition = 'WRITE_APPEND'
-        job_config.source_format = 'NEWLINE_DELIMITED_JSON'
-        rows = []
-        remaining_rows = len(dataframe)
-
-        total_rows = remaining_rows
+        total_rows = len(dataframe)
         self._print("\n\n")
 
-        for index, row in dataframe.reset_index(drop=True).iterrows():
-            row_json = row.to_json(
-                force_ascii=False, date_unit='s', date_format='iso')
-            rows.append(row_json)
-            remaining_rows -= 1
-
-            if (len(rows) % chunksize == 0) or (remaining_rows == 0):
+        try:
+            for remaining_rows in _load.load_chunks(
+                    self.client, dataframe, dataset_id, table_id, chunksize):
                 self._print("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
-
-                body = '{}\n'.format('\n'.join(rows))
-                if isinstance(body, bytes):
-                    body = body.decode('utf-8')
-                body = body.encode('utf-8')
-                body = BytesIO(body)
-
-                try:
-                    self.client.load_table_from_file(
-                        body,
-                        destination_table,
-                        job_config=job_config).result()
-                except self.http_error as ex:
-                    self.process_http_error(ex)
-
-                rows = []
+        except self.http_error as ex:
+            self.process_http_error(ex)
 
         self._print("\n")
 
