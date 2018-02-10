@@ -1225,15 +1225,14 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         test_id = "mixed_float_and_int"
         test_size = 2
         df = DataFrame(
-            [[1,1.1],[2,2.2]],
+            [[1, 1.1], [2, 2.2]],
             index=['row 1', 'row 2'],
-            columns=['intColumn','floatColumn'])
+            columns=['intColumn', 'floatColumn'])
 
         gbq.to_gbq(
             df, self.destination_table + test_id,
             _get_project_id(),
-            private_key=_get_private_key_path(),
-            chunksize=10000)
+            private_key=_get_private_key_path())
 
         result_df = gbq.read_gbq("SELECT * FROM {0}".format(
             self.destination_table + test_id),

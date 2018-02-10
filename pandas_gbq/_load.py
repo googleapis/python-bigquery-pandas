@@ -24,26 +24,31 @@ def encode_chunk(dataframe):
     return six.BytesIO(body)
 
 
-def encode_chunks(dataframe, chunksize):
+def encode_chunks(dataframe, chunksize=None):
     dataframe = dataframe.reset_index(drop=True)
+    if chunksize is None:
+        yield 0, encode_chunk(dataframe)
+        return
+
     remaining_rows = len(dataframe)
     total_rows = remaining_rows
     start_index = 0
     while start_index < total_rows:
-        chunk_buffer = encode_chunk(
-            dataframe[start_index:start_index+chunksize])
+        end_index = start_index + chunksize
+        chunk_buffer = encode_chunk(dataframe[start_index:end_index])
         start_index += chunksize
         remaining_rows = max(0, remaining_rows - chunksize)
         yield remaining_rows, chunk_buffer
 
 
-def load_chunks(client, dataframe, dataset_id, table_id, chunksize):
+def load_chunks(client, dataframe, dataset_id, table_id, chunksize=None):
     destination_table = client.dataset(dataset_id).table(table_id)
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = 'WRITE_APPEND'
     job_config.source_format = 'CSV'
 
-    for remaining_rows, chunk_buffer in encode_chunks(dataframe, chunksize):
+    chunks = encode_chunks(dataframe, chunksize=chunksize)
+    for remaining_rows, chunk_buffer in chunks:
         yield remaining_rows
         client.load_table_from_file(
             chunk_buffer,

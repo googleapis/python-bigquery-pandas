@@ -556,7 +556,7 @@ class GbqConnector(object):
 
         return schema, result_rows
 
-    def load_data(self, dataframe, dataset_id, table_id, chunksize):
+    def load_data(self, dataframe, dataset_id, table_id, chunksize=None):
         from pandas_gbq import _load
 
         total_rows = len(dataframe)
@@ -564,7 +564,8 @@ class GbqConnector(object):
 
         try:
             for remaining_rows in _load.load_chunks(
-                    self.client, dataframe, dataset_id, table_id, chunksize):
+                    self.client, dataframe, dataset_id, table_id,
+                    chunksize=chunksize):
                 self._print("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
         except self.http_error as ex:
@@ -862,7 +863,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     return final_df
 
 
-def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
+def to_gbq(dataframe, destination_table, project_id, chunksize=None,
            verbose=True, reauth=False, if_exists='fail', private_key=None,
            auth_local_webserver=False, table_schema=None):
     """Write a DataFrame to a Google BigQuery table.
@@ -896,8 +897,9 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
         Name of table to be written, in the form 'dataset.tablename'
     project_id : str
         Google BigQuery Account project ID.
-    chunksize : int (default 10000)
-        Number of rows to be inserted in each chunk from the dataframe.
+    chunksize : int (default None)
+        Number of rows to be inserted in each chunk from the dataframe. Use
+        ``None`` to load the dataframe in a single chunk.
     verbose : boolean (default True)
         Show percentage complete
     reauth : boolean (default False)
@@ -973,7 +975,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
     else:
         table.create(table_id, table_schema)
 
-    connector.load_data(dataframe, dataset_id, table_id, chunksize)
+    connector.load_data(dataframe, dataset_id, table_id, chunksize=chunksize)
 
 
 def generate_bq_schema(df, default_type='STRING'):
