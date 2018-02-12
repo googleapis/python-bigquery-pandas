@@ -556,7 +556,9 @@ class GbqConnector(object):
 
         return schema, result_rows
 
-    def load_data(self, dataframe, dataset_id, table_id, chunksize=None):
+    def load_data(
+            self, dataframe, dataset_id, table_id, chunksize=None,
+            schema=None):
         from pandas_gbq import _load
 
         total_rows = len(dataframe)
@@ -950,9 +952,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
     table = _Table(project_id, dataset_id, reauth=reauth,
                    private_key=private_key)
 
-    if not table_schema:
-        table_schema = _generate_bq_schema(dataframe)
-    else:
+    if table_schema:
         table_schema = dict(fields=table_schema)
 
     # If table exists, check if_exists parameter
@@ -961,7 +961,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
             raise TableCreationError("Could not create the table because it "
                                      "already exists. "
                                      "Change the if_exists parameter to "
-                                     "append or replace data.")
+                                     "'append' or 'replace' data.")
         elif if_exists == 'replace':
             connector.delete_and_recreate_table(
                 dataset_id, table_id, table_schema)
@@ -975,19 +975,14 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
     else:
         table.create(table_id, table_schema)
 
-    connector.load_data(dataframe, dataset_id, table_id, chunksize=chunksize)
+    connector.load_data(
+        dataframe, dataset_id, table_id, chunksize=chunksize,
+        schema=table_schema)
 
 
 def generate_bq_schema(df, default_type='STRING'):
-    # deprecation TimeSeries, #11121
-    warnings.warn("generate_bq_schema is deprecated and will be removed in "
-                  "a future version", FutureWarning, stacklevel=2)
-
-    return _generate_bq_schema(df, default_type=default_type)
-
-
-def _generate_bq_schema(df, default_type='STRING'):
-    """ Given a passed df, generate the associated Google BigQuery schema.
+    """DEPRECATED: Given a passed df, generate the associated Google BigQuery
+    schema.
 
     Parameters
     ----------
@@ -996,23 +991,12 @@ def _generate_bq_schema(df, default_type='STRING'):
         The default big query type in case the type of the column
         does not exist in the schema.
     """
+    from pandas_gbq import _schema
 
-    type_mapping = {
-        'i': 'INTEGER',
-        'b': 'BOOLEAN',
-        'f': 'FLOAT',
-        'O': 'STRING',
-        'S': 'STRING',
-        'U': 'STRING',
-        'M': 'TIMESTAMP'
-    }
-
-    fields = []
-    for column_name, dtype in df.dtypes.iteritems():
-        fields.append({'name': column_name,
-                       'type': type_mapping.get(dtype.kind, default_type)})
-
-    return {'fields': fields}
+    # deprecation TimeSeries, #11121
+    warnings.warn("generate_bq_schema is deprecated and will be removed in "
+                  "a future version", FutureWarning, stacklevel=2)
+    return _schema.generate_bq_schema(df, default_type=default_type)
 
 
 class _Table(GbqConnector):
@@ -1072,6 +1056,9 @@ class _Table(GbqConnector):
         table_ref = self.client.dataset(self.dataset_id).table(table_id)
         table = Table(table_ref)
 
+        # Manually create the schema objects, adding NULLABLE mode
+        # as a workaround for
+        # https://github.com/GoogleCloudPlatform/google-cloud-python/issues/4456
         for field in schema['fields']:
             if 'mode' not in field:
                 field['mode'] = 'NULLABLE'

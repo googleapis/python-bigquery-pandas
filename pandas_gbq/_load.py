@@ -3,6 +3,8 @@
 from google.cloud import bigquery
 import six
 
+from pandas_gbq import _schema
+
 
 def encode_chunk(dataframe):
     """Return a file-like object of CSV-encoded rows.
@@ -41,11 +43,27 @@ def encode_chunks(dataframe, chunksize=None):
         yield remaining_rows, chunk_buffer
 
 
-def load_chunks(client, dataframe, dataset_id, table_id, chunksize=None):
+def load_chunks(
+        client, dataframe, dataset_id, table_id, chunksize=None, schema=None):
     destination_table = client.dataset(dataset_id).table(table_id)
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = 'WRITE_APPEND'
     job_config.source_format = 'CSV'
+
+    if schema is None:
+        schema = _schema.generate_bq_schema(dataframe)
+
+    # Manually create the schema objects, adding NULLABLE mode
+    # as a workaround for
+    # https://github.com/GoogleCloudPlatform/google-cloud-python/issues/4456
+    for field in schema['fields']:
+        if 'mode' not in field:
+            field['mode'] = 'NULLABLE'
+
+    job_config.schema = [
+        bigquery.SchemaField.from_api_repr(field)
+        for field in schema['fields']
+    ]
 
     chunks = encode_chunks(dataframe, chunksize=chunksize)
     for remaining_rows, chunk_buffer in chunks:
