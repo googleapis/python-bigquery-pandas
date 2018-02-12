@@ -953,8 +953,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
                    private_key=private_key)
 
     if not table_schema:
-        from pandas_gbq import _schema
-        table_schema = _schema.generate_bq_schema(df)
+        table_schema = _generate_bq_schema(dataframe)
     else:
         table_schema = dict(fields=table_schema)
 
@@ -994,11 +993,15 @@ def generate_bq_schema(df, default_type='STRING'):
         The default big query type in case the type of the column
         does not exist in the schema.
     """
-    from pandas_gbq import _schema
-
     # deprecation TimeSeries, #11121
     warnings.warn("generate_bq_schema is deprecated and will be removed in "
                   "a future version", FutureWarning, stacklevel=2)
+
+    return _generate_bq_schema(df, default_type=default_type)
+
+
+def _generate_bq_schema(df, default_type='STRING'):
+    from pandas_gbq import _schema
     return _schema.generate_bq_schema(df, default_type=default_type)
 
 
