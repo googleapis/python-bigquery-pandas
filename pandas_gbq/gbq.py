@@ -952,7 +952,10 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
     table = _Table(project_id, dataset_id, reauth=reauth,
                    private_key=private_key)
 
-    if table_schema:
+    if not table_schema:
+        from pandas_gbq import _schema
+        table_schema = _schema.generate_bq_schema(df)
+    else:
         table_schema = dict(fields=table_schema)
 
     # If table exists, check if_exists parameter
