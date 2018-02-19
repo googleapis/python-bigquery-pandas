@@ -699,8 +699,9 @@ class GbqConnector(object):
         table = _Table(self.project_id, dataset_id,
                        private_key=self.private_key)
         table.delete(table_id)
-        table.create(table_id, table_schema)
-        sleep(delay)
+        if _Table.partition_decorator not in table_id:
+            table.create(table_id, table_schema)
+            sleep(delay)
 
 
 def _get_credentials_file():
@@ -1007,6 +1008,8 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
+    partition_decorator = '$'
+
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
         self.dataset_id = dataset_id
@@ -1036,7 +1039,7 @@ class _Table(GbqConnector):
         except self.http_error as ex:
             self.process_http_error(ex)
 
-    def create(self, table_id, schema):
+    def create(self, table_id, schema, date_partitioned=False):
         """ Create a table in Google BigQuery given a table and schema
 
         Parameters
@@ -1046,6 +1049,8 @@ class _Table(GbqConnector):
         schema : str
             Use the generate_bq_schema to generate your table schema from a
             dataframe.
+        date_partitioned: boolean
+            Whether table is to be created as a date partitioned table.
         """
         from google.cloud.bigquery import SchemaField
         from google.cloud.bigquery import Table
@@ -1061,6 +1066,9 @@ class _Table(GbqConnector):
 
         table_ref = self.client.dataset(self.dataset_id).table(table_id)
         table = Table(table_ref)
+
+        if date_partitioned or '$' in table_id:
+            table.partitioning_type = 'DAY'
 
         # Manually create the schema objects, adding NULLABLE mode
         # as a workaround for
