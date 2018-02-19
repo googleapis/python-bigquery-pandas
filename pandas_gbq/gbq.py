@@ -695,7 +695,7 @@ class GbqConnector(object):
         table = _Table(self.project_id, dataset_id,
                        private_key=self.private_key)
         table.delete(table_id)
-        if not _Table.is_date_partitioned(table_id):
+        if not table.is_date_partitioned(table_id):
             table.create(table_id, table_schema)
             sleep(delay)
 
