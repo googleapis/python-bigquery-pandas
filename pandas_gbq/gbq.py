@@ -699,7 +699,7 @@ class GbqConnector(object):
         table = _Table(self.project_id, dataset_id,
                        private_key=self.private_key)
         table.delete(table_id)
-        if _Table.partition_decorator not in table_id:
+        if not _Table.is_date_partitioned(table_id):
             table.create(table_id, table_schema)
             sleep(delay)
 
@@ -1010,6 +1010,9 @@ class _Table(GbqConnector):
 
     partition_decorator = '$'
 
+    def is_date_partitioned(self, table_id):
+        return self.partition_decorator in table_id
+
     def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
                  private_key=None):
         self.dataset_id = dataset_id
@@ -1031,8 +1034,12 @@ class _Table(GbqConnector):
         from google.api_core.exceptions import NotFound
 
         table_ref = self.client.dataset(self.dataset_id).table(table_id)
+
         try:
-            self.client.get_table(table_ref)
+            table = self.client.get_table(table_ref)
+            if self.is_date_partitioned(table_id):
+                return table.num_rows > 0
+
             return True
         except NotFound:
             return False
@@ -1067,7 +1074,7 @@ class _Table(GbqConnector):
         table_ref = self.client.dataset(self.dataset_id).table(table_id)
         table = Table(table_ref)
 
-        if date_partitioned or '$' in table_id:
+        if date_partitioned or self.is_date_partitioned(table_id):
             table.partitioning_type = 'DAY'
 
         # Manually create the schema objects, adding NULLABLE mode
