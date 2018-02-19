@@ -337,10 +337,6 @@ class GbqConnector(object):
         This method authenticates using user credentials, either loading saved
         credentials from a file or by going through the OAuth flow.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         GoogleCredentials : credentials
@@ -567,7 +563,7 @@ class GbqConnector(object):
         try:
             for remaining_rows in _load.load_chunks(
                     self.client, dataframe, dataset_id, table_id,
-                    chunksize=chunksize):
+                    chunksize=chunksize, schema=schema):
                 self._print("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
         except self.http_error as ex:
