@@ -1023,7 +1023,7 @@ class _Table(GbqConnector):
 
         Parameters
         ----------
-        table : str
+        table_id : str
             Name of table to be verified
 
         Returns
@@ -1051,7 +1051,7 @@ class _Table(GbqConnector):
 
         Parameters
         ----------
-        table : str
+        table_id : str
             Name of table to be written
         schema : str
             Use the generate_bq_schema to generate your table schema from a
@@ -1099,7 +1099,7 @@ class _Table(GbqConnector):
 
         Parameters
         ----------
-        table : str
+        table_id : str
             Name of table to be deleted
         """
         from google.api_core.exceptions import NotFound
@@ -1178,7 +1178,7 @@ class _Dataset(GbqConnector):
 
         Parameters
         ----------
-        dataset : str
+        dataset_id : str
             Name of dataset to be written
         """
         from google.cloud.bigquery import Dataset
@@ -1199,7 +1199,7 @@ class _Dataset(GbqConnector):
 
         Parameters
         ----------
-        dataset : str
+        dataset_id : str
             Name of dataset to be deleted
         """
         from google.api_core.exceptions import NotFound
@@ -1222,7 +1222,7 @@ class _Dataset(GbqConnector):
 
         Parameters
         ----------
-        dataset : str
+        dataset_id : str
             Name of dataset to list tables for
 
         Returns
