@@ -172,7 +172,7 @@ def test_generate_bq_schema_deprecated():
 class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
     def setup_method(self, method):
-        _setup_common()
+
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
@@ -234,7 +234,7 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
     def setup_method(self, method):
-        _setup_common()
+
 
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
