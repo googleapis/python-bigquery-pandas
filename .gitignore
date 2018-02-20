@@ -64,6 +64,8 @@ dist
 **/wheelhouse/*
 # coverage
 .coverage
+.testmondata
+.pytest_cache
 
 # OS generated files #
 ######################
