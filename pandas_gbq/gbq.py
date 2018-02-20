@@ -709,26 +709,12 @@ def _get_credentials_file():
 
 
 def _parse_data(schema, rows):
-    # see:
-    # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
-    # #missing-data-casting-rules-and-indexing
-    dtype_map = {'FLOAT': np.dtype(float),
-                 'TIMESTAMP': 'M8[ns]'}
 
     fields = schema['fields']
-    col_types = [field['type'] for field in fields]
     col_names = [str(field['name']) for field in fields]
-    col_dtypes = [
-        dtype_map.get(field['type'].upper(), object)
-        for field in fields
-    ]
-    page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
-    for row_num, entries in enumerate(rows):
-        for col_num in range(len(col_types)):
-            field_value = entries[col_num]
-            page_array[row_num][col_num] = field_value
 
-    return DataFrame(page_array, columns=col_names)
+    df = DataFrame(data=(iter(r) for r in rows), columns=col_names)
+    return df
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
