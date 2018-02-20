@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import logging
 import os
 import re
 import sys
@@ -897,8 +896,9 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
                           dialect='standard')
-        tm.assert_frame_equal(df, DataFrame([[1, {"letter": "a", "num": 1}]],
-                                            columns=["int_field", "struct_field"]))
+        expected = DataFrame([[1, {"letter": "a", "num": 1}]],
+                             columns=["int_field", "struct_field"])
+        tm.assert_frame_equal(df, expected)
 
     def test_array(self):
         query = """select ["a","x","b","y","c","z"] as letters"""
@@ -920,8 +920,9 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         df = gbq.read_gbq(query, project_id=_get_project_id(),
                           private_key=_get_private_key_path(),
                           dialect='standard')
-        tm.assert_frame_equal(df, DataFrame([["a", [""], 1], ["b", [], 0]],
-                                            columns=["letter", "array_field", "len"]))
+        expected = DataFrame([["a", [""], 1], ["b", [], 0]],
+                             columns=["letter", "array_field", "len"])
+        tm.assert_frame_equal(df, expected)
 
     def test_array_agg(self):
         query = """WITH t as (
