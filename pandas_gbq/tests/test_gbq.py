@@ -78,6 +78,7 @@ def _get_private_key_contents():
         return f.read()
 
 
+@pytest.fixture(autouse=True, scope='module')
 def _test_imports():
     try:
         import pkg_resources  # noqa
@@ -85,17 +86,6 @@ def _test_imports():
         raise ImportError('Could not import pkg_resources (setuptools).')
 
     gbq._test_google_api_imports()
-
-
-def _setup_common():
-    try:
-        _test_imports()
-    except (ImportError, NotImplementedError) as import_exception:
-        pytest.skip(str(import_exception))
-
-    if _in_travis_environment():
-        logging.getLogger('oauth2client').setLevel(logging.ERROR)
-        logging.getLogger('apiclient').setLevel(logging.ERROR)
 
 
 def _check_if_can_get_correct_default_credentials():
@@ -275,7 +265,7 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
     def setup_method(self, method):
-        _setup_common()
+
 
         _skip_if_no_project_id()
         _skip_if_no_private_key_contents()
@@ -305,8 +295,6 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
 class GBQUnitTests(object):
 
-    def setup_method(self, method):
-        _setup_common()
 
     def test_import_google_api_python_client(self):
         if not _in_travis_environment():
@@ -412,7 +400,7 @@ class TestReadGBQIntegration(object):
 
         _skip_if_no_project_id()
 
-        _setup_common()
+
 
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
@@ -466,7 +454,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        _setup_common()
+
 
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
@@ -990,7 +978,7 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        _setup_common()
+
 
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
@@ -1556,7 +1544,7 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
-        _setup_common()
+
 
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
@@ -1611,7 +1599,7 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
 
-        _setup_common()
+
         _skip_if_no_project_id()
 
         _skip_if_no_private_key_contents()
