@@ -708,11 +708,22 @@ def _get_credentials_file():
 
 
 def _parse_data(schema, rows):
+    # see:
+    # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
+    # #missing-data-casting-rules-and-indexing
+    dtype_map = {'FLOAT': np.dtype(float),
+                 'TIMESTAMP': 'M8[ns]'}
 
     fields = schema['fields']
-    col_names = [str(field['name']) for field in fields]
 
-    df = DataFrame(data=(iter(r) for r in rows), columns=col_names)
+    column_dtypes = {
+        str(field['name']):
+        dtype_map.get(field['type'].upper(), object) for field in fields
+    }
+
+    df = DataFrame(data=(iter(r) for r in rows), columns=column_dtypes.keys())
+    for column in df:
+        df[column] = df[column].astype(column_dtypes[column])
     return df
 
 
