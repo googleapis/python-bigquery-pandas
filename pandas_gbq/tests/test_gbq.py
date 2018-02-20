@@ -84,6 +84,11 @@ def _test_imports():
     gbq._test_google_api_imports()
 
 
+@pytest.fixture
+def project():
+    return _get_project_id()
+
+
 def _check_if_can_get_correct_default_credentials():
     # Checks if "Application Default Credentials" can be fetched
     # from the environment the tests are running in.
@@ -167,13 +172,12 @@ def test_generate_bq_schema_deprecated():
 
 class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
-    def setup_method(self, method):
+    def setup_method(self, method, project):
 
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
-        self.sut = gbq.GbqConnector(
-            _get_project_id(), auth_local_webserver=True)
+        self.sut = gbq.GbqConnector(project, auth_local_webserver=True)
 
     def test_should_be_able_to_make_a_connector(self):
         assert self.sut is not None, 'Could not create a GbqConnector'
@@ -229,12 +233,12 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
 class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
-    def setup_method(self, method):
+    def setup_method(self, method, project):
 
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-        self.sut = gbq.GbqConnector(_get_project_id(),
+        self.sut = gbq.GbqConnector(project,
                                     private_key=_get_private_key_path())
 
     def test_should_be_able_to_make_a_connector(self):
@@ -259,12 +263,12 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
 class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
-    def setup_method(self, method):
+    def setup_method(self, method, project):
 
         _skip_if_no_project_id()
         _skip_if_no_private_key_contents()
 
-        self.sut = gbq.GbqConnector(_get_project_id(),
+        self.sut = gbq.GbqConnector(project,
                                     private_key=_get_private_key_contents())
 
     def test_should_be_able_to_make_a_connector(self):
@@ -445,25 +449,12 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-    def setup_method(self, method):
+    def setup_method(self, method, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
         # executed.
         self.gbq_connector = gbq.GbqConnector(
-            _get_project_id(), private_key=_get_private_key_path())
-
-    @classmethod
-    def teardown_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *AFTER*
-        # executing all tests.
-        pass
-
-    def teardown_method(self):
-        # - PER-TEST FIXTURES -
-        # put here any instructions you want to be run *AFTER* *EVERY* test is
-        # executed.
-        pass
+            project, private_key=_get_private_key_path())
 
     def test_should_properly_handle_valid_strings(self):
         query = 'SELECT "PI" AS valid_string'
@@ -967,18 +958,18 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-    def setup_method(self, method):
+    def setup_method(self, method, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
         # executed.
 
         self.dataset_prefix = _get_dataset_prefix_random()
         clean_gbq_environment(self.dataset_prefix, _get_private_key_path())
-        self.dataset = gbq._Dataset(_get_project_id(),
+        self.dataset = gbq._Dataset(project,
                                     private_key=_get_private_key_path())
-        self.table = gbq._Table(_get_project_id(), self.dataset_prefix + "1",
+        self.table = gbq._Table(project, self.dataset_prefix + "1",
                                 private_key=_get_private_key_path())
-        self.sut = gbq.GbqConnector(_get_project_id(),
+        self.sut = gbq.GbqConnector(project,
                                     private_key=_get_private_key_path())
         self.destination_table = "{0}{1}.{2}".format(self.dataset_prefix, "1",
                                                      TABLE_ID)
@@ -1531,12 +1522,12 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
-    def setup_method(self, method):
+    def setup_method(self, method, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test
         # is executed.
 
-        gbq.GbqConnector(_get_project_id(), auth_local_webserver=True)
+        gbq.GbqConnector(project, auth_local_webserver=True)
         self.dataset_prefix = _get_dataset_prefix_random()
         clean_gbq_environment(self.dataset_prefix)
         self.destination_table = "{0}{1}.{2}".format(self.dataset_prefix, "2",
