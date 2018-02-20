@@ -10,7 +10,6 @@ import numpy as np
 
 from distutils.version import StrictVersion
 from pandas import compat, DataFrame
-from pandas.compat import lzip
 
 
 def _check_google_client_version():
