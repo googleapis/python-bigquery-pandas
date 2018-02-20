@@ -303,7 +303,7 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         assert pages is not None
 
 
-class GBQUnitTests(object):
+class TestGBQUnit(object):
 
     def setup_method(self, method):
         _setup_common()
