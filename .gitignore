@@ -29,6 +29,7 @@ docs/source/_build
 .coverage
 coverage.xml
 coverage_html_report
+.pytest_cache
 
 # Compiled source #
 ###################
