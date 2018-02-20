@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
-import re
-from datetime import datetime
-import pytz
-from time import sleep
-import os
-from random import randint
 import logging
+import os
+import re
 import sys
+from datetime import datetime
+from random import randint
+from time import sleep
 
 import numpy as np
-
-from pandas import compat
-
-from pandas.compat import u, range
-from pandas import NaT, DataFrame
-from pandas_gbq import gbq
 import pandas.util.testing as tm
+import pytz
+from pandas import DataFrame, NaT, compat
+from pandas.compat import range, u
 from pandas.compat.numpy import np_datetime64_compat
+from pandas_gbq import gbq
 
+import pytest
 
 TABLE_ID = 'new_test'
 
@@ -235,7 +231,6 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
     def setup_method(self, method):
 
-
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
@@ -266,7 +261,6 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
     def setup_method(self, method):
 
-
         _skip_if_no_project_id()
         _skip_if_no_private_key_contents()
 
@@ -294,7 +288,6 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
 
 class GBQUnitTests(object):
-
 
     def test_import_google_api_python_client(self):
         if not _in_travis_environment():
@@ -400,8 +393,6 @@ class TestReadGBQIntegration(object):
 
         _skip_if_no_project_id()
 
-
-
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
@@ -453,8 +444,6 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
 
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
-
-
 
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
@@ -918,7 +907,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                           private_key=_get_private_key_path(),
                           dialect='standard')
         tm.assert_frame_equal(df, DataFrame([[1, {"letter": "a", "num": 1}]],
-                              columns=["int_field", "struct_field"]))
+                                            columns=["int_field", "struct_field"]))
 
     def test_array(self):
         query = """select ["a","x","b","y","c","z"] as letters"""
@@ -926,7 +915,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                           private_key=_get_private_key_path(),
                           dialect='standard')
         tm.assert_frame_equal(df, DataFrame([[["a", "x", "b", "y", "c", "z"]]],
-                              columns=["letters"]))
+                                            columns=["letters"]))
 
     def test_array_length_zero(self):
         query = """WITH t as (
@@ -941,7 +930,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                           private_key=_get_private_key_path(),
                           dialect='standard')
         tm.assert_frame_equal(df, DataFrame([["a", [""], 1], ["b", [], 0]],
-                              columns=["letter", "array_field", "len"]))
+                                            columns=["letter", "array_field", "len"]))
 
     def test_array_agg(self):
         query = """WITH t as (
@@ -959,7 +948,7 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                           private_key=_get_private_key_path(),
                           dialect='standard')
         tm.assert_frame_equal(df, DataFrame([["a", [1, 3]], ["b", [2]]],
-                              columns=["letter", "numbers"]))
+                                            columns=["letter", "numbers"]))
 
 
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
@@ -977,8 +966,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
-
-
 
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
@@ -1544,8 +1531,6 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
-
-
     def setup_method(self, method):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test
@@ -1598,7 +1583,6 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
-
 
         _skip_if_no_project_id()
 
