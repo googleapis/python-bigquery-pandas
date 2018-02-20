@@ -761,7 +761,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     ----------
     query : str
         SQL-Like Query to return data values
-    project_id : str
+    project_id : str (optional)
         Google BigQuery Account project ID.
     index_col : str (optional)
         Name of result column to use for index in results DataFrame
@@ -814,9 +814,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     """
 
     _test_google_api_imports()
-
-    if not project_id:
-        raise TypeError("Missing required parameter: project_id")
 
     if dialect not in ('legacy', 'standard'):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
@@ -897,7 +894,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         DataFrame to be written
     destination_table : string
         Name of table to be written, in the form 'dataset.tablename'
-    project_id : str
+    project_id : str (optional)
         Google BigQuery Account project ID.
     chunksize : int (default None)
         Number of rows to be inserted in each chunk from the dataframe. Use
