@@ -170,7 +170,7 @@ class TableCreationError(ValueError):
 class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
-    def __init__(self, project_id, reauth=False, verbose=None,
+    def __init__(self, project_id, reauth=False,
                  private_key=None, auth_local_webserver=False,
                  dialect='legacy'):
         from google.api_core.exceptions import GoogleAPIError
@@ -188,12 +188,6 @@ class GbqConnector(object):
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
         self.query_price_for_TB = 5. / 2**40  # USD/TB
-
-        if verbose is not None:
-            warnings.warn(
-                "verbose is deprecated and will be removed in "
-                "a future version. Set logging level in order to vary "
-                "verbosity", FutureWarning)
 
     def get_credentials(self):
         if self.private_key:
