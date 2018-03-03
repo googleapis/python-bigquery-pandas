@@ -9,13 +9,12 @@ from time import sleep
 
 import numpy as np
 import pandas.util.testing as tm
+import pytest
 import pytz
 from pandas import DataFrame, NaT, compat
 from pandas.compat import range, u
 from pandas.compat.numpy import np_datetime64_compat
 from pandas_gbq import gbq
-
-import pytest
 
 try:
     import mock
@@ -23,12 +22,6 @@ except ImportError:
     from unittest import mock
 
 TABLE_ID = 'new_test'
-
-
-def _skip_if_no_project_id():
-    if not _get_project_id():
-        pytest.skip(
-            "Cannot run integration tests without a project id")
 
 
 def _skip_local_auth_if_in_travis_env():
@@ -58,7 +51,12 @@ def _get_dataset_prefix_random():
 
 
 def _get_project_id():
-    return os.environ.get('GBQ_PROJECT_ID')
+
+    project = os.environ.get('GBQ_PROJECT_ID')
+    if not project:
+        pytest.skip(
+            "Cannot run integration tests without a project id")
+    return project
 
 
 def _get_private_key_path():
@@ -179,7 +177,6 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
     @pytest.fixture(autouse=True)
     def setup(self, project):
 
-        _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
         self.sut = gbq.GbqConnector(project, auth_local_webserver=True)
@@ -240,7 +237,7 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
     @pytest.fixture(autouse=True)
     def setup(self, project):
-        _skip_if_no_project_id()
+
         _skip_if_no_private_key_path()
 
         self.sut = gbq.GbqConnector(project,
@@ -270,7 +267,7 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
     @pytest.fixture(autouse=True)
     def setup(self, project):
-        _skip_if_no_project_id()
+
         _skip_if_no_private_key_contents()
 
         self.sut = gbq.GbqConnector(project,
@@ -394,14 +391,6 @@ class GBQUnitTests(object):
 
 class TestReadGBQIntegration(object):
 
-    @classmethod
-    def setup_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        #   put here any instruction you want to execute only *ONCE* *BEFORE*
-        #   executing *ALL* tests described below.
-
-        _skip_if_no_project_id()
-
     def test_should_read_as_user_account(self):
         _skip_local_auth_if_in_travis_env()
 
@@ -432,7 +421,6 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         #   put here any instruction you want to execute only *ONCE* *BEFORE*
         #   executing *ALL* tests described below.
 
-        _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
     @pytest.fixture(autouse=True)
@@ -944,7 +932,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
 
-        _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
     @pytest.fixture(autouse=True)
@@ -1502,7 +1489,6 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
 
-        _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
     @pytest.fixture(autouse=True)
@@ -1558,8 +1544,6 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
         # - GLOBAL CLASS FIXTURES -
         # put here any instruction you want to execute only *ONCE* *BEFORE*
         # executing *ALL* tests described below.
-
-        _skip_if_no_project_id()
 
         _skip_if_no_private_key_contents()
 
