@@ -1,15 +1,14 @@
+import json
+import os
+import sys
+import time
 import warnings
 from datetime import datetime
-import json
-import time
+from distutils.version import StrictVersion
 from time import sleep
-import sys
-import os
 
 import numpy as np
-
-from distutils.version import StrictVersion
-from pandas import compat, DataFrame
+from pandas import DataFrame, compat
 from pandas.compat import lzip
 
 
@@ -168,16 +167,14 @@ class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
     def __init__(self, project_id, reauth=False, verbose=False,
-                 private_key=None, auth_local_webserver=False,
-                 dialect='legacy'):
+                 private_key=None, dialect='legacy'):
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
         self.http_error = (ClientError, GoogleAPIError)
         self.project_id = project_id
         self.reauth = reauth
         self.verbose = verbose
-        self.private_key = private_key
-        self.auth_local_webserver = auth_local_webserver
+        self.private_key = private_key©
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
         self.credentials = self.get_credentials()
@@ -367,10 +364,7 @@ class GbqConnector(object):
                 client_config, scopes=[self.scope])
 
             try:
-                if self.auth_local_webserver:
-                    credentials = app_flow.run_local_server()
-                else:
-                    credentials = app_flow.run_console()
+                credentials = app_flow.run_local_server()
             except OAuth2Error as ex:
                 raise AccessDenied(
                     "Unable to get valid credentials: {0}".format(ex))
@@ -735,7 +729,7 @@ def _parse_data(schema, rows):
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, verbose=True, private_key=None,
-             auth_local_webserver=False, dialect='legacy', **kwargs):
+             dialect='legacy', **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
@@ -753,7 +747,16 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
       If default application credentials are not found or are restrictive,
       user account credentials are used. In this case, you will be asked to
-      grant permissions for product name 'pandas GBQ'.
+      grant permissions for product name 'pandas GBQ'.  This uses the
+      [local webserver flow] when getting user credentials.
+      A file named bigquery_credentials.dat will
+      be created in current dir. You can also set PANDAS_GBQ_CREDENTIALS_FILE
+      environment variable so as to define a specific path to store this
+      credential (eg. /etc/keys/bigquery.dat).
+
+      .. [local webserver flow]
+          http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+      .. versionadded:: 0.2.0
 
     - If "private_key" is provided:
 
@@ -779,19 +782,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
         authentication (eg. jupyter iPython notebook on remote host)
-    auth_local_webserver : boolean, default False
-        Use the [local webserver flow] instead of the [console flow] when
-        getting user credentials. A file named bigquery_credentials.dat will
-        be created in current dir. You can also set PANDAS_GBQ_CREDENTIALS_FILE
-        environment variable so as to define a specific path to store this
-        credential (eg. /etc/keys/bigquery.dat).
-
-        .. [local webserver flow]
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-        .. [console flow]
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
-        .. versionadded:: 0.2.0
-
     dialect : {'legacy', 'standard'}, default 'legacy'
         'legacy' : Use BigQuery's legacy SQL dialect.
         'standard' : Use BigQuery's standard SQL (beta), which is
@@ -825,7 +815,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     connector = GbqConnector(
         project_id, reauth=reauth, verbose=verbose, private_key=private_key,
-        dialect=dialect, auth_local_webserver=auth_local_webserver)
+        dialect=dialect)
     schema, rows = connector.run_query(query, **kwargs)
     final_df = _parse_data(schema, rows)
 
@@ -869,7 +859,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=None,
            verbose=True, reauth=False, if_exists='fail', private_key=None,
-           auth_local_webserver=False, table_schema=None):
+           table_schema=None):
     """Write a DataFrame to a Google BigQuery table.
 
     The main method a user calls to export pandas DataFrame contents to
@@ -887,7 +877,16 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
 
       If default application credentials are not found or are restrictive,
       user account credentials are used. In this case, you will be asked to
-      grant permissions for product name 'pandas GBQ'.
+      grant permissions for product name 'pandas GBQ'.  This uses the
+      [local webserver flow] when getting user credentials.
+      A file named bigquery_credentials.dat will
+      be created in current dir. You can also set PANDAS_GBQ_CREDENTIALS_FILE
+      environment variable so as to define a specific path to store this
+      credential (eg. /etc/keys/bigquery.dat).
+
+    .. [local webserver flow]
+        http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+    .. versionadded:: 0.2.0
 
     - If "private_key" is provided:
 
@@ -919,15 +918,6 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
         authentication (eg. jupyter iPython notebook on remote host)
-    auth_local_webserver : boolean, default False
-        Use the [local webserver flow] instead of the [console flow] when
-        getting user credentials.
-
-        .. [local webserver flow]
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-        .. [console flow]
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
-        .. versionadded:: 0.2.0
     table_schema : list of dicts
         List of BigQuery table fields to which according DataFrame columns
         conform to, e.g. `[{'name': 'col1', 'type': 'STRING'},...]`. If
@@ -947,8 +937,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
             "Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
     connector = GbqConnector(
-        project_id, reauth=reauth, verbose=verbose, private_key=private_key,
-        auth_local_webserver=auth_local_webserver)
+        project_id, reauth=reauth, verbose=verbose, private_key=private_key)
     dataset_id, table_id = destination_table.rsplit('.', 1)
 
     table = _Table(project_id, dataset_id, reauth=reauth,
