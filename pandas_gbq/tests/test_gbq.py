@@ -884,7 +884,7 @@ class TestToGBQIntegration(object):
     # test is added See `Issue 191
     # <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
 
-    @pytest.fixture(autouse=True, scope='method')
+    @pytest.fixture(autouse=True, scope='function')
     def setup(self, project, credentials):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
