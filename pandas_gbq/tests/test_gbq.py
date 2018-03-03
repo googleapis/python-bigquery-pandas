@@ -174,27 +174,41 @@ def test_generate_bq_schema_deprecated():
 
 @pytest.fixture(params=['local', 'service_path', 'service_creds'])
 def auth_type(request):
-    return request.param
 
+    auth = request.param
 
-@pytest.fixture()
-def gbq_connector(auth_type, project):
-    if auth_type == 'local':
+    if auth == 'local':
 
         if _in_travis_environment():
             pytest.skip("Cannot run local auth in travis environment")
 
-        return gbq.GbqConnector(project, auth_local_webserver=True)
-    elif auth_type == 'service_path':
+    elif auth == 'service_path':
         _skip_if_no_private_key_path()
-        return gbq.GbqConnector(project,
-                                private_key=_get_private_key_path())
-    elif auth_type == 'service_creds':
+    elif auth == 'service_creds':
         _skip_if_no_private_key_contents()
-        return gbq.GbqConnector(project,
-                                private_key=_get_private_key_contents())
     else:
         raise ValueError
+    return auth
+
+
+@pytest.fixture()
+def credentials(auth_type):
+
+    if auth_type == 'local':
+        return None
+
+    elif auth_type == 'service_path':
+        return _get_private_key_path()
+    elif auth_type == 'service_creds':
+        return _get_private_key_contents()
+    else:
+        raise ValueError
+
+
+@pytest.fixture()
+def gbq_connector(project, credentials):
+
+    return gbq.GbqConnector(project, private_key=credentials)
 
 
 class TestGBQConnectorIntegration(object):
@@ -359,7 +373,7 @@ class GBQUnitTests(object):
 
 class TestReadGBQIntegration(object):
 
-    def test_should_read_as_user_account(self):
+    def test_should_read_as_user_account(self, auth_type):
         _skip_local_auth_if_in_travis_env()
 
         query = 'SELECT "PI" AS valid_string'
