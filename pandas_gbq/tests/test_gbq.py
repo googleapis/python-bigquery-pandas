@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import pytest
 
 import re
@@ -7,6 +9,7 @@ from time import sleep
 import os
 from random import randint
 import logging
+import sys
 
 import numpy as np
 
@@ -171,7 +174,7 @@ def make_mixed_dataframe_v2(test_size):
 
 def test_generate_bq_schema_deprecated():
     # 11121 Deprecation of generate_bq_schema
-    with tm.assert_produces_warning(FutureWarning):
+    with pytest.warns(FutureWarning):
         df = make_mixed_dataframe_v2(10)
         gbq.generate_bq_schema(df)
 
@@ -193,9 +196,9 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         credentials = self.sut.get_credentials()
         assert credentials.valid
 
-    def test_should_be_able_to_get_a_bigquery_service(self):
-        bigquery_service = self.sut.get_service()
-        assert bigquery_service is not None
+    def test_should_be_able_to_get_a_bigquery_client(self):
+        bigquery_client = self.sut.get_client()
+        assert bigquery_client is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
         schema, pages = self.sut.run_query('SELECT 1')
@@ -256,9 +259,9 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
         credentials = self.sut.get_credentials()
         assert credentials.valid
 
-    def test_should_be_able_to_get_a_bigquery_service(self):
-        bigquery_service = self.sut.get_service()
-        assert bigquery_service is not None
+    def test_should_be_able_to_get_a_bigquery_client(self):
+        bigquery_client = self.sut.get_client()
+        assert bigquery_client is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
         schema, pages = self.sut.run_query('SELECT 1')
@@ -287,9 +290,9 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         credentials = self.sut.get_credentials()
         assert credentials.valid
 
-    def test_should_be_able_to_get_a_bigquery_service(self):
-        bigquery_service = self.sut.get_service()
-        assert bigquery_service is not None
+    def test_should_be_able_to_get_a_bigquery_client(self):
+        bigquery_client = self.sut.get_client()
+        assert bigquery_client is not None
 
     def test_should_be_able_to_get_schema_from_query(self):
         schema, pages = self.sut.run_query('SELECT 1')
@@ -320,6 +323,14 @@ class GBQUnitTests(object):
         else:
             from googleapiclient.discovery import build  # noqa
             from googleapiclient.errors import HttpError  # noqa
+
+    def test_should_return_credentials_path_set_by_env_var(self):
+        import mock
+        env = {'PANDAS_GBQ_CREDENTIALS_FILE': '/tmp/dummy.dat'}
+        with mock.patch.dict('os.environ', env):
+            assert gbq._get_credentials_file() == '/tmp/dummy.dat'
+
+        assert gbq._get_credentials_file() == 'bigquery_credentials.dat'
 
     def test_should_return_bigquery_integers_as_python_ints(self):
         result = gbq._parse_entry(1, 'INTEGER')
@@ -354,12 +365,16 @@ class GBQUnitTests(object):
             gbq.read_gbq('SELECT 1')
 
     def test_that_parse_data_works_properly(self):
+
+        from google.cloud.bigquery.table import Row
         test_schema = {'fields': [
-            {'mode': 'NULLABLE', 'name': 'valid_string', 'type': 'STRING'}]}
-        test_page = [{'f': [{'v': 'PI'}]}]
+            {'mode': 'NULLABLE', 'name': 'column_x', 'type': 'STRING'}]}
+        field_to_index = {'column_x': 0}
+        values = ('row_value',)
+        test_page = [Row(values, field_to_index)]
 
         test_output = gbq._parse_data(test_schema, test_page)
-        correct_output = DataFrame({'valid_string': ['PI']})
+        correct_output = DataFrame({'column_x': ['row_value']})
         tm.assert_frame_equal(test_output, correct_output)
 
     def test_read_gbq_with_invalid_private_key_json_should_fail(self):
@@ -884,6 +899,19 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                          private_key=_get_private_key_path(),
                          configuration=config)
 
+    def test_timeout_configuration(self):
+        sql_statement = 'SELECT 1'
+        config = {
+            'query': {
+                "timeoutMs": 1
+            }
+        }
+        # Test that QueryTimeout error raises
+        with pytest.raises(gbq.QueryTimeout):
+            gbq.read_gbq(sql_statement, project_id=_get_project_id(),
+                         private_key=_get_private_key_path(),
+                         configuration=config)
+
     def test_query_response_bytes(self):
         assert self.gbq_connector.sizeof_fmt(999) == "999.0 B"
         assert self.gbq_connector.sizeof_fmt(1024) == "1.0 KB"
@@ -898,6 +926,64 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         assert self.gbq_connector.sizeof_fmt(1.180592E21) == "1.0 ZB"
         assert self.gbq_connector.sizeof_fmt(1.208926E24) == "1.0 YB"
         assert self.gbq_connector.sizeof_fmt(1.208926E28) == "10000.0 YB"
+
+    def test_struct(self):
+        query = """SELECT 1 int_field,
+                   STRUCT("a" as letter, 1 as num) struct_field"""
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          dialect='standard')
+        tm.assert_frame_equal(df, DataFrame([[1, {"letter": "a", "num": 1}]],
+                              columns=["int_field", "struct_field"]))
+
+    def test_array(self):
+        query = """select ["a","x","b","y","c","z"] as letters"""
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          dialect='standard')
+        tm.assert_frame_equal(df, DataFrame([[["a", "x", "b", "y", "c", "z"]]],
+                              columns=["letters"]))
+
+    def test_array_length_zero(self):
+        query = """WITH t as (
+                   SELECT "a" letter, [""] as array_field
+                   UNION ALL
+                   SELECT "b" letter, [] as array_field)
+
+                   select letter, array_field, array_length(array_field) len
+                   from t
+                   order by letter ASC"""
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          dialect='standard')
+        tm.assert_frame_equal(df, DataFrame([["a", [""], 1], ["b", [], 0]],
+                              columns=["letter", "array_field", "len"]))
+
+    def test_array_agg(self):
+        query = """WITH t as (
+                SELECT "a" letter, 1 num
+                UNION ALL
+                SELECT "b" letter, 2 num
+                UNION ALL
+                SELECT "a" letter, 3 num)
+
+                select letter, array_agg(num order by num ASC) numbers
+                from t
+                group by letter
+                order by letter ASC"""
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          dialect='standard')
+        tm.assert_frame_equal(df, DataFrame([["a", [1, 3]], ["b", [2]]],
+                              columns=["letter", "numbers"]))
+
+    def test_array_of_floats(self):
+        query = """select [1.1, 2.2, 3.3] as a, 4 as b"""
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          dialect='standard')
+        tm.assert_frame_equal(df, DataFrame([[[1.1, 2.2, 3.3], 4]],
+                              columns=["a", "b"]))
 
 
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
@@ -956,8 +1042,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
-
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
                               project_id=_get_project_id(),
@@ -994,8 +1078,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    if_exists='append', private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
-
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
                               project_id=_get_project_id(),
@@ -1025,14 +1107,23 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
                    self.destination_table + test_id, _get_project_id(),
                    if_exists='append', private_key=_get_private_key_path())
 
-        sleep(30)  # <- Curses Google!!!
-
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
                               project_id=_get_project_id(),
                               private_key=_get_private_key_path())
         assert result['num_rows'][0] == test_size * 2
 
+    # This test is currently failing intermittently due to changes in the
+    # BigQuery backend. You can track the issue in the Google BigQuery issue
+    # tracker `here <https://issuetracker.google.com/issues/64329577>`__.
+    # Currently you need to stream data twice in order to successfully stream
+    # data when you delete and re-create a table with a different schema.
+    # Something to consider is that google-cloud-bigquery returns an array of
+    # streaming insert errors rather than raising an exception. In this
+    # scenario, a decision could be made by the user to check for streaming
+    # errors and retry as needed. See `Issue 75
+    # <https://github.com/pydata/pandas-gbq/issues/75>`__
+    @pytest.mark.xfail(reason="Delete/create table w/ different schema issue")
     def test_upload_data_if_table_exists_replace(self):
         test_id = "4"
         test_size = 10
@@ -1047,8 +1138,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         gbq.to_gbq(df_different_schema, self.destination_table + test_id,
                    _get_project_id(), if_exists='replace',
                    private_key=_get_private_key_path())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                               .format(self.destination_table + test_id),
@@ -1079,6 +1168,90 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         with pytest.raises(gbq.StreamingInsertError):
             gbq.to_gbq(bad_df, self.destination_table + test_id,
                        _get_project_id(), private_key=_get_private_key_path())
+
+    def test_upload_chinese_unicode_data(self):
+        test_id = "2"
+        test_size = 6
+        df = DataFrame(np.random.randn(6, 4), index=range(6),
+                       columns=list('ABCD'))
+        df['s'] = u'信用卡'
+
+        gbq.to_gbq(
+            df, self.destination_table + test_id,
+            _get_project_id(),
+            private_key=_get_private_key_path(),
+            chunksize=10000)
+
+        result_df = gbq.read_gbq(
+            "SELECT * FROM {0}".format(self.destination_table + test_id),
+            project_id=_get_project_id(),
+            private_key=_get_private_key_path())
+
+        assert len(result_df) == test_size
+
+        if sys.version_info.major < 3:
+            pytest.skip(msg='Unicode comparison in Py2 not working')
+
+        result = result_df['s'].sort_values()
+        expected = df['s'].sort_values()
+
+        tm.assert_numpy_array_equal(expected.values, result.values)
+
+    def test_upload_other_unicode_data(self):
+        test_id = "3"
+        test_size = 3
+        df = DataFrame({
+            's': ['Skywalker™', 'lego', 'hülle'],
+            'i': [200, 300, 400],
+            'd': [
+                '2017-12-13 17:40:39', '2017-12-13 17:40:39',
+                '2017-12-13 17:40:39'
+            ]
+        })
+
+        gbq.to_gbq(
+            df, self.destination_table + test_id,
+            _get_project_id(),
+            private_key=_get_private_key_path(),
+            chunksize=10000)
+
+        result_df = gbq.read_gbq("SELECT * FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id(),
+            private_key=_get_private_key_path())
+
+        assert len(result_df) == test_size
+
+        if sys.version_info.major < 3:
+            pytest.skip(msg='Unicode comparison in Py2 not working')
+
+        result = result_df['s'].sort_values()
+        expected = df['s'].sort_values()
+
+        tm.assert_numpy_array_equal(expected.values, result.values)
+
+    def test_upload_mixed_float_and_int(self):
+        """Test that we can upload a dataframe containing an int64 and float64 column.
+        See: https://github.com/pydata/pandas-gbq/issues/116
+        """
+        test_id = "mixed_float_and_int"
+        test_size = 2
+        df = DataFrame(
+            [[1, 1.1], [2, 2.2]],
+            index=['row 1', 'row 2'],
+            columns=['intColumn', 'floatColumn'])
+
+        gbq.to_gbq(
+            df, self.destination_table + test_id,
+            _get_project_id(),
+            private_key=_get_private_key_path())
+
+        result_df = gbq.read_gbq("SELECT * FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id(),
+            private_key=_get_private_key_path())
+
+        assert len(result_df) == test_size
 
     def test_generate_schema(self):
         df = tm.makeMixedDataFrame()
@@ -1223,10 +1396,14 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
     def test_retrieve_schema(self):
         # Issue #24 schema function returns the schema in biquery
         test_id = "15"
-        test_schema = {'fields': [{'name': 'A', 'type': 'FLOAT'},
-                                  {'name': 'B', 'type': 'FLOAT'},
-                                  {'name': 'C', 'type': 'STRING'},
-                                  {'name': 'D', 'type': 'TIMESTAMP'}]}
+        test_schema = {
+            'fields': [
+                {'name': 'A', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                {'name': 'B', 'type': 'FLOAT', 'mode': 'NULLABLE'},
+                {'name': 'C', 'type': 'STRING', 'mode': 'NULLABLE'},
+                {'name': 'D', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'}
+            ]
+        }
 
         self.table.create(TABLE_ID + test_id, test_schema)
         actual = self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id)
@@ -1279,6 +1456,48 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
 
         assert self.sut.schema_is_subset(
             dataset, table_name, tested_schema) is False
+
+    def test_upload_data_with_valid_user_schema(self):
+        # Issue #46; tests test scenarios with user-provided
+        # schemas
+        df = tm.makeMixedDataFrame()
+        test_id = "18"
+        test_schema = [{'name': 'A', 'type': 'FLOAT'},
+                       {'name': 'B', 'type': 'FLOAT'},
+                       {'name': 'C', 'type': 'STRING'},
+                       {'name': 'D', 'type': 'TIMESTAMP'}]
+        destination_table = self.destination_table + test_id
+        gbq.to_gbq(df, destination_table, _get_project_id(),
+                   private_key=_get_private_key_path(),
+                   table_schema=test_schema)
+        dataset, table = destination_table.split('.')
+        assert self.table.verify_schema(dataset, table,
+                                        dict(fields=test_schema))
+
+    def test_upload_data_with_invalid_user_schema_raises_error(self):
+        df = tm.makeMixedDataFrame()
+        test_id = "19"
+        test_schema = [{'name': 'A', 'type': 'FLOAT'},
+                       {'name': 'B', 'type': 'FLOAT'},
+                       {'name': 'C', 'type': 'FLOAT'},
+                       {'name': 'D', 'type': 'FLOAT'}]
+        destination_table = self.destination_table + test_id
+        with pytest.raises(gbq.GenericGBQException):
+            gbq.to_gbq(df, destination_table, _get_project_id(),
+                       private_key=_get_private_key_path(),
+                       table_schema=test_schema)
+
+    def test_upload_data_with_missing_schema_fields_raises_error(self):
+        df = tm.makeMixedDataFrame()
+        test_id = "20"
+        test_schema = [{'name': 'A', 'type': 'FLOAT'},
+                       {'name': 'B', 'type': 'FLOAT'},
+                       {'name': 'C', 'type': 'FLOAT'}]
+        destination_table = self.destination_table + test_id
+        with pytest.raises(gbq.GenericGBQException):
+            gbq.to_gbq(df, destination_table, _get_project_id(),
+                       private_key=_get_private_key_path(),
+                       table_schema=test_schema)
 
     def test_list_dataset(self):
         dataset_id = self.dataset_prefix + "1"
@@ -1356,6 +1575,7 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         # put here any instruction you want to be run *BEFORE* *EVERY* test
         # is executed.
 
+        gbq.GbqConnector(_get_project_id(), auth_local_webserver=True)
         self.dataset_prefix = _get_dataset_prefix_random()
         clean_gbq_environment(self.dataset_prefix)
         self.destination_table = "{0}{1}.{2}".format(self.dataset_prefix, "2",
@@ -1381,8 +1601,6 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
 
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000)
-
-        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}".format(
             self.destination_table + test_id),
@@ -1439,8 +1657,6 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
 
         gbq.to_gbq(df, self.destination_table + test_id, _get_project_id(),
                    chunksize=10000, private_key=_get_private_key_contents())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = gbq.read_gbq("SELECT COUNT(*) as num_rows FROM {0}".format(
             self.destination_table + test_id),

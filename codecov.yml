@@ -2,8 +2,10 @@ coverage:
   status:
     project:
       default:
-        target: '30'
+        target: '0'
+        enabled: no
     patch:
       default:
+        enabled: no
         target: '50'
         branches: null

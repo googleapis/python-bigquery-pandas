@@ -19,11 +19,9 @@ def readme():
 
 INSTALL_REQUIRES = [
     'pandas',
-    'httplib2>=0.9.2',
-    'google-api-python-client>=1.6.0',
     'google-auth>=1.0.0',
-    'google-auth-httplib2>=0.0.1',
     'google-auth-oauthlib>=0.0.1',
+    'google-cloud-bigquery>=0.29.0',
 ]
 
 
@@ -31,7 +29,7 @@ setup(
     name=NAME,
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="Pandas interface to Google Big Query",
+    description="Pandas interface to Google BigQuery",
     long_description=readme(),
     license='BSD License',
     author='The PyData Development Team',
