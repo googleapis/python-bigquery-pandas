@@ -880,11 +880,11 @@ class TestReadGBQIntegration(object):
 class TestToGBQIntegration(object):
     # Changes to BigQuery table schema may take up to 2 minutes as of May 2015
     # As a workaround to this issue, each test should use a unique table name.
-    # Make sure to modify the for loop range in the teardown_class when a new
+    # Make sure to modify the for loop range in the autouse fixture when a new
     # test is added See `Issue 191
     # <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture(autouse=True, scope='method')
     def setup(self, project, credentials):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
@@ -902,11 +902,7 @@ class TestToGBQIntegration(object):
                                                      TABLE_ID)
         self.dataset.create(self.dataset_prefix + "1")
         self.credentials = credentials
-
-    def teardown_method(self, method):
-        # - PER-TEST FIXTURES -
-        # put here any instructions you want to be run *AFTER* *EVERY* test is
-        # executed.
+        yield
         clean_gbq_environment(self.dataset_prefix, self.credentials)
 
     def test_upload_data(self):
