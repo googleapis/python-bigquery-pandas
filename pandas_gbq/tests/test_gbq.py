@@ -186,11 +186,11 @@ def gbq_connector(auth_type, project):
 
         return gbq.GbqConnector(project, auth_local_webserver=True)
     elif auth_type == 'service_path':
-        _skip_if_no_private_key_path
+        _skip_if_no_private_key_path()
         return gbq.GbqConnector(project,
                                 private_key=_get_private_key_path())
     elif auth_type == 'service_creds':
-        _skip_if_no_private_key_contents
+        _skip_if_no_private_key_contents()
         return gbq.GbqConnector(project,
                                 private_key=_get_private_key_contents())
     else:
