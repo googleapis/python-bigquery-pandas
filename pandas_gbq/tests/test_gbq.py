@@ -17,6 +17,11 @@ from pandas_gbq import gbq
 
 import pytest
 
+try:
+    import mock
+except ImportError:
+    from unittest import mock
+
 TABLE_ID = 'new_test'
 
 
@@ -201,7 +206,7 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
             # Can get real credentials, so mock it out to fail.
-            import mock
+
             from google.auth.exceptions import DefaultCredentialsError
             with mock.patch('google.auth.default',
                             side_effect=DefaultCredentialsError()):
@@ -219,7 +224,7 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert isinstance(credentials, Credentials)
 
     def test_get_user_account_credentials_bad_file_returns_credentials(self):
-        import mock
+
         from google.auth.credentials import Credentials
         with mock.patch('__main__.open', side_effect=IOError()):
             credentials = self.sut.get_user_account_credentials()
@@ -310,7 +315,7 @@ class GBQUnitTests(object):
             from googleapiclient.errors import HttpError  # noqa
 
     def test_should_return_credentials_path_set_by_env_var(self):
-        import mock
+
         env = {'PANDAS_GBQ_CREDENTIALS_FILE': '/tmp/dummy.dat'}
         with mock.patch.dict('os.environ', env):
             assert gbq._get_credentials_file() == '/tmp/dummy.dat'
