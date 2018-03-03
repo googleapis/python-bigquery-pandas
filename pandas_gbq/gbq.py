@@ -174,7 +174,7 @@ class GbqConnector(object):
         self.project_id = project_id
         self.reauth = reauth
         self.verbose = verbose
-        self.private_key = private_key©
+        self.private_key = private_key
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
         self.credentials = self.get_credentials()
