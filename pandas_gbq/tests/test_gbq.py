@@ -365,12 +365,16 @@ class TestGBQUnit(object):
             gbq.read_gbq('SELECT 1')
 
     def test_that_parse_data_works_properly(self):
+
+        from google.cloud.bigquery.table import Row
         test_schema = {'fields': [
-            {'mode': 'NULLABLE', 'name': 'valid_string', 'type': 'STRING'}]}
-        test_page = [{'f': [{'v': 'PI'}]}]
+            {'mode': 'NULLABLE', 'name': 'column_x', 'type': 'STRING'}]}
+        field_to_index = {'column_x': 0}
+        values = ('row_value',)
+        test_page = [Row(values, field_to_index)]
 
         test_output = gbq._parse_data(test_schema, test_page)
-        correct_output = DataFrame({'valid_string': ['PI']})
+        correct_output = DataFrame({'column_x': ['row_value']})
         tm.assert_frame_equal(test_output, correct_output)
 
     def test_read_gbq_with_invalid_private_key_json_should_fail(self):
@@ -972,6 +976,14 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
                           dialect='standard')
         tm.assert_frame_equal(df, DataFrame([["a", [1, 3]], ["b", [2]]],
                               columns=["letter", "numbers"]))
+
+    def test_array_of_floats(self):
+        query = """select [1.1, 2.2, 3.3] as a, 4 as b"""
+        df = gbq.read_gbq(query, project_id=_get_project_id(),
+                          private_key=_get_private_key_path(),
+                          dialect='standard')
+        tm.assert_frame_equal(df, DataFrame([[[1.1, 2.2, 3.3], 4]],
+                              columns=["a", "b"]))
 
 
 class TestToGBQIntegrationWithServiceAccountKeyPath(object):
