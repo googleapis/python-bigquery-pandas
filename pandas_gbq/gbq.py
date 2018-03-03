@@ -523,15 +523,16 @@ class GbqConnector(object):
             except self.http_error as ex:
                 self.process_http_error(ex)
 
+        if query_reply.cache_hit:
+            logger.debug('Query done.\nCache hit.\n')
+        else:
             bytes_processed = query_reply.total_bytes_processed or 0
             bytes_billed = query_reply.total_bytes_billed or 0
-            logger.info('Query done.\nProcessed: {} Billed: {}'.format(
+            logger.debug('Query done.\nProcessed: {} Billed: {}'.format(
                 self.sizeof_fmt(bytes_processed),
                 self.sizeof_fmt(bytes_billed)))
-            logger.info('Standard price: ${:,.2f} USD\n'.format(
+            logger.debug('Standard price: ${:,.2f} USD\n'.format(
                 bytes_billed * self.query_price_for_TB))
-
-            logger.info('Retrieving results...')
 
         try:
             rows_iter = query_reply.result()
@@ -790,6 +791,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
+    verbose : None, deprecated
 
     **kwargs : Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
@@ -930,6 +932,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         of DataFrame columns. See BigQuery API documentation on available
         names of a field.
         .. versionadded:: 0.3.1
+    verbose : None, deprecated
     """
 
     _test_google_api_imports()
