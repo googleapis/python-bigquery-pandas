@@ -172,6 +172,53 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 
+@pytest.fixture(params=['local', 'service_path', 'service_creds'])
+def auth_type(request):
+    return request.param
+
+
+@pytest.fixture()
+def gbq_connector(auth_type, project):
+    if auth_type == 'local':
+
+        if _in_travis_environment():
+            pytest.skip("Cannot run local auth in travis environment")
+
+        return gbq.GbqConnector(project, auth_local_webserver=True)
+    elif auth_type == 'service_path':
+        _skip_if_no_private_key_path
+        return gbq.GbqConnector(project,
+                                private_key=_get_private_key_path())
+    elif auth_type == 'service_creds':
+        _skip_if_no_private_key_contents
+        return gbq.GbqConnector(project,
+                                private_key=_get_private_key_contents())
+    else:
+        raise ValueError
+
+
+class TestGBQConnectorIntegration(object):
+
+    def test_should_be_able_to_make_a_connector(self, gbq_connector):
+        assert gbq_connector is not None, 'Could not create a GbqConnector'
+
+    def test_should_be_able_to_get_valid_credentials(self, gbq_connector):
+        credentials = gbq_connector.get_credentials()
+        assert credentials.valid
+
+    def test_should_be_able_to_get_a_bigquery_client(self, gbq_connector):
+        bigquery_client = gbq_connector.get_client()
+        assert bigquery_client is not None
+
+    def test_should_be_able_to_get_schema_from_query(self, gbq_connector):
+        schema, pages = gbq_connector.run_query('SELECT 1')
+        assert schema is not None
+
+    def test_should_be_able_to_get_results_from_query(self, gbq_connector):
+        schema, pages = gbq_connector.run_query('SELECT 1')
+        assert pages is not None
+
+
 class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
     @pytest.fixture(autouse=True)
@@ -180,25 +227,6 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         _skip_local_auth_if_in_travis_env()
 
         self.sut = gbq.GbqConnector(project, auth_local_webserver=True)
-
-    def test_should_be_able_to_make_a_connector(self):
-        assert self.sut is not None, 'Could not create a GbqConnector'
-
-    def test_should_be_able_to_get_valid_credentials(self):
-        credentials = self.sut.get_credentials()
-        assert credentials.valid
-
-    def test_should_be_able_to_get_a_bigquery_client(self):
-        bigquery_client = self.sut.get_client()
-        assert bigquery_client is not None
-
-    def test_should_be_able_to_get_schema_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert schema is not None
-
-    def test_should_be_able_to_get_results_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert pages is not None
 
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
@@ -231,66 +259,6 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         from google.auth.credentials import Credentials
         credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)
-
-
-class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
-
-    @pytest.fixture(autouse=True)
-    def setup(self, project):
-
-        _skip_if_no_private_key_path()
-
-        self.sut = gbq.GbqConnector(project,
-                                    private_key=_get_private_key_path())
-
-    def test_should_be_able_to_make_a_connector(self):
-        assert self.sut is not None
-
-    def test_should_be_able_to_get_valid_credentials(self):
-        credentials = self.sut.get_credentials()
-        assert credentials.valid
-
-    def test_should_be_able_to_get_a_bigquery_client(self):
-        bigquery_client = self.sut.get_client()
-        assert bigquery_client is not None
-
-    def test_should_be_able_to_get_schema_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert schema is not None
-
-    def test_should_be_able_to_get_results_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert pages is not None
-
-
-class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
-
-    @pytest.fixture(autouse=True)
-    def setup(self, project):
-
-        _skip_if_no_private_key_contents()
-
-        self.sut = gbq.GbqConnector(project,
-                                    private_key=_get_private_key_contents())
-
-    def test_should_be_able_to_make_a_connector(self):
-        assert self.sut is not None
-
-    def test_should_be_able_to_get_valid_credentials(self):
-        credentials = self.sut.get_credentials()
-        assert credentials.valid
-
-    def test_should_be_able_to_get_a_bigquery_client(self):
-        bigquery_client = self.sut.get_client()
-        assert bigquery_client is not None
-
-    def test_should_be_able_to_get_schema_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert schema is not None
-
-    def test_should_be_able_to_get_results_from_query(self):
-        schema, pages = self.sut.run_query('SELECT 1')
-        assert pages is not None
 
 
 class GBQUnitTests(object):
