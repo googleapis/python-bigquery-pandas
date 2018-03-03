@@ -171,7 +171,8 @@ def test_generate_bq_schema_deprecated():
 
 class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
-    def setup_method(self, method, project):
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
 
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
@@ -232,8 +233,8 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
 class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
-    def setup_method(self, method, project):
-
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
@@ -262,8 +263,8 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyPath(object):
 
 class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
 
-    def setup_method(self, method, project):
-
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
         _skip_if_no_project_id()
         _skip_if_no_private_key_contents()
 
@@ -448,7 +449,8 @@ class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-    def setup_method(self, method, project):
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
         # executed.
@@ -959,7 +961,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         _skip_if_no_project_id()
         _skip_if_no_private_key_path()
 
-    def setup_method(self, method, project):
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
         # executed.
@@ -1523,7 +1526,8 @@ class TestToGBQIntegrationWithLocalUserAccountAuth(object):
         _skip_if_no_project_id()
         _skip_local_auth_if_in_travis_env()
 
-    def setup_method(self, method, project):
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test
         # is executed.
@@ -1580,7 +1584,8 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
 
         _skip_if_no_private_key_contents()
 
-    def setup_method(self, method):
+    @pytest.fixture(autouse=True)
+    def setup(self, project):
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test
         # is executed.
