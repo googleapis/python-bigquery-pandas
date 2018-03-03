@@ -371,28 +371,11 @@ class GBQUnitTests(object):
                 private_key=re.sub('[a-z]', '9', _get_private_key_contents()))
 
 
-class TestReadGBQIntegration(object):
+def test_should_read(project, credentials):
 
-    def test_should_read_as_user_account(self, auth_type):
-        _skip_local_auth_if_in_travis_env()
-
-        query = 'SELECT "PI" AS valid_string'
-        df = gbq.read_gbq(query, project_id=_get_project_id())
-        tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
-
-    def test_should_read_as_service_account_with_key_path(self):
-        _skip_if_no_private_key_path()
-        query = 'SELECT "PI" AS valid_string'
-        df = gbq.read_gbq(query, project_id=_get_project_id(),
-                          private_key=_get_private_key_path())
-        tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
-
-    def test_should_read_as_service_account_with_key_contents(self):
-        _skip_if_no_private_key_contents()
-        query = 'SELECT "PI" AS valid_string'
-        df = gbq.read_gbq(query, project_id=_get_project_id(),
-                          private_key=_get_private_key_contents())
-        tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
+    query = 'SELECT "PI" AS valid_string'
+    df = gbq.read_gbq(query, project_id=project, private_key=credentials)
+    tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
 
 
 class TestReadGBQIntegrationWithServiceAccountKeyPath(object):
