@@ -1,17 +1,14 @@
+import json
+import logging
+import os
+import time
 import warnings
 from datetime import datetime
-import json
-import time
-import logging
+from distutils.version import StrictVersion
 from time import sleep
-import sys
-import os
-
 
 import numpy as np
-
-from distutils.version import StrictVersion
-from pandas import compat, DataFrame
+from pandas import DataFrame, compat
 from pandas.compat import lzip
 
 logger = logging.getLogger(__name__)
@@ -193,10 +190,10 @@ class GbqConnector(object):
         self.query_price_for_TB = 5. / 2**40  # USD/TB
 
         if verbose is not None:
-                warnings.warn(
-                    "verbose is deprecated and will be removed in "
-                    "a future version. Set logging level in order to vary "
-                    "verbosity", FutureWarning)
+            warnings.warn(
+                "verbose is deprecated and will be removed in "
+                "a future version. Set logging level in order to vary "
+                "verbosity", FutureWarning)
 
     def get_credentials(self):
         if self.private_key:
@@ -340,7 +337,7 @@ class GbqConnector(object):
                 }
                 json.dump(credentials_json, credentials_file)
         except IOError:
-            self._print('Unable to save credentials.')
+            logger.warning('Unable to save credentials.')
 
     def get_user_account_credentials(self):
         """Gets user account credentials.
@@ -510,7 +507,7 @@ class GbqConnector(object):
             self.process_http_error(ex)
 
         job_id = query_reply.job_id
-        self._print('Job ID: %s\nQuery running...' % job_id)
+        logger.info('Job ID: %s\nQuery running...' % job_id)
 
         while query_reply.state != 'DONE':
             self.log_elapsed_seconds('  Elapsed', 's. Waiting...')
@@ -816,10 +813,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     """
     if verbose is not None:
-            warnings.warn(
-                "verbose is deprecated and will be removed in "
-                "a future version. Set logging level in order to vary "
-                "verbosity", FutureWarning)
+        warnings.warn(
+            "verbose is deprecated and will be removed in "
+            "a future version. Set logging level in order to vary "
+            "verbosity", FutureWarning)
 
     _test_google_api_imports()
 
@@ -944,10 +941,10 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
     _test_google_api_imports()
 
     if verbose is not None:
-            warnings.warn(
-                "verbose is deprecated and will be removed in "
-                "a future version. Set logging level in order to vary "
-                "verbosity", FutureWarning)
+        warnings.warn(
+            "verbose is deprecated and will be removed in "
+            "a future version. Set logging level in order to vary "
+            "verbosity", FutureWarning)
 
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
