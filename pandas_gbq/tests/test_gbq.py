@@ -1,26 +1,22 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
-import re
-from datetime import datetime
-import pytz
-from time import sleep
-import os
-from random import randint
 import logging
+import os
+import re
 import sys
+from datetime import datetime
+from random import randint
+from time import sleep
 
 import numpy as np
-
-from pandas import compat
-
-from pandas.compat import u, range
-from pandas import NaT, DataFrame
-from pandas_gbq import gbq
 import pandas.util.testing as tm
+import pytest
+import pytz
+from pandas import DataFrame, NaT, compat
+from pandas.compat import range, u
 from pandas.compat.numpy import np_datetime64_compat
 
+from pandas_gbq import gbq
 
 TABLE_ID = 'new_test'
 
