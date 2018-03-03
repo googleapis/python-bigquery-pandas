@@ -402,25 +402,6 @@ class TestReadGBQIntegration(object):
 
         _skip_if_no_project_id()
 
-    def setup_method(self, method):
-        # - PER-TEST FIXTURES -
-        # put here any instruction you want to be run *BEFORE* *EVERY* test is
-        # executed.
-        pass
-
-    @classmethod
-    def teardown_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *AFTER*
-        # executing all tests.
-        pass
-
-    def teardown_method(self, method):
-        # - PER-TEST FIXTURES -
-        # put here any instructions you want to be run *AFTER* *EVERY* test is
-        # executed.
-        pass
-
     def test_should_read_as_user_account(self):
         _skip_local_auth_if_in_travis_env()
 
@@ -983,13 +964,6 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         self.destination_table = "{0}{1}.{2}".format(self.dataset_prefix, "1",
                                                      TABLE_ID)
         self.dataset.create(self.dataset_prefix + "1")
-
-    @classmethod
-    def teardown_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *AFTER*
-        # executing all tests.
-        pass
 
     def teardown_method(self, method):
         # - PER-TEST FIXTURES -
@@ -1598,13 +1572,6 @@ class TestToGBQIntegrationWithServiceAccountKeyContents(object):
         clean_gbq_environment(self.dataset_prefix, _get_private_key_contents())
         self.destination_table = "{0}{1}.{2}".format(self.dataset_prefix, "3",
                                                      TABLE_ID)
-
-    @classmethod
-    def teardown_class(cls):
-        # - GLOBAL CLASS FIXTURES -
-        # put here any instruction you want to execute only *ONCE* *AFTER*
-        # executing all tests.
-        pass
 
     def teardown_method(self, method):
         # - PER-TEST FIXTURES -
