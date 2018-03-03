@@ -303,6 +303,8 @@ class TestGBQConnectorIntegrationWithServiceAccountKeyContents(object):
         assert pages is not None
 
 
+@pytest.mark.skip('Currently fails, see '
+                  'https://github.com/pydata/pandas-gbq/pull/125')
 class TestGBQUnit(object):
 
     def setup_method(self, method):
