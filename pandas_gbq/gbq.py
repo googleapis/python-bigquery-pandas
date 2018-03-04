@@ -12,8 +12,6 @@ from pandas import DataFrame, compat
 from pandas.compat import lzip
 
 logger = logging.getLogger(__name__)
-# silences warnings during tests
-# logger.addHandler(logging.NullHandler())
 
 
 def _check_google_client_version():
