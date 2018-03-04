@@ -812,7 +812,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
-            "verbosity", FutureWarning)
+            "verbosity", FutureWarning, stacklevel=1)
 
     _test_google_api_imports()
 
@@ -867,7 +867,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=None,
-           verbose=True, reauth=False, if_exists='fail', private_key=None,
+           verbose=None, reauth=False, if_exists='fail', private_key=None,
            auth_local_webserver=False, table_schema=None):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -941,7 +941,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
-            "verbosity", FutureWarning)
+            "verbosity", FutureWarning, stacklevel=1)
 
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -1013,8 +1013,7 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
-    def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
-                 private_key=None):
+    def __init__(self, project_id, dataset_id, reauth=False, private_key=None):
         self.dataset_id = dataset_id
         super(_Table, self).__init__(project_id, reauth, private_key)
 
