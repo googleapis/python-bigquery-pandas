@@ -183,6 +183,10 @@ def auth_type(request):
             pytest.skip("Cannot run local auth in travis environment")
 
     elif auth == 'service_path':
+
+        if _in_travis_environment():
+            pytest.skip("Only run one auth type in Travis to save time")
+
         _skip_if_no_private_key_path()
     elif auth == 'service_creds':
         _skip_if_no_private_key_contents()
