@@ -28,8 +28,7 @@ def _check_google_client_version():
 
     if (StrictVersion(_BIGQUERY_CLIENT_VERSION) <
             StrictVersion(bigquery_client_minimum_version)):
-        raise ImportError('pandas requires google-cloud-bigquery >= {0} '
-                          'for Google BigQuery support, '
+        raise ImportError('pandas-gbq requires google-cloud-bigquery >= {0}, '
                           'current version {1}'
                           .format(bigquery_client_minimum_version,
                                   _BIGQUERY_CLIENT_VERSION))
@@ -41,22 +40,19 @@ def _test_google_api_imports():
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
     except ImportError as ex:
         raise ImportError(
-            'pandas requires google-auth-oauthlib for Google BigQuery '
-            'support: {0}'.format(ex))
+            'pandas-gbq requires google-auth-oauthlib: {0}'.format(ex))
 
     try:
         import google.auth  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-auth for Google BigQuery support: "
-            "{0}".format(ex))
+            "pandas-gbq requires google-auth: {0}".format(ex))
 
     try:
         from google.cloud import bigquery  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-cloud-python for Google BigQuery support: "
-            "{0}".format(ex))
+            "pandas-gbq requires google-cloud-bigquery: {0}".format(ex))
 
     _check_google_client_version()
 
@@ -719,6 +715,8 @@ def _parse_data(schema, rows):
     col_names = [str(field['name']) for field in fields]
     col_dtypes = [
         dtype_map.get(field['type'].upper(), object)
+        if field['mode'] != 'repeated'
+        else object
         for field in fields
     ]
     page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
