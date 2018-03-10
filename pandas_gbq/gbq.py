@@ -1,15 +1,14 @@
+import json
+import os
+import sys
+import time
 import warnings
 from datetime import datetime
-import json
-import time
+from distutils.version import StrictVersion
 from time import sleep
-import sys
-import os
 
 import numpy as np
-
-from distutils.version import StrictVersion
-from pandas import compat, DataFrame
+from pandas import DataFrame, compat
 
 
 def _check_google_client_version():
@@ -28,8 +27,7 @@ def _check_google_client_version():
 
     if (StrictVersion(_BIGQUERY_CLIENT_VERSION) <
             StrictVersion(bigquery_client_minimum_version)):
-        raise ImportError('pandas requires google-cloud-bigquery >= {0} '
-                          'for Google BigQuery support, '
+        raise ImportError('pandas-gbq requires google-cloud-bigquery >= {0}, '
                           'current version {1}'
                           .format(bigquery_client_minimum_version,
                                   _BIGQUERY_CLIENT_VERSION))
@@ -41,22 +39,19 @@ def _test_google_api_imports():
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
     except ImportError as ex:
         raise ImportError(
-            'pandas requires google-auth-oauthlib for Google BigQuery '
-            'support: {0}'.format(ex))
+            'pandas-gbq requires google-auth-oauthlib: {0}'.format(ex))
 
     try:
         import google.auth  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-auth for Google BigQuery support: "
-            "{0}".format(ex))
+            "pandas-gbq requires google-auth: {0}".format(ex))
 
     try:
         from google.cloud import bigquery  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-cloud-python for Google BigQuery support: "
-            "{0}".format(ex))
+            "pandas-gbq requires google-cloud-bigquery: {0}".format(ex))
 
     _check_google_client_version()
 

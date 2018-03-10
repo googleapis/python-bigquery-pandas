@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from setuptools import setup, find_packages
 import versioneer
-
+from setuptools import find_packages, setup
 
 NAME = 'pandas-gbq'
 
@@ -29,7 +28,7 @@ setup(
     name=NAME,
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    description="Pandas interface to Google Big Query",
+    description="Pandas interface to Google BigQuery",
     long_description=readme(),
     license='BSD License',
     author='The PyData Development Team',
