@@ -1394,8 +1394,7 @@ class TestToGBQIntegration(object):
         test_size = 6
         df = DataFrame(np.random.randn(test_size, 4), index=range(test_size),
                        columns=list('ABCD'))
-        test_timestamp = datetime.now(pytz.timezone('UTC'))
-        df['times'] = test_timestamp
+        df['times'] = np.datetime64('2018-03-13T05:40:45.348318Z')
 
         gbq.to_gbq(
             df, self.destination_table + test_id,
@@ -1409,8 +1408,8 @@ class TestToGBQIntegration(object):
 
         assert len(result_df) == test_size
 
-        expected = df['times'].astype('M8[ns]').sort_values()
-        result = result_df['times'].astype('M8[ns]').sort_values()
+        expected = df['times'].sort_values()
+        result = result_df['times'].sort_values()
         tm.assert_numpy_array_equal(expected.values, result.values)
 
     def test_list_dataset(self):
