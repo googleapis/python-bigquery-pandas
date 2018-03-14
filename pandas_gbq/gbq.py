@@ -332,10 +332,6 @@ class GbqConnector(object):
         This method authenticates using user credentials, either loading saved
         credentials from a file or by going through the OAuth flow.
 
-        Parameters
-        ----------
-        None
-
         Returns
         -------
         GoogleCredentials : credentials
