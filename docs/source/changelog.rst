@@ -4,6 +4,9 @@ Changelog
 0.3.2 / [TBD]
 ------------------
 - Fix bug with querying for an array of floats (:issue:`123`)
+- Removed Console Flow from user auth, making Local Webserver the default.
+  When attempting to auth, a browser will attempted to be opened. Should that
+  fail, you can copy and paste the URL as before
 
 0.3.1 / 2018-02-13
 ------------------
