@@ -4,7 +4,6 @@ import os
 import time
 import warnings
 from datetime import datetime
-from distutils.version import StrictVersion
 from time import sleep
 
 import numpy as np
@@ -23,17 +22,15 @@ def _check_google_client_version():
         raise ImportError('Could not import pkg_resources (setuptools).')
 
     # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
-    bigquery_client_minimum_version = '0.29.0'
+    bigquery_minimum_version = pkg_resources.parse_version('0.32.0.dev1')
+    bigquery_installed_version = pkg_resources.get_distribution(
+        'google-cloud-bigquery').parsed_version
 
-    _BIGQUERY_CLIENT_VERSION = pkg_resources.get_distribution(
-        'google-cloud-bigquery').version
-
-    if (StrictVersion(_BIGQUERY_CLIENT_VERSION) <
-            StrictVersion(bigquery_client_minimum_version)):
-        raise ImportError('pandas-gbq requires google-cloud-bigquery >= {0}, '
-                          'current version {1}'
-                          .format(bigquery_client_minimum_version,
-                                  _BIGQUERY_CLIENT_VERSION))
+    if bigquery_installed_version < bigquery_minimum_version:
+        raise ImportError(
+            'pandas-gbq requires google-cloud-bigquery >= {0}, '
+            'current version {1}'.format(
+                bigquery_minimum_version, bigquery_installed_version))
 
 
 def _test_google_api_imports():
@@ -459,21 +456,15 @@ class GbqConnector(object):
         }
         config = kwargs.get('configuration')
         if config is not None:
-            if len(config) != 1:
-                raise ValueError("Only one job type must be specified, but "
-                                 "given {}".format(','.join(config.keys())))
-            if 'query' in config:
-                if 'query' in config['query']:
-                    if query is not None:
-                        raise ValueError("Query statement can't be specified "
-                                         "inside config while it is specified "
-                                         "as parameter")
-                    query = config['query']['query']
-                    del config['query']['query']
+            job_config.update(config)
 
-                job_config['query'].update(config['query'])
-            else:
-                raise ValueError("Only 'query' job type is supported")
+            if 'query' in config and 'query' in config['query']:
+                if query is not None:
+                    raise ValueError("Query statement can't be specified "
+                                     "inside config while it is specified "
+                                     "as parameter")
+                query = config['query']['query']
+                del config['query']['query']
 
         self._start_timer()
         try:
@@ -481,7 +472,7 @@ class GbqConnector(object):
             logger.info('Requesting query... ')
             query_reply = self.client.query(
                 query,
-                job_config=QueryJobConfig.from_api_repr(job_config['query']))
+                job_config=QueryJobConfig.from_api_repr(job_config))
             logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
@@ -598,6 +589,15 @@ class GbqConnector(object):
         except self.http_error as ex:
             self.process_http_error(ex)
 
+    def _clean_schema_fields(self, fields):
+        """Return a sanitized version of the schema for comparisons."""
+        fields_sorted = sorted(fields, key=lambda field: field['name'])
+        # Ignore mode and description when comparing schemas.
+        return [
+            {'name': field['name'], 'type': field['type']}
+            for field in fields_sorted
+        ]
+
     def verify_schema(self, dataset_id, table_id, schema):
         """Indicate whether schemas match exactly
 
@@ -621,17 +621,9 @@ class GbqConnector(object):
             Whether the schemas match
         """
 
-        fields_remote = sorted(self.schema(dataset_id, table_id),
-                               key=lambda x: x['name'])
-        fields_local = sorted(schema['fields'], key=lambda x: x['name'])
-
-        # Ignore mode when comparing schemas.
-        for field in fields_local:
-            if 'mode' in field:
-                del field['mode']
-        for field in fields_remote:
-            if 'mode' in field:
-                del field['mode']
+        fields_remote = self._clean_schema_fields(
+            self.schema(dataset_id, table_id))
+        fields_local = self._clean_schema_fields(schema['fields'])
 
         return fields_remote == fields_local
 
@@ -658,16 +650,9 @@ class GbqConnector(object):
             Whether the passed schema is a subset
         """
 
-        fields_remote = self.schema(dataset_id, table_id)
-        fields_local = schema['fields']
-
-        # Ignore mode when comparing schemas.
-        for field in fields_local:
-            if 'mode' in field:
-                del field['mode']
-        for field in fields_remote:
-            if 'mode' in field:
-                del field['mode']
+        fields_remote = self._clean_schema_fields(
+            self.schema(dataset_id, table_id))
+        fields_local = self._clean_schema_fields(schema['fields'])
 
         return all(field in fields_remote for field in fields_local)
 
@@ -709,7 +694,7 @@ def _parse_data(schema, rows):
     col_names = [str(field['name']) for field in fields]
     col_dtypes = [
         dtype_map.get(field['type'].upper(), object)
-        if field['mode'] != 'repeated'
+        if field['mode'].lower() != 'repeated'
         else object
         for field in fields
     ]
@@ -847,7 +832,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     for field in schema['fields']:
         if field['type'].upper() in type_map and \
                 final_df[field['name']].notnull().all() and \
-                field['mode'] != 'repeated':
+                field['mode'].lower() != 'repeated':
             final_df[field['name']] = \
                 final_df[field['name']].astype(type_map[field['type'].upper()])
 

@@ -1266,10 +1266,30 @@ class TestToGBQIntegration(object):
         test_id = "15"
         test_schema = {
             'fields': [
-                {'name': 'A', 'type': 'FLOAT', 'mode': 'NULLABLE'},
-                {'name': 'B', 'type': 'FLOAT', 'mode': 'NULLABLE'},
-                {'name': 'C', 'type': 'STRING', 'mode': 'NULLABLE'},
-                {'name': 'D', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'}
+                {
+                    'name': 'A',
+                    'type': 'FLOAT',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'B',
+                    'type': 'FLOAT',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'C',
+                    'type': 'STRING',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'D',
+                    'type': 'TIMESTAMP',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
             ]
         }
 

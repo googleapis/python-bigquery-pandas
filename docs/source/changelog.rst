@@ -1,9 +1,11 @@
 Changelog
 =========
 
-0.3.2 / [TBD]
+0.4.0 / [TBD]
 ------------------
 - Fix bug with querying for an array of floats (:issue:`123`)
+- Fix bug with integer columns on Windows. Explicitly use 64bit integers when converting from BQ types. (:issue:`119`)
+- Update ``google-cloud-python`` dependency to version 0.32.0+ (:issue:`TBD`)
 
 0.3.1 / 2018-02-13
 ------------------
