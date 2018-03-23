@@ -280,23 +280,7 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert isinstance(credentials, Credentials)
 
 
-class GBQUnitTests(object):
-
-    def test_import_google_api_python_client(self):
-        if not _in_travis_environment():
-            pytest.skip("Skip if not in travis environment. Extra test to "
-                        "make sure pandas_gbq doesn't break when "
-                        "using google-api-python-client==1.2")
-
-        if compat.PY2:
-            with pytest.raises(ImportError):
-                from googleapiclient.discovery import build  # noqa
-                from googleapiclient.errors import HttpError  # noqa
-            from apiclient.discovery import build  # noqa
-            from apiclient.errors import HttpError  # noqa
-        else:
-            from googleapiclient.discovery import build  # noqa
-            from googleapiclient.errors import HttpError  # noqa
+class TestGBQUnit(object):
 
     def test_should_return_credentials_path_set_by_env_var(self):
 
@@ -304,27 +288,23 @@ class GBQUnitTests(object):
         with mock.patch.dict('os.environ', env):
             assert gbq._get_credentials_file() == '/tmp/dummy.dat'
 
-        assert gbq._get_credentials_file() == 'bigquery_credentials.dat'
-
-    def test_should_return_bigquery_integers_as_python_ints(self):
-        result = gbq._parse_entry(1, 'INTEGER')
-        assert result == int(1)
-
-    def test_should_return_bigquery_floats_as_python_floats(self):
-        result = gbq._parse_entry(1, 'FLOAT')
-        assert result == float(1)
-
-    def test_should_return_bigquery_timestamps_as_numpy_datetime(self):
-        result = gbq._parse_entry('0e9', 'TIMESTAMP')
-        assert result == np_datetime64_compat('1970-01-01T00:00:00Z')
-
-    def test_should_return_bigquery_booleans_as_python_booleans(self):
-        result = gbq._parse_entry('false', 'BOOLEAN')
-        assert not result
-
-    def test_should_return_bigquery_strings_as_python_strings(self):
-        result = gbq._parse_entry('STRING', 'STRING')
-        assert result == 'STRING'
+    @pytest.mark.parametrize(
+        ('input', 'type_', 'expected'), [
+            (1, 'INTEGER', int(1)),
+            (1, 'FLOAT', float(1)),
+            pytest.param('false', 'BOOLEAN', False, marks=pytest.mark.xfail),
+            pytest.param(
+                '0e9', 'TIMESTAMP',
+                np_datetime64_compat('1970-01-01T00:00:00Z'),
+                marks=pytest.mark.xfail),
+            ('STRING', 'STRING', 'STRING'),
+        ])
+    def test_should_return_bigquery_correctly_typed(
+            self, input, type_, expected):
+        result = gbq._parse_data(
+            dict(fields=[dict(name='x', type=type_, mode='NULLABLE')]),
+            rows=[[input]]).iloc[0, 0]
+        assert result == expected
 
     def test_to_gbq_should_fail_if_invalid_table_name_passed(self):
         with pytest.raises(gbq.NotFoundException):
@@ -891,7 +871,7 @@ class TestReadGBQIntegration(object):
                           private_key=_get_private_key_path(),
                           dialect='standard')
         tm.assert_frame_equal(df, DataFrame([[[1.1, 2.2, 3.3], 4]],
-                              columns=["a", "b"]))
+                                            columns=["a", "b"]))
 
 
 class TestToGBQIntegration(object):
@@ -1386,6 +1366,46 @@ class TestToGBQIntegration(object):
             gbq.to_gbq(df, destination_table, _get_project_id(),
                        private_key=self.credentials,
                        table_schema=test_schema)
+
+    def test_upload_data_with_timestamp(self):
+        test_id = "21"
+        test_size = 6
+        df = DataFrame(np.random.randn(test_size, 4), index=range(test_size),
+                       columns=list('ABCD'))
+        df['times'] = np.datetime64('2018-03-13T05:40:45.348318Z')
+
+        gbq.to_gbq(
+            df, self.destination_table + test_id,
+            _get_project_id(),
+            private_key=self.credentials)
+
+        result_df = gbq.read_gbq("SELECT * FROM {0}".format(
+            self.destination_table + test_id),
+            project_id=_get_project_id(),
+            private_key=self.credentials)
+
+        assert len(result_df) == test_size
+
+        expected = df['times'].sort_values()
+        result = result_df['times'].sort_values()
+        tm.assert_numpy_array_equal(expected.values, result.values)
+
+    def test_upload_data_with_different_df_and_user_schema(self):
+        df = tm.makeMixedDataFrame()
+        df['A'] = df['A'].astype(str)
+        df['B'] = df['B'].astype(str)
+        test_id = "22"
+        test_schema = [{'name': 'A', 'type': 'FLOAT'},
+                       {'name': 'B', 'type': 'FLOAT'},
+                       {'name': 'C', 'type': 'STRING'},
+                       {'name': 'D', 'type': 'TIMESTAMP'}]
+        destination_table = self.destination_table + test_id
+        gbq.to_gbq(df, destination_table, _get_project_id(),
+                   private_key=self.credentials,
+                   table_schema=test_schema)
+        dataset, table = destination_table.split('.')
+        assert self.table.verify_schema(dataset, table,
+                                        dict(fields=test_schema))
 
     def test_list_dataset(self):
         dataset_id = self.dataset_prefix + "1"
