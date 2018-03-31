@@ -752,7 +752,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     ----------
     query : str
         SQL-Like Query to return data values
-    project_id : str (optional)
+    project_id : str (optional when using credentials / service account)
         Google BigQuery Account project ID.
     index_col : str (optional)
         Name of result column to use for index in results DataFrame
@@ -857,7 +857,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     return final_df
 
 
-def to_gbq(dataframe, destination_table, project_id, chunksize=None,
+def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
            verbose=None, reauth=False, if_exists='fail', private_key=None,
            auth_local_webserver=False, table_schema=None):
     """Write a DataFrame to a Google BigQuery table.
@@ -889,7 +889,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         DataFrame to be written
     destination_table : string
         Name of table to be written, in the form 'dataset.tablename'
-    project_id : str (optional)
+    project_id : str (optional when using credentials / service account)
         Google BigQuery Account project ID.
     chunksize : int (default None)
         Number of rows to be inserted in each chunk from the dataframe. Use
