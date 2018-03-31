@@ -1,16 +1,17 @@
+import json
+import logging
+import os
+import time
 import warnings
 from datetime import datetime
-import json
-import time
+from distutils.version import StrictVersion
 from time import sleep
-import sys
-import os
 
 import numpy as np
-
-from distutils.version import StrictVersion
-from pandas import compat, DataFrame
+from pandas import DataFrame, compat
 from pandas.compat import lzip
+
+logger = logging.getLogger(__name__)
 
 
 def _check_google_client_version():
@@ -29,8 +30,7 @@ def _check_google_client_version():
 
     if (StrictVersion(_BIGQUERY_CLIENT_VERSION) <
             StrictVersion(bigquery_client_minimum_version)):
-        raise ImportError('pandas requires google-cloud-bigquery >= {0} '
-                          'for Google BigQuery support, '
+        raise ImportError('pandas-gbq requires google-cloud-bigquery >= {0}, '
                           'current version {1}'
                           .format(bigquery_client_minimum_version,
                                   _BIGQUERY_CLIENT_VERSION))
@@ -42,22 +42,19 @@ def _test_google_api_imports():
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
     except ImportError as ex:
         raise ImportError(
-            'pandas requires google-auth-oauthlib for Google BigQuery '
-            'support: {0}'.format(ex))
+            'pandas-gbq requires google-auth-oauthlib: {0}'.format(ex))
 
     try:
         import google.auth  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-auth for Google BigQuery support: "
-            "{0}".format(ex))
+            "pandas-gbq requires google-auth: {0}".format(ex))
 
     try:
         from google.cloud import bigquery  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas requires google-cloud-python for Google BigQuery support: "
-            "{0}".format(ex))
+            "pandas-gbq requires google-cloud-bigquery: {0}".format(ex))
 
     _check_google_client_version()
 
@@ -167,7 +164,7 @@ class TableCreationError(ValueError):
 class GbqConnector(object):
     scope = 'https://www.googleapis.com/auth/bigquery'
 
-    def __init__(self, project_id, reauth=False, verbose=False,
+    def __init__(self, project_id, reauth=False,
                  private_key=None, auth_local_webserver=False,
                  dialect='legacy'):
         from google.api_core.exceptions import GoogleAPIError
@@ -175,7 +172,6 @@ class GbqConnector(object):
         self.http_error = (ClientError, GoogleAPIError)
         self.project_id = project_id
         self.reauth = reauth
-        self.verbose = verbose
         self.private_key = private_key
         self.auth_local_webserver = auth_local_webserver
         self.dialect = dialect
@@ -329,7 +325,7 @@ class GbqConnector(object):
                 }
                 json.dump(credentials_json, credentials_file)
         except IOError:
-            self._print('Unable to save credentials.')
+            logger.warning('Unable to save credentials.')
 
     def get_user_account_credentials(self):
         """Gets user account credentials.
@@ -415,22 +411,17 @@ class GbqConnector(object):
                 "Can be obtained from: https://console.developers.google."
                 "com/permissions/serviceaccounts")
 
-    def _print(self, msg, end='\n'):
-        if self.verbose:
-            sys.stdout.write(msg + end)
-            sys.stdout.flush()
-
     def _start_timer(self):
         self.start = time.time()
 
     def get_elapsed_seconds(self):
         return round(time.time() - self.start, 2)
 
-    def print_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
-                              overlong=7):
+    def log_elapsed_seconds(self, prefix='Elapsed', postfix='s.',
+                            overlong=7):
         sec = self.get_elapsed_seconds()
         if sec > overlong:
-            self._print('{} {} {}'.format(prefix, sec, postfix))
+            logger.info('{} {} {}'.format(prefix, sec, postfix))
 
     # http://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     @staticmethod
@@ -486,11 +477,12 @@ class GbqConnector(object):
 
         self._start_timer()
         try:
-            self._print('Requesting query... ', end="")
+
+            logger.info('Requesting query... ')
             query_reply = self.client.query(
                 query,
                 job_config=QueryJobConfig.from_api_repr(job_config['query']))
-            self._print('ok.')
+            logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
                 raise AccessDenied(
@@ -503,10 +495,10 @@ class GbqConnector(object):
             self.process_http_error(ex)
 
         job_id = query_reply.job_id
-        self._print('Job ID: %s\nQuery running...' % job_id)
+        logger.info('Job ID: %s\nQuery running...' % job_id)
 
         while query_reply.state != 'DONE':
-            self.print_elapsed_seconds('  Elapsed', 's. Waiting...')
+            self.log_elapsed_seconds('  Elapsed', 's. Waiting...')
 
             timeout_ms = job_config['query'].get('timeoutMs')
             if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
@@ -525,19 +517,16 @@ class GbqConnector(object):
             except self.http_error as ex:
                 self.process_http_error(ex)
 
-        if self.verbose:
-            if query_reply.cache_hit:
-                self._print('Query done.\nCache hit.\n')
-            else:
-                bytes_processed = query_reply.total_bytes_processed or 0
-                bytes_billed = query_reply.total_bytes_billed or 0
-                self._print('Query done.\nProcessed: {} Billed: {}'.format(
-                    self.sizeof_fmt(bytes_processed),
-                    self.sizeof_fmt(bytes_billed)))
-                self._print('Standard price: ${:,.2f} USD\n'.format(
-                    bytes_billed * self.query_price_for_TB))
-
-            self._print('Retrieving results...')
+        if query_reply.cache_hit:
+            logger.debug('Query done.\nCache hit.\n')
+        else:
+            bytes_processed = query_reply.total_bytes_processed or 0
+            bytes_billed = query_reply.total_bytes_billed or 0
+            logger.debug('Query done.\nProcessed: {} Billed: {}'.format(
+                self.sizeof_fmt(bytes_processed),
+                self.sizeof_fmt(bytes_billed)))
+            logger.debug('Standard price: ${:,.2f} USD\n'.format(
+                bytes_billed * self.query_price_for_TB))
 
         try:
             rows_iter = query_reply.result()
@@ -551,8 +540,8 @@ class GbqConnector(object):
                 for field in rows_iter.schema],
         }
 
-        # print basic query stats
-        self._print('Got {} rows.\n'.format(total_rows))
+        # log basic query stats
+        logger.info('Got {} rows.\n'.format(total_rows))
 
         return schema, result_rows
 
@@ -562,18 +551,18 @@ class GbqConnector(object):
         from pandas_gbq import _load
 
         total_rows = len(dataframe)
-        self._print("\n\n")
+        logger.info("\n\n")
 
         try:
             for remaining_rows in _load.load_chunks(
                     self.client, dataframe, dataset_id, table_id,
-                    chunksize=chunksize):
-                self._print("\rLoad is {0}% Complete".format(
+                    chunksize=chunksize, schema=schema):
+                logger.info("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
         except self.http_error as ex:
             self.process_http_error(ex)
 
-        self._print("\n")
+        logger.info("\n")
 
     def schema(self, dataset_id, table_id):
         """Retrieve the schema of the table
@@ -692,7 +681,7 @@ class GbqConnector(object):
         # be a 120 second delay
 
         if not self.verify_schema(dataset_id, table_id, table_schema):
-            self._print('The existing table has a different schema. Please '
+            logger.info('The existing table has a different schema. Please '
                         'wait 2 minutes. See Google BigQuery issue #191')
             delay = 120
 
@@ -720,6 +709,8 @@ def _parse_data(schema, rows):
     col_names = [str(field['name']) for field in fields]
     col_dtypes = [
         dtype_map.get(field['type'].upper(), object)
+        if field['mode'] != 'repeated'
+        else object
         for field in fields
     ]
     page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
@@ -732,7 +723,7 @@ def _parse_data(schema, rows):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None,
+             reauth=False, verbose=None, private_key=None,
              auth_local_webserver=False, dialect='legacy', **kwargs):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -771,8 +762,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-    verbose : boolean (default True)
-        Verbose output
     private_key : str (optional)
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
@@ -796,6 +785,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         compliant with the SQL 2011 standard. For more information
         see `BigQuery SQL Reference
         <https://cloud.google.com/bigquery/sql-reference/>`__
+    verbose : None, deprecated
 
     **kwargs : Arbitrary keyword arguments
         configuration (dict): query config parameters for job processing.
@@ -812,6 +802,11 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
+    if verbose is not None:
+        warnings.warn(
+            "verbose is deprecated and will be removed in "
+            "a future version. Set logging level in order to vary "
+            "verbosity", FutureWarning, stacklevel=1)
 
     _test_google_api_imports()
 
@@ -819,7 +814,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
 
     connector = GbqConnector(
-        project_id, reauth=reauth, verbose=verbose, private_key=private_key,
+        project_id, reauth=reauth, private_key=private_key,
         dialect=dialect, auth_local_webserver=auth_local_webserver)
     schema, rows = connector.run_query(query, **kwargs)
     final_df = _parse_data(schema, rows)
@@ -853,7 +848,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             final_df[field['name']] = \
                 final_df[field['name']].astype(type_map[field['type'].upper()])
 
-    connector.print_elapsed_seconds(
+    connector.log_elapsed_seconds(
         'Total time taken',
         datetime.now().strftime('s.\nFinished at %Y-%m-%d %H:%M:%S.'),
         0
@@ -863,7 +858,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=None,
-           verbose=True, reauth=False, if_exists='fail', private_key=None,
+           verbose=None, reauth=False, if_exists='fail', private_key=None,
            auth_local_webserver=False, table_schema=None):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -899,8 +894,6 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
     chunksize : int (default None)
         Number of rows to be inserted in each chunk from the dataframe. Use
         ``None`` to load the dataframe in a single chunk.
-    verbose : boolean (default True)
-        Show percentage complete
     reauth : boolean (default False)
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
@@ -930,9 +923,16 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
         of DataFrame columns. See BigQuery API documentation on available
         names of a field.
         .. versionadded:: 0.3.1
+    verbose : None, deprecated
     """
 
     _test_google_api_imports()
+
+    if verbose is not None:
+        warnings.warn(
+            "verbose is deprecated and will be removed in "
+            "a future version. Set logging level in order to vary "
+            "verbosity", FutureWarning, stacklevel=1)
 
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -942,7 +942,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
             "Invalid Table Name. Should be of the form 'datasetId.tableId' ")
 
     connector = GbqConnector(
-        project_id, reauth=reauth, verbose=verbose, private_key=private_key,
+        project_id, reauth=reauth, private_key=private_key,
         auth_local_webserver=auth_local_webserver)
     dataset_id, table_id = destination_table.rsplit('.', 1)
 
@@ -1004,10 +1004,9 @@ def _generate_bq_schema(df, default_type='STRING'):
 
 class _Table(GbqConnector):
 
-    def __init__(self, project_id, dataset_id, reauth=False, verbose=False,
-                 private_key=None):
+    def __init__(self, project_id, dataset_id, reauth=False, private_key=None):
         self.dataset_id = dataset_id
-        super(_Table, self).__init__(project_id, reauth, verbose, private_key)
+        super(_Table, self).__init__(project_id, reauth, private_key)
 
     def exists(self, table_id):
         """ Check if a table exists in Google BigQuery
@@ -1101,10 +1100,8 @@ class _Table(GbqConnector):
 
 class _Dataset(GbqConnector):
 
-    def __init__(self, project_id, reauth=False, verbose=False,
-                 private_key=None):
-        super(_Dataset, self).__init__(project_id, reauth, verbose,
-                                       private_key)
+    def __init__(self, project_id, reauth=False, private_key=None):
+        super(_Dataset, self).__init__(project_id, reauth, private_key)
 
     def exists(self, dataset_id):
         """ Check if a dataset exists in Google BigQuery
