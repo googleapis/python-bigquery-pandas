@@ -52,9 +52,8 @@ def _get_dataset_prefix_random():
 
 
 def _get_project_id():
-    return (os.environ.get('GBQ_PROJECT_ID') 
-            or os.environ.get('GOOGLE_CLOUD_PROJECT'))
-
+    return (os.environ.get('GBQ_PROJECT_ID')
+            or os.environ.get('GOOGLE_CLOUD_PROJECT'))  # noqa
 
 
 def _get_private_key_path():
