@@ -52,12 +52,9 @@ def _get_dataset_prefix_random():
 
 
 def _get_project_id():
+    return (os.environ.get('GBQ_PROJECT_ID') 
+            or os.environ.get('GOOGLE_CLOUD_PROJECT'))
 
-    project = os.environ.get('GBQ_PROJECT_ID')
-    if not project:
-        pytest.skip(
-            "Cannot run integration tests without a project id")
-    return project
 
 
 def _get_private_key_path():
@@ -87,9 +84,12 @@ def _test_imports():
     gbq._test_google_api_imports()
 
 
-@pytest.fixture
-def project():
-    return _get_project_id()
+@pytest.fixture(params=['env'])
+def project(request):
+    if request.param == 'env':
+        return _get_project_id()
+    elif request.param == 'none':
+        return None
 
 
 def _check_if_can_get_correct_default_credentials():
@@ -310,13 +310,8 @@ class TestGBQUnit(object):
         with pytest.raises(gbq.NotFoundException):
             gbq.to_gbq(DataFrame(), 'invalid_table_name', project_id="1234")
 
-    def test_to_gbq_with_no_project_id_given_should_fail(self):
-        with pytest.raises(TypeError):
-            gbq.to_gbq(DataFrame(), 'dataset.tablename')
-
-    def test_read_gbq_with_no_project_id_given_should_fail(self):
-        with pytest.raises(TypeError):
-            gbq.read_gbq('SELECT 1')
+    def test_read_gbq_with_no_project_id_given_should_pass(self):
+        gbq.read_gbq('SELECT 1')
 
     def test_that_parse_data_works_properly(self):
 
