@@ -314,8 +314,8 @@ class TestGBQUnit(object):
         with pytest.raises(gbq.NotFoundException):
             gbq.to_gbq(DataFrame(), 'invalid_table_name', project_id="1234")
 
-    def test_read_gbq_with_no_project_id_given_should_pass(self):
-        gbq.read_gbq('SELECT 1')
+    def test_read_gbq_with_no_project_id_given_should_pass(self, credentials):
+        gbq.read_gbq('SELECT 1', private_key=credentials)
 
     def test_that_parse_data_works_properly(self):
 
