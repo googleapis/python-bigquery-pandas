@@ -100,7 +100,8 @@ def _check_if_can_get_correct_default_credentials():
     from google.auth.exceptions import DefaultCredentialsError
 
     try:
-        credentials, project = google.auth.default(scopes=[gbq.GbqConnector.scope])
+        credentials, project = google.auth.default(
+            scopes=[gbq.GbqConnector.scope])
     except (DefaultCredentialsError, IOError):
         return False
 
