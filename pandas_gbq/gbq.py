@@ -7,10 +7,10 @@ from datetime import datetime
 from distutils.version import StrictVersion
 from time import sleep
 
+import google
 import numpy as np
 from pandas import DataFrame, compat
 from pandas.compat import lzip
-import google
 
 logger = logging.getLogger(__name__)
 
@@ -755,7 +755,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     ----------
     query : str
         SQL-Like Query to return data values
-    project_id : str (optional when using credentials / service account)
+    project_id : str (optional when available in environment)
         Google BigQuery Account project ID.
     index_col : str (optional)
         Name of result column to use for index in results DataFrame
@@ -892,7 +892,7 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
         DataFrame to be written
     destination_table : string
         Name of table to be written, in the form 'dataset.tablename'
-    project_id : str (optional when using credentials / service account)
+    project_id : str (optional when available in environment)
         Google BigQuery Account project ID.
     chunksize : int (default None)
         Number of rows to be inserted in each chunk from the dataframe. Use
