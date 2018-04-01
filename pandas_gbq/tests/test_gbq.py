@@ -172,7 +172,11 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 
-@pytest.fixture(params=['local', 'service_path', 'service_creds'])
+@pytest.fixture(params=[
+    pytest.param('local', marks=pytest.mark.local_auth),
+    pytest.param('service_path', marks=pytest.mark.s_path_auth),
+    pytest.param('service_creds', marks=pytest.mark.s_cred_auth),
+])
 def auth_type(request):
 
     auth = request.param
@@ -237,6 +241,7 @@ class TestGBQConnectorIntegration(object):
         assert pages is not None
 
 
+@pytest.mark.local_auth
 class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
 
     @pytest.fixture(autouse=True)
