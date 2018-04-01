@@ -3,10 +3,10 @@ sudo: false
 language: python
 
 env:
-  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true'
-  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false'
-  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false'
-  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true'
+  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' AUTH='s_path'
+  - PYTHON=3.5 PANDAS=0.22.0 COVERAGE='true' LINT='false' AUTH='s_path'
+  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' AUTH='s_cred'
+  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' AUTH='s_cred'
 
 before_install:
   - echo "before_install"
@@ -42,6 +42,7 @@ install:
   - python setup.py install
 
 script:
-  - pytest -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq
+  - if [[ $AUTH == 's_path' ]]; then pytest -m 'not local_auth' -m 'not s_cred_auth' -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq  ; fi
+  - if [[ $AUTH == 's_cred' ]]; then pytest -m 'not local_auth' -m 'not s_path_auth' -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq  ; fi
   - if [[ $COVERAGE == 'true' ]]; then codecov ; fi
   - if [[ $LINT == 'true' ]]; then flake8 pandas_gbq -v ; fi
