@@ -42,7 +42,7 @@ install:
   - python setup.py install
 
 script:
-  - if [[ $AUTH == 's_path' ]]; then pytest -m 'not local_auth' -m 'not s_cred_auth' -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq  ; fi
-  - if [[ $AUTH == 's_cred' ]]; then pytest -m 'not local_auth' -m 'not s_path_auth' -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq  ; fi
+  - if [[ $AUTH == 's_path' ]]; then pytest -m 'not local_auth and not s_cred_auth' -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq  ; fi
+  - if [[ $AUTH == 's_cred' ]]; then pytest -m 'not local_auth and not s_path_auth' -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq  ; fi
   - if [[ $COVERAGE == 'true' ]]; then codecov ; fi
   - if [[ $LINT == 'true' ]]; then flake8 pandas_gbq -v ; fi
