@@ -100,11 +100,12 @@ def _check_if_can_get_correct_default_credentials():
     from google.auth.exceptions import DefaultCredentialsError
 
     try:
-        credentials, _ = google.auth.default(scopes=[gbq.GbqConnector.scope])
+        credentials, project = google.auth.default(scopes=[gbq.GbqConnector.scope])
     except (DefaultCredentialsError, IOError):
         return False
 
-    return gbq._try_credentials(_get_project_id(), credentials) is not None
+    return gbq._try_credentials(
+        project or _get_project_id(), credentials) is not None
 
 
 def clean_gbq_environment(dataset_prefix, private_key=None):
@@ -182,15 +183,8 @@ def auth_type(request):
     auth = request.param
 
     if auth == 'local':
-
-        if _in_travis_environment():
-            pytest.skip("Cannot run local auth in travis environment")
-
+        pass
     elif auth == 'service_path':
-
-        if _in_travis_environment():
-            pytest.skip("Only run one auth type in Travis to save time")
-
         _skip_if_no_private_key_path()
     elif auth == 'service_creds':
         _skip_if_no_private_key_contents()

@@ -10,6 +10,7 @@ from time import sleep
 import numpy as np
 from pandas import DataFrame, compat
 from pandas.compat import lzip
+import google
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +171,8 @@ class GbqConnector(object):
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
         self.http_error = (ClientError, GoogleAPIError)
+        if not project_id:
+                _, project_id = google.auth.default()
         self.project_id = project_id
         self.reauth = reauth
         self.private_key = private_key
