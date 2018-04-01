@@ -4,7 +4,7 @@ language: python
 
 env:
   - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' AUTH='s_path'
-  - PYTHON=3.5 PANDAS=0.22.0 COVERAGE='true' LINT='false' AUTH='s_path'
+  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' AUTH='s_path'
   - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' AUTH='s_cred'
   - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' AUTH='s_cred'
 
