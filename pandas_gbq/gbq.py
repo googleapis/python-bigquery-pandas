@@ -7,7 +7,6 @@ from datetime import datetime
 from distutils.version import StrictVersion
 from time import sleep
 
-import google
 import numpy as np
 from pandas import DataFrame, compat
 from pandas.compat import lzip
@@ -172,7 +171,8 @@ class GbqConnector(object):
         from google.api_core.exceptions import ClientError
         self.http_error = (ClientError, GoogleAPIError)
         if not project_id:
-            _, project_id = google.auth.default()
+            from google.auth import default
+            _, project_id = default()
         self.project_id = project_id
         self.reauth = reauth
         self.private_key = private_key
