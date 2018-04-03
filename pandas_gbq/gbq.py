@@ -13,7 +13,11 @@ from pandas.compat import lzip
 logger = logging.getLogger(__name__)
 
 
+BIGQUERY_INSTALLED_VERSION = None
+
+
 def _check_google_client_version():
+    global BIGQUERY_INSTALLED_VERSION
 
     try:
         import pkg_resources
@@ -22,15 +26,15 @@ def _check_google_client_version():
         raise ImportError('Could not import pkg_resources (setuptools).')
 
     # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
-    bigquery_minimum_version = pkg_resources.parse_version('0.32.0.dev1')
-    bigquery_installed_version = pkg_resources.get_distribution(
+    bigquery_minimum_version = pkg_resources.parse_version('0.29.0')
+    BIGQUERY_INSTALLED_VERSION = pkg_resources.get_distribution(
         'google-cloud-bigquery').parsed_version
 
-    if bigquery_installed_version < bigquery_minimum_version:
+    if BIGQUERY_INSTALLED_VERSION < bigquery_minimum_version:
         raise ImportError(
             'pandas-gbq requires google-cloud-bigquery >= {0}, '
             'current version {1}'.format(
-                bigquery_minimum_version, bigquery_installed_version))
+                bigquery_minimum_version, BIGQUERY_INSTALLED_VERSION))
 
 
 def _test_google_api_imports():
@@ -444,8 +448,8 @@ class GbqConnector(object):
 
     def run_query(self, query, **kwargs):
         from google.auth.exceptions import RefreshError
-        from google.cloud.bigquery import QueryJobConfig
         from concurrent.futures import TimeoutError
+        from pandas_gbq import _query
 
         job_config = {
             'query': {
@@ -467,12 +471,11 @@ class GbqConnector(object):
                 del config['query']['query']
 
         self._start_timer()
-        try:
 
+        try:
             logger.info('Requesting query... ')
             query_reply = self.client.query(
-                query,
-                job_config=QueryJobConfig.from_api_repr(job_config))
+                query, job_config=_query.query_config(job_config))
             logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
