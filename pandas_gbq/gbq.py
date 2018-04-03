@@ -467,8 +467,7 @@ class GbqConnector(object):
                     raise ValueError("Query statement can't be specified "
                                      "inside config while it is specified "
                                      "as parameter")
-                query = config['query']['query']
-                del config['query']['query']
+                query = config['query'].pop('query')
 
         self._start_timer()
 
