@@ -1294,8 +1294,14 @@ class TestToGBQIntegration(object):
         }
 
         self.table.create(TABLE_ID + test_id, test_schema)
-        actual = self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id)
-        expected = test_schema['fields']
+        actual = self.sut._clean_schema_fields(
+            self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id))
+        expected = [
+            {'name': 'A', 'type': 'FLOAT'},
+            {'name': 'B', 'type': 'FLOAT'},
+            {'name': 'C', 'type': 'STRING'},
+            {'name': 'D', 'type': 'TIMESTAMP'},
+        ]
         assert expected == actual, 'Expected schema used to create table'
 
     def test_schema_is_subset_passes_if_subset(self):
