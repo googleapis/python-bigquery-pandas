@@ -474,7 +474,9 @@ class GbqConnector(object):
         try:
             logger.info('Requesting query... ')
             query_reply = self.client.query(
-                query, job_config=_query.query_config(job_config))
+                query,
+                job_config=_query.query_config(
+                    job_config, BIGQUERY_INSTALLED_VERSION))
             logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
