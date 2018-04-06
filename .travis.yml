@@ -13,33 +13,34 @@ before_install:
   - source ci/travis_process_gbq_encryption.sh
 
 install:
-  - REQ="ci/requirements-${PYTHON}-${PANDAS}"
+  - REQ="ci/requirements-${PYTHON}-${PANDAS}" ;
     if [ -f "$REQ.pip" ]; then
-      pip install --upgrade nox-automation
+      pip install --upgrade nox-automation ;
     else
       wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      bash miniconda.sh -b -p $HOME/miniconda
-      export PATH="$HOME/miniconda/bin:$PATH"
-      hash -r
-      conda config --set always_yes yes --set changeps1 no
-      conda config --add channels pandas
-      conda config --add channels conda-forge
-      conda update -q conda
-      conda info -a
-      conda create -q -n test-environment python=$PYTHON
-      source activate test-environment
+      bash miniconda.sh -b -p $HOME/miniconda ;
+      export PATH="$HOME/miniconda/bin:$PATH" ;
+      hash -r ;
+      conda config --set always_yes yes --set changeps1 no ;
+      conda config --add channels pandas ;
+      conda config --add channels conda-forge ;
+      conda update -q conda ;
+      conda info -a ;
+      conda create -q -n test-environment python=$PYTHON ;
+      source activate test-environment ;
       conda install -q pandas=$PANDAS;
-      pip install coverage pytest pytest-cov flake8 codecov
+      pip install coverage pytest pytest-cov flake8 codecov ;
       conda install -q --file "$REQ.conda";
-      conda list
-      python setup.py install
+      conda list ;
+      python setup.py install ;
     fi
 
 script:
   - if [[ $PYTHON == '2.7' ]]; then nox -s test27 ; fi
   - if [[ $PYTHON == '3.5' ]]; then nox -s test35 ; fi
   - if [[ $PYTHON == '3.6' ]] && [[ "$PANDAS" == "MASTER" ]]; then nox -s test36master ; fi
-  - if [ -f "$REQ.conda" ]; then
+  - REQ="ci/requirements-${PYTHON}-${PANDAS}" ;
+    if [ -f "$REQ.conda" ]; then
       pip install coverage pytest pytest-cov codecov ;
       pytest -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq ;
     fi
