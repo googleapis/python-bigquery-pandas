@@ -1,6 +1,10 @@
 sudo: false
 
 language: python
+python:
+  - "2.7"
+  - "3.5"
+  - "3.6"
 
 env:
   - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true'
@@ -44,5 +48,5 @@ script:
       pip install coverage pytest pytest-cov codecov ;
       pytest -v --cov=pandas_gbq --cov-report xml:/tmp/pytest-cov.xml pandas_gbq ;
     fi
-  - if [[ $COVERAGE == 'true' ]]; then nox -s coverage ; fi
+  - if [[ $COVERAGE == 'true' ]]; then nox -s cover ; fi
   - if [[ $LINT == 'true' ]]; then nox -s lint ; fi
