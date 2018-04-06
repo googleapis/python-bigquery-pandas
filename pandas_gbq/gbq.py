@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 BIGQUERY_INSTALLED_VERSION = None
-PANDAS_HAS_DEPRECATED_VERBOSITY = False
+SHOW_VERBOSE_DEPRECATION = False
 
 
 def _check_google_client_version():
-    global BIGQUERY_INSTALLED_VERSION, PANDAS_HAS_DEPRECATED_VERBOSITY
+    global BIGQUERY_INSTALLED_VERSION, SHOW_VERBOSE_DEPRECATION
 
     try:
         import pkg_resources
@@ -42,7 +42,7 @@ def _check_google_client_version():
     pandas_installed_version = pkg_resources.get_distribution(
         'pandas').parsed_version
     pandas_version_wo_verbosity = pkg_resources.parse_version('0.23.0')
-    PANDAS_HAS_DEPRECATED_VERBOSITY = (
+    SHOW_VERBOSE_DEPRECATION = (
         pandas_installed_version >= pandas_version_wo_verbosity)
 
 
@@ -803,7 +803,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
     _test_google_api_imports()
 
-    if verbose is not None and PANDAS_HAS_DEPRECATED_VERBOSITY:
+    if verbose is not None and SHOW_VERBOSE_DEPRECATION:
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
@@ -930,7 +930,7 @@ def to_gbq(dataframe, destination_table, project_id, chunksize=None,
 
     _test_google_api_imports()
 
-    if verbose is not None and PANDAS_HAS_DEPRECATED_VERBOSITY:
+    if verbose is not None and SHOW_VERBOSE_DEPRECATION:
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
