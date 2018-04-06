@@ -29,7 +29,8 @@ install:
     else
       conda install -q pandas=$PANDAS;
     fi
-  - pip install nox-automation
+  - pip install --upgrade pip setuptools
+  - pip install --upgrade nox-automation
   - REQ="ci/requirements-${PYTHON}-${PANDAS}"
   - if [ -f "$REQ.pip" ]; then
       pip install -r "$REQ.pip";
