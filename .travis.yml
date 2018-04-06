@@ -1,22 +1,22 @@
 sudo: false
 
 language: python
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
 
 env:
-  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true'
-  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false'
-  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false'
-  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true'
+  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' PYENV_VERSION=2.7.14
+  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' PYENV_VERSION=3.5.4
+  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' PYENV_VERSION=3.6.4
+  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' PYENV_VERSION=3.6.4
 
 before_install:
   - echo "before_install"
   - source ci/travis_process_gbq_encryption.sh
 
 install:
+  # work around https://github.com/travis-ci/travis-ci/issues/8363
+  # https://github.com/pre-commit/pre-commit/commit/e3ab8902692e896da9ded42bd4d76ea4e1de359d
+  - pyenv install $PYENV_VERSION
+  - pyenv global system $PYENV_VERSION
   - REQ="ci/requirements-${PYTHON}-${PANDAS}" ;
     if [ -f "$REQ.pip" ]; then
       pip install --upgrade nox-automation ;
