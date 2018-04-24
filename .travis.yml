@@ -17,7 +17,10 @@ install:
   # https://github.com/pre-commit/pre-commit/commit/e3ab8902692e896da9ded42bd4d76ea4e1de359d
   - pyenv install -s $PYENV_VERSION
   - pyenv global system $PYENV_VERSION
+  # Upgrade setuptools and pip to work around
+  # https://github.com/pypa/setuptools/issues/885
   - pip install --upgrade setuptools
+  - pip install --upgrade pip
   - REQ="ci/requirements-${PYTHON}-${PANDAS}" ;
     if [ -f "$REQ.pip" ]; then
       pip install --upgrade nox-automation ;
@@ -35,6 +38,7 @@ install:
       source activate test-environment ;
       conda install -q pandas=$PANDAS;
       pip install --upgrade setuptools
+      pip install --upgrade pip
       pip install coverage pytest pytest-cov flake8 codecov ;
       conda install -q --file "$REQ.conda";
       conda list ;
