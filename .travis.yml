@@ -37,9 +37,6 @@ install:
       conda create -q -n test-environment python=$PYTHON ;
       source activate test-environment ;
       conda install -q pandas=$PANDAS;
-      pip install --upgrade setuptools
-      pip install --upgrade pip
-      pip install coverage pytest pytest-cov flake8 codecov ;
       conda install -q --file "$REQ.conda";
       conda list ;
       python setup.py install ;
