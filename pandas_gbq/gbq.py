@@ -189,7 +189,15 @@ class GbqConnector(object):
         self.auth_local_webserver = auth_local_webserver
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
-        self.credentials = self.get_credentials()
+        self.credentials, default_project = self.get_credentials()
+
+        if self.project_id is None:
+            self.project_id = default_project
+
+        if self.project_id is None:
+            raise ValueError(
+                'Could not determine project ID and one was not supplied.')
+
         self.client = self.get_client()
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
@@ -199,12 +207,13 @@ class GbqConnector(object):
     def get_credentials(self):
         if self.private_key:
             return self.get_service_account_credentials()
-        else:
-            # Try to retrieve Application Default Credentials
-            credentials = self.get_application_default_credentials()
-            if not credentials:
-                credentials = self.get_user_account_credentials()
-            return credentials
+
+        # Try to retrieve Application Default Credentials
+        credentials, default_project = self.get_application_default_credentials()
+        if credentials:
+            return credentials, default_project
+
+        return self.get_user_account_credentials(), None
 
     def get_application_default_credentials(self):
         """
@@ -230,11 +239,13 @@ class GbqConnector(object):
         from google.auth.exceptions import DefaultCredentialsError
 
         try:
-            credentials, _ = google.auth.default(scopes=[self.scope])
+            credentials, default_project = google.auth.default(
+                scopes=[self.scope])
         except (DefaultCredentialsError, IOError):
-            return None
+            return None, None
 
-        return _try_credentials(self.project_id, credentials)
+        billing_project = self.project_id or default_project
+        return _try_credentials(billing_project, credentials), default_project
 
     def load_user_account_credentials(self):
         """
@@ -415,7 +426,7 @@ class GbqConnector(object):
             request = google.auth.transport.requests.Request()
             credentials.refresh(request)
 
-            return credentials
+            return credentials, json_key.get('project_id')
         except (KeyError, ValueError, TypeError, AttributeError):
             raise InvalidPrivateKeyFormat(
                 "Private key is missing or invalid. It should be service "

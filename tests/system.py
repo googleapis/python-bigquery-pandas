@@ -22,6 +22,9 @@ except ImportError:  # pragma: NO COVER
 
 TABLE_ID = 'new_test'
 
+def _skip_local_auth_if_in_travis_env():
+    if _in_travis_environment():
+        pytest.skip("Cannot run local auth in travis environment")
 
 def _skip_if_no_private_key_path():
     if not _get_private_key_path():
@@ -167,43 +170,13 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 
-@pytest.fixture(params=[
-    pytest.param('local', marks=pytest.mark.local_auth),
-    pytest.param('service_path', marks=pytest.mark.s_path_auth),
-    pytest.param('service_creds', marks=pytest.mark.s_cred_auth),
-])
-def auth_type(request):
-
-    auth = request.param
-
-    if auth == 'local':
-        pass
-    elif auth == 'service_path':
-        _skip_if_no_private_key_path()
-    elif auth == 'service_creds':
-        _skip_if_no_private_key_contents()
-    else:
-        raise ValueError
-    return auth
-
-
 @pytest.fixture()
-def credentials(auth_type):
-
-    if auth_type == 'local':
-        return None
-
-    elif auth_type == 'service_path':
-        return _get_private_key_path()
-    elif auth_type == 'service_creds':
-        return _get_private_key_contents()
-    else:
-        raise ValueError
+def credentials():
+    return _get_private_key_contents()
 
 
 @pytest.fixture()
 def gbq_connector(project, credentials):
-
     return gbq.GbqConnector(project, private_key=credentials)
 
 
@@ -213,7 +186,7 @@ class TestGBQConnectorIntegration(object):
         assert gbq_connector is not None, 'Could not create a GbqConnector'
 
     def test_should_be_able_to_get_valid_credentials(self, gbq_connector):
-        credentials = gbq_connector.get_credentials()
+        credentials, _ = gbq_connector.get_credentials()
         assert credentials.valid
 
     def test_should_be_able_to_get_a_bigquery_client(self, gbq_connector):
@@ -229,13 +202,12 @@ class TestGBQConnectorIntegration(object):
         assert pages is not None
 
 
-@pytest.mark.local_auth
-class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
+class TestAuth(object):
 
     @pytest.fixture(autouse=True)
-    def setup(self, project):
-
-        self.sut = gbq.GbqConnector(project, auth_local_webserver=True)
+    def setup(self, gbq_connector):
+        self.sut = gbq_connector
+        self.sut.auth_local_webserver = True
 
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
@@ -244,9 +216,9 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
             from google.auth.exceptions import DefaultCredentialsError
             with mock.patch('google.auth.default',
                             side_effect=DefaultCredentialsError()):
-                credentials = self.sut.get_application_default_credentials()
+                credentials, _ = self.sut.get_application_default_credentials()
         else:
-            credentials = self.sut.get_application_default_credentials()
+            credentials, _ = self.sut.get_application_default_credentials()
         assert credentials is None
 
     def test_get_application_default_credentials_returns_credentials(self):
@@ -254,10 +226,14 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
             pytest.skip("Cannot get default_credentials "
                         "from the environment!")
         from google.auth.credentials import Credentials
-        credentials = self.sut.get_application_default_credentials()
+        credentials, default_project = (
+            self.sut.get_application_default_credentials())
+
         assert isinstance(credentials, Credentials)
+        assert default_project is not None
 
     def test_get_user_account_credentials_bad_file_returns_credentials(self):
+        _skip_local_auth_if_in_travis_env()
 
         from google.auth.credentials import Credentials
         with mock.patch('__main__.open', side_effect=IOError()):
@@ -265,6 +241,8 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert isinstance(credentials, Credentials)
 
     def test_get_user_account_credentials_returns_credentials(self):
+        _skip_local_auth_if_in_travis_env()
+
         from google.auth.credentials import Credentials
         credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)
