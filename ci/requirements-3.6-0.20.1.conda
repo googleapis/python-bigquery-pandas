@@ -1,5 +1,6 @@
 google-auth
 google-auth-oauthlib
+google-api-core
 google-cloud-bigquery
 pytest
 pytest-cov
