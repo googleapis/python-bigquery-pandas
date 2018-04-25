@@ -180,9 +180,6 @@ class GbqConnector(object):
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
         self.http_error = (ClientError, GoogleAPIError)
-        if not project_id:
-            from google.auth import default
-            _, project_id = default()
         self.project_id = project_id
         self.reauth = reauth
         self.private_key = private_key
