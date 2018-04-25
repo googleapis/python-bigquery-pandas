@@ -209,7 +209,8 @@ class GbqConnector(object):
             return self.get_service_account_credentials()
 
         # Try to retrieve Application Default Credentials
-        credentials, default_project = self.get_application_default_credentials()
+        credentials, default_project = (
+            self.get_application_default_credentials())
         if credentials:
             return credentials, default_project
 

@@ -22,9 +22,11 @@ except ImportError:  # pragma: NO COVER
 
 TABLE_ID = 'new_test'
 
+
 def _skip_local_auth_if_in_travis_env():
     if _in_travis_environment():
         pytest.skip("Cannot run local auth in travis environment")
+
 
 def _skip_if_no_private_key_path():
     if not _get_private_key_path():
