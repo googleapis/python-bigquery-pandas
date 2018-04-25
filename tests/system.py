@@ -487,7 +487,8 @@ class TestReadGBQIntegration(object):
 
     def test_bad_project_id(self):
         with pytest.raises(gbq.GenericGBQException):
-            gbq.read_gbq("SELECT 1", project_id='001',
+            gbq.read_gbq('SELCET * FROM [publicdata:samples.shakespeare]',
+                         project_id='not-my-project',
                          private_key=self.credentials)
 
     def test_bad_table_name(self):
