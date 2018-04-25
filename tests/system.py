@@ -174,6 +174,7 @@ def test_generate_bq_schema_deprecated():
 
 @pytest.fixture()
 def credentials():
+    _skip_if_no_private_key_contents()
     return _get_private_key_contents()
 
 
