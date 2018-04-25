@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 import sys
 from datetime import datetime
 from random import randint
@@ -13,13 +12,12 @@ import pytest
 import pytz
 from pandas import DataFrame, NaT, compat
 from pandas.compat import range, u
-from pandas.compat.numpy import np_datetime64_compat
 
 from pandas_gbq import gbq
 
 try:
     import mock
-except ImportError:
+except ImportError:  # pragma: NO COVER
     from unittest import mock
 
 TABLE_ID = 'new_test'
@@ -272,84 +270,7 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert isinstance(credentials, Credentials)
 
 
-class TestGBQUnit(object):
-
-    def test_should_return_credentials_path_set_by_env_var(self):
-
-        env = {'PANDAS_GBQ_CREDENTIALS_FILE': '/tmp/dummy.dat'}
-        with mock.patch.dict('os.environ', env):
-            assert gbq._get_credentials_file() == '/tmp/dummy.dat'
-
-    @pytest.mark.parametrize(
-        ('input', 'type_', 'expected'), [
-            (1, 'INTEGER', int(1)),
-            (1, 'FLOAT', float(1)),
-            pytest.param('false', 'BOOLEAN', False, marks=pytest.mark.xfail),
-            pytest.param(
-                '0e9', 'TIMESTAMP',
-                np_datetime64_compat('1970-01-01T00:00:00Z'),
-                marks=pytest.mark.xfail),
-            ('STRING', 'STRING', 'STRING'),
-        ])
-    def test_should_return_bigquery_correctly_typed(
-            self, input, type_, expected):
-        result = gbq._parse_data(
-            dict(fields=[dict(name='x', type=type_, mode='NULLABLE')]),
-            rows=[[input]]).iloc[0, 0]
-        assert result == expected
-
-    def test_to_gbq_should_fail_if_invalid_table_name_passed(self):
-        with pytest.raises(gbq.NotFoundException):
-            gbq.to_gbq(DataFrame(), 'invalid_table_name', project_id="1234")
-
-    def test_read_gbq_with_no_project_id_given_should_pass(self, credentials):
-        if _check_if_can_get_correct_default_credentials():
-            gbq.read_gbq('SELECT 1')
-
-    def test_that_parse_data_works_properly(self):
-
-        from google.cloud.bigquery.table import Row
-        test_schema = {'fields': [
-            {'mode': 'NULLABLE', 'name': 'column_x', 'type': 'STRING'}]}
-        field_to_index = {'column_x': 0}
-        values = ('row_value',)
-        test_page = [Row(values, field_to_index)]
-
-        test_output = gbq._parse_data(test_schema, test_page)
-        correct_output = DataFrame({'column_x': ['row_value']})
-        tm.assert_frame_equal(test_output, correct_output)
-
-    def test_read_gbq_with_invalid_private_key_json_should_fail(self):
-        with pytest.raises(gbq.InvalidPrivateKeyFormat):
-            gbq.read_gbq('SELECT 1', project_id='x', private_key='y')
-
-    def test_read_gbq_with_empty_private_key_json_should_fail(self):
-        with pytest.raises(gbq.InvalidPrivateKeyFormat):
-            gbq.read_gbq('SELECT 1', project_id='x', private_key='{}')
-
-    def test_read_gbq_with_private_key_json_wrong_types_should_fail(self):
-        with pytest.raises(gbq.InvalidPrivateKeyFormat):
-            gbq.read_gbq(
-                'SELECT 1', project_id='x',
-                private_key='{ "client_email" : 1, "private_key" : True }')
-
-    def test_read_gbq_with_empty_private_key_file_should_fail(self):
-        with tm.ensure_clean() as empty_file_path:
-            with pytest.raises(gbq.InvalidPrivateKeyFormat):
-                gbq.read_gbq('SELECT 1', project_id='x',
-                             private_key=empty_file_path)
-
-    def test_read_gbq_with_corrupted_private_key_json_should_fail(self):
-        _skip_if_no_private_key_contents()
-
-        with pytest.raises(gbq.InvalidPrivateKeyFormat):
-            gbq.read_gbq(
-                'SELECT 1', project_id='x',
-                private_key=re.sub('[a-z]', '9', _get_private_key_contents()))
-
-
 def test_should_read(project, credentials):
-
     query = 'SELECT "PI" AS valid_string'
     df = gbq.read_gbq(query, project_id=project, private_key=credentials)
     tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
@@ -1254,16 +1175,42 @@ class TestToGBQIntegration(object):
         test_id = "15"
         test_schema = {
             'fields': [
-                {'name': 'A', 'type': 'FLOAT', 'mode': 'NULLABLE'},
-                {'name': 'B', 'type': 'FLOAT', 'mode': 'NULLABLE'},
-                {'name': 'C', 'type': 'STRING', 'mode': 'NULLABLE'},
-                {'name': 'D', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'}
+                {
+                    'name': 'A',
+                    'type': 'FLOAT',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'B',
+                    'type': 'FLOAT',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'C',
+                    'type': 'STRING',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'D',
+                    'type': 'TIMESTAMP',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
             ]
         }
 
         self.table.create(TABLE_ID + test_id, test_schema)
-        actual = self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id)
-        expected = test_schema['fields']
+        actual = self.sut._clean_schema_fields(
+            self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id))
+        expected = [
+            {'name': 'A', 'type': 'FLOAT'},
+            {'name': 'B', 'type': 'FLOAT'},
+            {'name': 'C', 'type': 'STRING'},
+            {'name': 'D', 'type': 'TIMESTAMP'},
+        ]
         assert expected == actual, 'Expected schema used to create table'
 
     def test_schema_is_subset_passes_if_subset(self):
