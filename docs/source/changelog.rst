@@ -8,7 +8,7 @@ Changelog
   inferred from the environment. Note: you must still pass in a project ID when
   using user-based authentication. (:issue:`103`)
 - Progress bar added for ``to_gbq``, through an optional library `tqdm` as
-  dependency.
+  dependency. (:issue:`162`)
 
 
 Internal changes
