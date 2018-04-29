@@ -69,6 +69,7 @@ dist
 **/wheelhouse/*
 # coverage
 .coverage
+.nox
 
 # OS generated files #
 ######################

@@ -4,7 +4,6 @@ import os
 import time
 import warnings
 from datetime import datetime
-from distutils.version import StrictVersion
 from time import sleep
 
 import numpy as np
@@ -14,7 +13,17 @@ from pandas.compat import lzip
 logger = logging.getLogger(__name__)
 
 
+BIGQUERY_INSTALLED_VERSION = None
+SHOW_VERBOSE_DEPRECATION = False
+
+try:
+    import tqdm  # noqa
+except ImportError:
+    tqdm = None
+
+
 def _check_google_client_version():
+    global BIGQUERY_INSTALLED_VERSION, SHOW_VERBOSE_DEPRECATION
 
     try:
         import pkg_resources
@@ -23,17 +32,23 @@ def _check_google_client_version():
         raise ImportError('Could not import pkg_resources (setuptools).')
 
     # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
-    bigquery_client_minimum_version = '0.29.0'
+    bigquery_minimum_version = pkg_resources.parse_version('0.29.0')
+    BIGQUERY_INSTALLED_VERSION = pkg_resources.get_distribution(
+        'google-cloud-bigquery').parsed_version
 
-    _BIGQUERY_CLIENT_VERSION = pkg_resources.get_distribution(
-        'google-cloud-bigquery').version
+    if BIGQUERY_INSTALLED_VERSION < bigquery_minimum_version:
+        raise ImportError(
+            'pandas-gbq requires google-cloud-bigquery >= {0}, '
+            'current version {1}'.format(
+                bigquery_minimum_version, BIGQUERY_INSTALLED_VERSION))
 
-    if (StrictVersion(_BIGQUERY_CLIENT_VERSION) <
-            StrictVersion(bigquery_client_minimum_version)):
-        raise ImportError('pandas-gbq requires google-cloud-bigquery >= {0}, '
-                          'current version {1}'
-                          .format(bigquery_client_minimum_version,
-                                  _BIGQUERY_CLIENT_VERSION))
+    # Add check for Pandas version before showing deprecation warning.
+    # https://github.com/pydata/pandas-gbq/issues/157
+    pandas_installed_version = pkg_resources.get_distribution(
+        'pandas').parsed_version
+    pandas_version_wo_verbosity = pkg_resources.parse_version('0.23.0')
+    SHOW_VERBOSE_DEPRECATION = (
+        pandas_installed_version >= pandas_version_wo_verbosity)
 
 
 def _test_google_api_imports():
@@ -179,7 +194,15 @@ class GbqConnector(object):
         self.auth_local_webserver = auth_local_webserver
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
-        self.credentials = self.get_credentials()
+        self.credentials, default_project = self.get_credentials()
+
+        if self.project_id is None:
+            self.project_id = default_project
+
+        if self.project_id is None:
+            raise ValueError(
+                'Could not determine project ID and one was not supplied.')
+
         self.client = self.get_client()
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
@@ -189,12 +212,14 @@ class GbqConnector(object):
     def get_credentials(self):
         if self.private_key:
             return self.get_service_account_credentials()
-        else:
-            # Try to retrieve Application Default Credentials
-            credentials = self.get_application_default_credentials()
-            if not credentials:
-                credentials = self.get_user_account_credentials()
-            return credentials
+
+        # Try to retrieve Application Default Credentials
+        credentials, default_project = (
+            self.get_application_default_credentials())
+        if credentials:
+            return credentials, default_project
+
+        return self.get_user_account_credentials(), None
 
     def get_application_default_credentials(self):
         """
@@ -220,11 +245,13 @@ class GbqConnector(object):
         from google.auth.exceptions import DefaultCredentialsError
 
         try:
-            credentials, _ = google.auth.default(scopes=[self.scope])
+            credentials, default_project = google.auth.default(
+                scopes=[self.scope])
         except (DefaultCredentialsError, IOError):
-            return None
+            return None, None
 
-        return _try_credentials(self.project_id, credentials)
+        billing_project = self.project_id or default_project
+        return _try_credentials(billing_project, credentials), default_project
 
     def load_user_account_credentials(self):
         """
@@ -405,7 +432,7 @@ class GbqConnector(object):
             request = google.auth.transport.requests.Request()
             credentials.refresh(request)
 
-            return credentials
+            return credentials, json_key.get('project_id')
         except (KeyError, ValueError, TypeError, AttributeError):
             raise InvalidPrivateKeyFormat(
                 "Private key is missing or invalid. It should be service "
@@ -450,8 +477,8 @@ class GbqConnector(object):
 
     def run_query(self, query, **kwargs):
         from google.auth.exceptions import RefreshError
-        from google.cloud.bigquery import QueryJobConfig
         from concurrent.futures import TimeoutError
+        import pandas_gbq.query
 
         job_config = {
             'query': {
@@ -462,29 +489,23 @@ class GbqConnector(object):
         }
         config = kwargs.get('configuration')
         if config is not None:
-            if len(config) != 1:
-                raise ValueError("Only one job type must be specified, but "
-                                 "given {}".format(','.join(config.keys())))
-            if 'query' in config:
-                if 'query' in config['query']:
-                    if query is not None:
-                        raise ValueError("Query statement can't be specified "
-                                         "inside config while it is specified "
-                                         "as parameter")
-                    query = config['query']['query']
-                    del config['query']['query']
+            job_config.update(config)
 
-                job_config['query'].update(config['query'])
-            else:
-                raise ValueError("Only 'query' job type is supported")
+            if 'query' in config and 'query' in config['query']:
+                if query is not None:
+                    raise ValueError("Query statement can't be specified "
+                                     "inside config while it is specified "
+                                     "as parameter")
+                query = config['query'].pop('query')
 
         self._start_timer()
-        try:
 
+        try:
             logger.info('Requesting query... ')
             query_reply = self.client.query(
                 query,
-                job_config=QueryJobConfig.from_api_repr(job_config['query']))
+                job_config=pandas_gbq.query.query_config(
+                    job_config, BIGQUERY_INSTALLED_VERSION))
             logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
@@ -550,16 +571,19 @@ class GbqConnector(object):
 
     def load_data(
             self, dataframe, dataset_id, table_id, chunksize=None,
-            schema=None):
-        from pandas_gbq import _load
+            schema=None, progress_bar=True):
+        from pandas_gbq import load
 
         total_rows = len(dataframe)
         logger.info("\n\n")
 
         try:
-            for remaining_rows in _load.load_chunks(
-                    self.client, dataframe, dataset_id, table_id,
-                    chunksize=chunksize, schema=schema):
+            chunks = load.load_chunks(self.client, dataframe, dataset_id,
+                                      table_id, chunksize=chunksize,
+                                      schema=schema)
+            if progress_bar and tqdm:
+                chunks = tqdm.tqdm(chunks)
+            for remaining_rows in chunks:
                 logger.info("\rLoad is {0}% Complete".format(
                     ((total_rows - remaining_rows) * 100) / total_rows))
         except self.http_error as ex:
@@ -601,6 +625,15 @@ class GbqConnector(object):
         except self.http_error as ex:
             self.process_http_error(ex)
 
+    def _clean_schema_fields(self, fields):
+        """Return a sanitized version of the schema for comparisons."""
+        fields_sorted = sorted(fields, key=lambda field: field['name'])
+        # Ignore mode and description when comparing schemas.
+        return [
+            {'name': field['name'], 'type': field['type']}
+            for field in fields_sorted
+        ]
+
     def verify_schema(self, dataset_id, table_id, schema):
         """Indicate whether schemas match exactly
 
@@ -624,17 +657,9 @@ class GbqConnector(object):
             Whether the schemas match
         """
 
-        fields_remote = sorted(self.schema(dataset_id, table_id),
-                               key=lambda x: x['name'])
-        fields_local = sorted(schema['fields'], key=lambda x: x['name'])
-
-        # Ignore mode when comparing schemas.
-        for field in fields_local:
-            if 'mode' in field:
-                del field['mode']
-        for field in fields_remote:
-            if 'mode' in field:
-                del field['mode']
+        fields_remote = self._clean_schema_fields(
+            self.schema(dataset_id, table_id))
+        fields_local = self._clean_schema_fields(schema['fields'])
 
         return fields_remote == fields_local
 
@@ -661,16 +686,9 @@ class GbqConnector(object):
             Whether the passed schema is a subset
         """
 
-        fields_remote = self.schema(dataset_id, table_id)
-        fields_local = schema['fields']
-
-        # Ignore mode when comparing schemas.
-        for field in fields_local:
-            if 'mode' in field:
-                del field['mode']
-        for field in fields_remote:
-            if 'mode' in field:
-                del field['mode']
+        fields_remote = self._clean_schema_fields(
+            self.schema(dataset_id, table_id))
+        fields_local = self._clean_schema_fields(schema['fields'])
 
         return all(field in fields_remote for field in fields_local)
 
@@ -712,7 +730,7 @@ def _parse_data(schema, rows):
     col_names = [str(field['name']) for field in fields]
     col_dtypes = [
         dtype_map.get(field['type'].upper(), object)
-        if field['mode'] != 'repeated'
+        if field['mode'].lower() != 'repeated'
         else object
         for field in fields
     ]
@@ -805,7 +823,10 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         DataFrame representing results of query
 
     """
-    if verbose is not None:
+
+    _test_google_api_imports()
+
+    if verbose is not None and SHOW_VERBOSE_DEPRECATION:
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
@@ -847,7 +868,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     for field in schema['fields']:
         if field['type'].upper() in type_map and \
                 final_df[field['name']].notnull().all() and \
-                field['mode'] != 'repeated':
+                field['mode'].lower() != 'repeated':
             final_df[field['name']] = \
                 final_df[field['name']].astype(type_map[field['type'].upper()])
 
@@ -862,7 +883,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
            verbose=None, reauth=False, if_exists='fail', private_key=None,
-           auth_local_webserver=False, table_schema=None):
+           auth_local_webserver=False, table_schema=None, progress_bar=True):
     """Write a DataFrame to a Google BigQuery table.
 
     The main method a user calls to export pandas DataFrame contents to
@@ -927,11 +948,13 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
         names of a field.
         .. versionadded:: 0.3.1
     verbose : None, deprecated
+    progress_bar : boolean, True by default. It uses the library `tqdm` to show
+        the progress bar for the upload, chunk by chunk.
     """
 
     _test_google_api_imports()
 
-    if verbose is not None:
+    if verbose is not None and SHOW_VERBOSE_DEPRECATION:
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
@@ -979,7 +1002,7 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
 
     connector.load_data(
         dataframe, dataset_id, table_id, chunksize=chunksize,
-        schema=table_schema)
+        schema=table_schema, progress_bar=progress_bar)
 
 
 def generate_bq_schema(df, default_type='STRING'):
@@ -1001,8 +1024,8 @@ def generate_bq_schema(df, default_type='STRING'):
 
 
 def _generate_bq_schema(df, default_type='STRING'):
-    from pandas_gbq import _schema
-    return _schema.generate_bq_schema(df, default_type=default_type)
+    from pandas_gbq import schema
+    return schema.generate_bq_schema(df, default_type=default_type)
 
 
 class _Table(GbqConnector):

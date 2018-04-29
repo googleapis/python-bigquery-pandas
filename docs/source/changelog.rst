@@ -1,9 +1,44 @@
 Changelog
 =========
 
-0.3.2 / [TBD]
+0.5.0 / TBD
+-----------
+
+- Project ID parameter is optional in ``read_gbq`` and ``to_gbq`` when it can
+  inferred from the environment. Note: you must still pass in a project ID when
+  using user-based authentication. (:issue:`103`)
+- Progress bar added for ``to_gbq``, through an optional library `tqdm` as
+  dependency. (:issue:`162`)
+
+
+Internal changes
+~~~~~~~~~~~~~~~~
+
+- Tests now use `nox` to run in multiple Python environments. (:issue:`52`)
+- Renamed internal modules. (:issue:`154`)
+
+0.4.1 / 2018-04-05
 ------------------
-- Fix bug with querying for an array of floats (:issue:`123`)
+
+- Only show ``verbose`` deprecation warning if Pandas version does not
+  populate it. (:issue:`157`)
+
+0.4.0 / 2018-04-03
+------------------
+
+-   Fix bug in `read_gbq` when building a dataframe with integer columns
+    on Windows. Explicitly use 64bit integers when converting from BQ types.
+    (:issue:`119`)
+-   Fix bug in `read_gbq` when querying for an array of floats (:issue:`123`)
+-   Fix bug in `read_gbq` with configuration argument. Updates `read_gbq` to
+    account for breaking change in the way ``google-cloud-python`` version
+    0.32.0+ handles query configuration API representation. (:issue:`152`)
+-   Fix bug in `to_gbq` where seconds were discarded in timestamp columns.
+    (:issue:`148`)
+-   Fix bug in `to_gbq` when supplying a user-defined schema (:issue:`150`)
+-   **Deprecate** the ``verbose`` parameter in `read_gbq` and `to_gbq`.
+    Messages use the logging module instead of printing progress directly to
+    standard output. (:issue:`12`)
 
 0.3.1 / 2018-02-13
 ------------------

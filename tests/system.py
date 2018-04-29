@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 import sys
 from datetime import datetime
 from random import randint
@@ -13,13 +12,12 @@ import pytest
 import pytz
 from pandas import DataFrame, NaT, compat
 from pandas.compat import range, u
-from pandas.compat.numpy import np_datetime64_compat
 
 from pandas_gbq import gbq
 
 try:
     import mock
-except ImportError:
+except ImportError:  # pragma: NO COVER
     from unittest import mock
 
 TABLE_ID = 'new_test'
@@ -190,22 +188,13 @@ def auth_type(request):
 
 
 @pytest.fixture()
-def credentials(auth_type):
-
-    if auth_type == 'local':
-        return None
-
-    elif auth_type == 'service_path':
-        return _get_private_key_path()
-    elif auth_type == 'service_creds':
-        return _get_private_key_contents()
-    else:
-        raise ValueError
+def credentials():
+    _skip_if_no_private_key_contents()
+    return _get_private_key_contents()
 
 
 @pytest.fixture()
 def gbq_connector(project, credentials):
-
     return gbq.GbqConnector(project, private_key=credentials)
 
 
@@ -215,7 +204,7 @@ class TestGBQConnectorIntegration(object):
         assert gbq_connector is not None, 'Could not create a GbqConnector'
 
     def test_should_be_able_to_get_valid_credentials(self, gbq_connector):
-        credentials = gbq_connector.get_credentials()
+        credentials, _ = gbq_connector.get_credentials()
         assert credentials.valid
 
     def test_should_be_able_to_get_a_bigquery_client(self, gbq_connector):
@@ -232,12 +221,12 @@ class TestGBQConnectorIntegration(object):
 
 
 @pytest.mark.local_auth
-class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
+class TestAuth(object):
 
     @pytest.fixture(autouse=True)
-    def setup(self, project):
-
-        self.sut = gbq.GbqConnector(project, auth_local_webserver=True)
+    def setup(self, gbq_connector):
+        self.sut = gbq_connector
+        self.sut.auth_local_webserver = True
 
     def test_get_application_default_credentials_does_not_throw_error(self):
         if _check_if_can_get_correct_default_credentials():
@@ -246,9 +235,9 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
             from google.auth.exceptions import DefaultCredentialsError
             with mock.patch('google.auth.default',
                             side_effect=DefaultCredentialsError()):
-                credentials = self.sut.get_application_default_credentials()
+                credentials, _ = self.sut.get_application_default_credentials()
         else:
-            credentials = self.sut.get_application_default_credentials()
+            credentials, _ = self.sut.get_application_default_credentials()
         assert credentials is None
 
     def test_get_application_default_credentials_returns_credentials(self):
@@ -256,10 +245,14 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
             pytest.skip("Cannot get default_credentials "
                         "from the environment!")
         from google.auth.credentials import Credentials
-        credentials = self.sut.get_application_default_credentials()
+        credentials, default_project = (
+            self.sut.get_application_default_credentials())
+
         assert isinstance(credentials, Credentials)
+        assert default_project is not None
 
     def test_get_user_account_credentials_bad_file_returns_credentials(self):
+        _skip_local_auth_if_in_travis_env()
 
         from google.auth.credentials import Credentials
         with mock.patch('__main__.open', side_effect=IOError()):
@@ -267,6 +260,8 @@ class TestGBQConnectorIntegrationWithLocalUserAccountAuth(object):
         assert isinstance(credentials, Credentials)
 
     def test_get_user_account_credentials_returns_credentials(self):
+        _skip_local_auth_if_in_travis_env()
+
         from google.auth.credentials import Credentials
         credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)
@@ -349,7 +344,6 @@ class TestGBQUnit(object):
 
 
 def test_should_read(project, credentials):
-
     query = 'SELECT "PI" AS valid_string'
     df = gbq.read_gbq(query, project_id=project, private_key=credentials)
     tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
@@ -586,7 +580,8 @@ class TestReadGBQIntegration(object):
 
     def test_bad_project_id(self):
         with pytest.raises(gbq.GenericGBQException):
-            gbq.read_gbq("SELECT 1", project_id='001',
+            gbq.read_gbq('SELCET * FROM [publicdata:samples.shakespeare]',
+                         project_id='not-my-project',
                          private_key=self.credentials)
 
     def test_bad_table_name(self):
@@ -1254,16 +1249,42 @@ class TestToGBQIntegration(object):
         test_id = "15"
         test_schema = {
             'fields': [
-                {'name': 'A', 'type': 'FLOAT', 'mode': 'NULLABLE'},
-                {'name': 'B', 'type': 'FLOAT', 'mode': 'NULLABLE'},
-                {'name': 'C', 'type': 'STRING', 'mode': 'NULLABLE'},
-                {'name': 'D', 'type': 'TIMESTAMP', 'mode': 'NULLABLE'}
+                {
+                    'name': 'A',
+                    'type': 'FLOAT',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'B',
+                    'type': 'FLOAT',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'C',
+                    'type': 'STRING',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
+                {
+                    'name': 'D',
+                    'type': 'TIMESTAMP',
+                    'mode': 'NULLABLE',
+                    'description': None,
+                },
             ]
         }
 
         self.table.create(TABLE_ID + test_id, test_schema)
-        actual = self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id)
-        expected = test_schema['fields']
+        actual = self.sut._clean_schema_fields(
+            self.sut.schema(self.dataset_prefix + "1", TABLE_ID + test_id))
+        expected = [
+            {'name': 'A', 'type': 'FLOAT'},
+            {'name': 'B', 'type': 'FLOAT'},
+            {'name': 'C', 'type': 'STRING'},
+            {'name': 'D', 'type': 'TIMESTAMP'},
+        ]
         assert expected == actual, 'Expected schema used to create table'
 
     def test_schema_is_subset_passes_if_subset(self):
