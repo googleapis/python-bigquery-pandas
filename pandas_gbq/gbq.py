@@ -185,9 +185,6 @@ class GbqConnector(object):
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
         self.http_error = (ClientError, GoogleAPIError)
-        if not project_id:
-            from google.auth import default
-            _, project_id = default()
         self.project_id = project_id
         self.reauth = reauth
         self.private_key = private_key
@@ -831,8 +828,6 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
             "verbosity", FutureWarning, stacklevel=1)
-
-    _test_google_api_imports()
 
     if dialect not in ('legacy', 'standard'):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
