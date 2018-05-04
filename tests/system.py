@@ -23,11 +23,6 @@ except ImportError:  # pragma: NO COVER
 TABLE_ID = 'new_test'
 
 
-def _skip_local_auth_if_in_travis_env():
-    if _in_travis_environment():
-        pytest.skip("Cannot run local auth in travis environment")
-
-
 def _skip_if_no_private_key_path():
     if not _get_private_key_path():
         pytest.skip("Cannot run integration tests without a "
@@ -172,6 +167,26 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 
+@pytest.fixture(params=[
+    pytest.param('local', marks=pytest.mark.local_auth),
+    pytest.param('service_path', marks=pytest.mark.s_path_auth),
+    pytest.param('service_creds', marks=pytest.mark.s_cred_auth),
+])
+def auth_type(request):
+
+    auth = request.param
+
+    if auth == 'local':
+        pass
+    elif auth == 'service_path':
+        _skip_if_no_private_key_path()
+    elif auth == 'service_creds':
+        _skip_if_no_private_key_contents()
+    else:
+        raise ValueError
+    return auth
+
+
 @pytest.fixture()
 def credentials():
     _skip_if_no_private_key_contents()
@@ -235,17 +250,15 @@ class TestAuth(object):
         assert isinstance(credentials, Credentials)
         assert default_project is not None
 
+    @pytest.mark.local_auth
     def test_get_user_account_credentials_bad_file_returns_credentials(self):
-        _skip_local_auth_if_in_travis_env()
-
         from google.auth.credentials import Credentials
         with mock.patch('__main__.open', side_effect=IOError()):
             credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)
 
+    @pytest.mark.local_auth
     def test_get_user_account_credentials_returns_credentials(self):
-        _skip_local_auth_if_in_travis_env()
-
         from google.auth.credentials import Credentials
         credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)

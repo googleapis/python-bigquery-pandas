@@ -3,10 +3,10 @@ sudo: false
 language: python
 
 env:
-  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' PYENV_VERSION=2.7.14
-  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' PYENV_VERSION=3.5.4
-  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' PYENV_VERSION=3.6.1
-  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' PYENV_VERSION=3.6.1
+  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' PYENV_VERSION=2.7.14 AUTH='s_path'
+  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' PYENV_VERSION=3.5.4 AUTH='s_path'
+  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' PYENV_VERSION=3.6.1 AUTH='s_cred'
+  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' PYENV_VERSION=3.6.1 AUTH='s_cred'
 
 before_install:
   - echo "before_install"

@@ -7,7 +7,6 @@ import os.path
 
 import nox
 
-
 PANDAS_PRE_WHEELS = (
     'https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83'
     '.ssl.cf2.rackcdn.com')
@@ -21,7 +20,12 @@ def default(session):
         'pytest',
         os.path.join('.', 'tests', 'unit'),
         os.path.join('.', 'tests', 'system.py'),
-        '--quiet',
+        "-m 'not local_auth and not {}'".format(
+            's_cred_auth'
+            if os.environ.get('AUTH') == 's_path' else
+            's_path_auth'
+        ),
+        '-v',  # Verbose so we can see which tests time out.
         '--cov=pandas_gbq',
         '--cov=tests.unit',
         '--cov-report',
@@ -37,7 +41,7 @@ def unit(session):
     session.run(
         'pytest',
         os.path.join('.', 'tests', 'unit'),
-        '--quiet',
+        '-v',  # Verbose so we can see which tests time out.
         '--cov=pandas_gbq',
         '--cov=tests.unit',
         '--cov-report',
