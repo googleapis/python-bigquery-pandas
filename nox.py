@@ -25,7 +25,7 @@ def default(session):
             if os.environ.get('AUTH') == 's_path' else
             's_path_auth'
         ),
-        '--quiet',
+        '-v',  # Verbose so we can see which tests time out.
         '--cov=pandas_gbq',
         '--cov=tests.unit',
         '--cov-report',
@@ -41,7 +41,7 @@ def unit(session):
     session.run(
         'pytest',
         os.path.join('.', 'tests', 'unit'),
-        '--quiet',
+        '-v',  # Verbose so we can see which tests time out.
         '--cov=pandas_gbq',
         '--cov=tests.unit',
         '--cov-report',
