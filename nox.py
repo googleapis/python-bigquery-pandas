@@ -20,10 +20,9 @@ def default(session):
         'pytest',
         os.path.join('.', 'tests', 'unit'),
         os.path.join('.', 'tests', 'system.py'),
-        os.path.join('.', 'tests', 'unit'),
         "-m 'not local_auth and not {}'".format(
             's_cred_auth'
-            if os.environ['AUTH'] == 's_path' else
+            if os.environ.get('AUTH') == 's_path' else
             's_path_auth'
         ),
         '--quiet',
@@ -42,11 +41,6 @@ def unit(session):
     session.run(
         'pytest',
         os.path.join('.', 'tests', 'unit'),
-        "-m 'not local_auth and not {}'".format(
-            's_cred_auth'
-            if os.environ['AUTH'] == 's_path' else
-            's_path_auth'
-        ),
         '--quiet',
         '--cov=pandas_gbq',
         '--cov=tests.unit',

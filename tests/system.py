@@ -220,7 +220,6 @@ class TestGBQConnectorIntegration(object):
         assert pages is not None
 
 
-@pytest.mark.local_auth
 class TestAuth(object):
 
     @pytest.fixture(autouse=True)
@@ -251,15 +250,15 @@ class TestAuth(object):
         assert isinstance(credentials, Credentials)
         assert default_project is not None
 
+    @pytest.mark.local_auth
     def test_get_user_account_credentials_bad_file_returns_credentials(self):
-
         from google.auth.credentials import Credentials
         with mock.patch('__main__.open', side_effect=IOError()):
             credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)
 
+    @pytest.mark.local_auth
     def test_get_user_account_credentials_returns_credentials(self):
-
         from google.auth.credentials import Credentials
         credentials = self.sut.get_user_account_credentials()
         assert isinstance(credentials, Credentials)
