@@ -19,9 +19,8 @@ def default(session):
     session.install('-e', '.')
     session.run(
         'pytest',
-        os.path.join('.', 'tests', 'unit'),
-        os.path.join('.', 'tests', 'system'),
-        '--quiet',
+        os.path.join('.', 'tests'),
+        '-v',  # Verbose to see Travis test timeouts.
         '--cov=pandas_gbq',
         '--cov=tests.unit',
         '--cov-report',
