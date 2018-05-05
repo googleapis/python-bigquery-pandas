@@ -138,13 +138,6 @@ def make_mixed_dataframe_v2(test_size):
                      index=range(test_size))
 
 
-def test_generate_bq_schema_deprecated():
-    # 11121 Deprecation of generate_bq_schema
-    with pytest.warns(FutureWarning):
-        df = make_mixed_dataframe_v2(10)
-        gbq.generate_bq_schema(df)
-
-
 @pytest.fixture()
 def credentials():
     _skip_if_no_private_key_contents()

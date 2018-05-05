@@ -286,3 +286,10 @@ def test_read_gbq_with_verbose_old_pandas_no_warnings(recwarn):
         mock_version.side_effect = [min_bq_version, pandas_version]
         gbq.read_gbq('SELECT 1', project_id='my-project', verbose=True)
         assert len(recwarn) == 0
+
+
+def test_generate_bq_schema_deprecated():
+    # 11121 Deprecation of generate_bq_schema
+    with pytest.warns(FutureWarning):
+        df = DataFrame([[1, 'two'], [3, 'four']])
+        gbq.generate_bq_schema(df)
