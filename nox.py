@@ -20,7 +20,7 @@ def default(session):
     session.run(
         'pytest',
         os.path.join('.', 'tests', 'unit'),
-        os.path.join('.', 'tests', 'system.py'),
+        os.path.join('.', 'tests', 'system'),
         '--quiet',
         '--cov=pandas_gbq',
         '--cov=tests.unit',
