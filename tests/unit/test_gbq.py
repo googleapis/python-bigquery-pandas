@@ -94,6 +94,7 @@ def test_to_gbq_should_fail_if_invalid_table_name_passed():
 
 def test_to_gbq_with_no_project_id_given_should_fail():
     from pandas_gbq import auth
+
     def mock_none_credentials(*args, **kwargs):
         return None, None
     auth.get_application_default_credentials = mock_none_credentials
@@ -178,6 +179,7 @@ def test_to_gbq_with_verbose_old_pandas_no_warnings(recwarn):
 
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
     from pandas_gbq import auth
+
     def mock_none_credentials(*args, **kwargs):
         return None, None
     auth.get_application_default_credentials = mock_none_credentials
