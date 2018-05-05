@@ -40,6 +40,10 @@ def mock_bigquery_client(monkeypatch):
         gbq.GbqConnector, 'get_client', lambda _: mock_client)
 
 
+def mock_none_credentials(*args, **kwargs):
+    return None, None
+
+
 def mock_get_credentials(*args, **kwargs):
     import google.auth.credentials
     mock_credentials = mock.create_autospec(
@@ -55,11 +59,14 @@ def mock_get_user_credentials(*args, **kwargs):
 
 
 @pytest.fixture(autouse=True)
-def no_auth():
+def no_auth(monkeypatch):
     from pandas_gbq import auth
-    auth.get_application_default_credentials = mock_get_credentials
-    auth.get_user_account_credentials = mock_get_user_credentials
-    auth._try_credentials = lambda project_id, credentials: credentials
+    monkeypatch.setattr(
+        auth, 'get_application_default_credentials', mock_get_credentials)
+    monkeypatch.setattr(
+        auth, 'get_user_account_credentials', mock_get_user_credentials)
+    monkeypatch.setattr(
+        auth, '_try_credentials', lambda project_id, credentials: credentials)
 
 
 def test_should_return_credentials_path_set_by_env_var():
@@ -92,16 +99,14 @@ def test_to_gbq_should_fail_if_invalid_table_name_passed():
         gbq.to_gbq(DataFrame([[1]]), 'invalid_table_name', project_id="1234")
 
 
-def test_to_gbq_with_no_project_id_given_should_fail():
+def test_to_gbq_with_no_project_id_given_should_fail(monkeypatch):
     from pandas_gbq import auth
-
-    def mock_none_credentials(*args, **kwargs):
-        return None, None
-    auth.get_application_default_credentials = mock_none_credentials
+    monkeypatch.setattr(
+        auth, 'get_application_default_credentials', mock_none_credentials)
 
     with pytest.raises(ValueError) as exception:
         gbq.to_gbq(DataFrame([[1]]), 'dataset.tablename')
-        assert 'Could not determine project ID' in str(exception)
+    assert 'Could not determine project ID' in str(exception)
 
 
 def test_to_gbq_with_verbose_new_pandas_warns_deprecation():
@@ -179,14 +184,12 @@ def test_to_gbq_with_verbose_old_pandas_no_warnings(recwarn):
 
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
     from pandas_gbq import auth
-
-    def mock_none_credentials(*args, **kwargs):
-        return None, None
-    auth.get_application_default_credentials = mock_none_credentials
+    monkeypatch.setattr(
+        auth, 'get_application_default_credentials', mock_none_credentials)
 
     with pytest.raises(ValueError) as exception:
         gbq.read_gbq('SELECT 1')
-        assert 'Could not determine project ID' in str(exception)
+    assert 'Could not determine project ID' in str(exception)
 
 
 def test_read_gbq_with_inferred_project_id(monkeypatch):

@@ -263,8 +263,10 @@ def _try_credentials(project_id, credentials):
     from google.cloud import bigquery
     import google.api_core.exceptions
 
-    if credentials is None:
+    if not credentials:
         return None
+    if not project_id:
+        return credentials
 
     try:
         client = bigquery.Client(project=project_id, credentials=credentials)
