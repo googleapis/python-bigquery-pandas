@@ -1,4 +1,4 @@
-"""Tests for fetching Google BigQuery credentials."""
+"""System tests for fetching Google BigQuery credentials."""
 
 import os
 
@@ -24,8 +24,10 @@ def private_key_path():
                               'travis_gbq.json'])
     elif 'GBQ_GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
         return os.environ['GBQ_GOOGLE_APPLICATION_CREDENTIALS']
-    else:
-        return os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    elif 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
+        return os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+    pytest.skip("Cannot run integration tests without a "
+                "private key json file path")
 
 
 @pytest.fixture
