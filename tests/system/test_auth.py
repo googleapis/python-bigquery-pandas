@@ -19,8 +19,8 @@ def project_id():
 
 @pytest.fixture
 def private_key_path():
-    if _in_travis_environment():
-        return os.path.join(*[os.environ.get('TRAVIS_BUILD_DIR'), 'ci',
+    if 'TRAVIS_BUILD_DIR' in os.environ:
+        return os.path.join(*[os.environ['TRAVIS_BUILD_DIR'], 'ci',
                               'travis_gbq.json'])
     elif 'GBQ_GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
         return os.environ['GBQ_GOOGLE_APPLICATION_CREDENTIALS']
@@ -37,17 +37,6 @@ def private_key_contents(private_key_path):
 
     with open(private_key_path) as f:
         return f.read()
-
-
-def _in_travis_environment():
-    return 'TRAVIS_BUILD_DIR' in os.environ and \
-           'GBQ_PROJECT_ID' in os.environ
-
-
-# TODO: Use pytest marks instead. https://github.com/pydata/pandas-gbq/pull/170
-def _skip_local_auth_if_in_travis_env():
-    if _in_travis_environment():
-        pytest.skip("Cannot run local auth in travis environment")
 
 
 def _check_if_can_get_correct_default_credentials():
@@ -115,18 +104,16 @@ def test_get_application_default_credentials_returns_credentials():
     assert default_project is not None
 
 
+@pytest.mark.local_auth
 def test_get_user_account_credentials_bad_file_returns_credentials():
-    _skip_local_auth_if_in_travis_env()
-
     from google.auth.credentials import Credentials
     with mock.patch('__main__.open', side_effect=IOError()):
         credentials = auth.get_user_account_credentials()
     assert isinstance(credentials, Credentials)
 
 
+@pytest.mark.local_auth
 def test_get_user_account_credentials_returns_credentials(project_id):
-    _skip_local_auth_if_in_travis_env()
-
     from google.auth.credentials import Credentials
     credentials = auth.get_user_account_credentials(
         project_id=project_id,
@@ -134,9 +121,8 @@ def test_get_user_account_credentials_returns_credentials(project_id):
     assert isinstance(credentials, Credentials)
 
 
+@pytest.mark.local_auth
 def test_get_user_account_credentials_reauth_returns_credentials(project_id):
-    _skip_local_auth_if_in_travis_env()
-
     from google.auth.credentials import Credentials
     credentials = auth.get_user_account_credentials(
         project_id=project_id,

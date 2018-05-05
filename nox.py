@@ -3,6 +3,7 @@
 See: https://nox.readthedocs.io/en/latest/
 """
 
+import os
 import os.path
 
 import nox
@@ -17,6 +18,15 @@ PANDAS_PRE_WHEELS = (
 def default(session):
     session.install('mock', 'pytest', 'pytest-cov')
     session.install('-e', '.')
+
+    # Skip local auth tests on Travis.
+    additional_args = list(session.posargs)
+    if 'TRAVIS_BUILD_DIR' in os.environ:
+        additional_args = additional_args + [
+            '-m',
+            'not local_auth',
+        ]
+
     session.run(
         'pytest',
         os.path.join('.', 'tests'),
@@ -25,7 +35,7 @@ def default(session):
         '--cov=tests.unit',
         '--cov-report',
         'xml:/tmp/pytest-cov.xml',
-        *session.posargs
+        *additional_args
     )
 
 
