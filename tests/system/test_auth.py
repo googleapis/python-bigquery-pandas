@@ -19,15 +19,23 @@ def project_id():
 
 @pytest.fixture
 def private_key_path():
+    path = None
     if 'TRAVIS_BUILD_DIR' in os.environ:
-        return os.path.join(*[os.environ['TRAVIS_BUILD_DIR'], 'ci',
-                              'travis_gbq.json'])
+        path = os.path.join(
+            os.environ['TRAVIS_BUILD_DIR'], 'ci',
+            'travis_gbq.json')
     elif 'GBQ_GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
-        return os.environ['GBQ_GOOGLE_APPLICATION_CREDENTIALS']
+        path = os.environ['GBQ_GOOGLE_APPLICATION_CREDENTIALS']
     elif 'GOOGLE_APPLICATION_CREDENTIALS' in os.environ:
-        return os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-    pytest.skip("Cannot run integration tests without a "
-                "private key json file path")
+        path = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+
+    if path is None:
+        pytest.skip("Cannot run integration tests without a "
+                    "private key json file path")
+    elif not os.path.isfile(path):
+        pytest.skip("Cannot run integration tests when there is"
+                    "no file at the private key json file path")
+    return path
 
 
 @pytest.fixture

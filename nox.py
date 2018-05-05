@@ -30,7 +30,7 @@ def default(session):
     session.run(
         'pytest',
         os.path.join('.', 'tests'),
-        '-v',  # Verbose to see Travis test timeouts.
+        '--quiet',
         '--cov=pandas_gbq',
         '--cov=tests.unit',
         '--cov-report',
