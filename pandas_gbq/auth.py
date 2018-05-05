@@ -100,7 +100,7 @@ def get_application_default_credentials(project_id=None):
         return None, None
 
     billing_project = project_id or default_project
-    return _try_credentials(billing_project, credentials), default_project
+    return _try_credentials(billing_project, credentials), billing_project
 
 
 def get_user_account_credentials(
