@@ -99,6 +99,9 @@ def get_application_default_credentials(project_id=None):
     except (DefaultCredentialsError, IOError):
         return None, None
 
+    # Even though we now have credentials, check that the credentials can be
+    # used with BigQuery. For example, we could be running on a GCE instance
+    # that does not allow the BigQuery scopes.
     billing_project = project_id or default_project
     return _try_credentials(billing_project, credentials), billing_project
 
