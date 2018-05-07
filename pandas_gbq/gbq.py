@@ -164,7 +164,8 @@ class GbqConnector(object):
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
         self.credentials, default_project = auth.get_credentials(
-            private_key=private_key, project_id=project_id)
+            private_key=private_key, project_id=project_id, reauth=reauth,
+            auth_local_webserver=auth_local_webserver)
 
         if self.project_id is None:
             self.project_id = default_project
