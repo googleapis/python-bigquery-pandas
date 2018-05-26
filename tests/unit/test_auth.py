@@ -14,8 +14,9 @@ from pandas_gbq import auth
 def test_get_credentials_private_key_contents(monkeypatch):
     from google.oauth2 import service_account
 
-    def from_service_account_info(key_info):
-        mock_credentials = mock.create_autospec(service_account.Credentials)
+    @classmethod
+    def from_service_account_info(cls, key_info):
+        mock_credentials = mock.create_autospec(cls)
         mock_credentials.with_scopes.return_value = mock_credentials
         mock_credentials.refresh.return_value = mock_credentials
         return mock_credentials
@@ -38,8 +39,9 @@ def test_get_credentials_private_key_contents(monkeypatch):
 def test_get_credentials_private_key_path(monkeypatch):
     from google.oauth2 import service_account
 
-    def from_service_account_info(key_info):
-        mock_credentials = mock.create_autospec(service_account.Credentials)
+    @classmethod
+    def from_service_account_info(cls, key_info):
+        mock_credentials = mock.create_autospec(cls)
         mock_credentials.with_scopes.return_value = mock_credentials
         mock_credentials.refresh.return_value = mock_credentials
         return mock_credentials
