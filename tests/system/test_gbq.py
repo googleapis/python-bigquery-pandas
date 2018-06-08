@@ -639,12 +639,13 @@ class TestReadGBQIntegration(object):
         tm.assert_frame_equal(df, DataFrame([[[1.1, 2.2, 3.3], 4]],
                                             columns=["a", "b"]))
 
-    def test_tokyo(self, tokyo_dataset, tokyo_table):
+    def test_tokyo(self, tokyo_dataset, tokyo_table, private_key_path):
         df = gbq.read_gbq(
             'SELECT MAX(year) AS max_year FROM {}.{}'.format(
                 tokyo_dataset, tokyo_table),
             dialect='standard',
-            location='asia-northeast1')
+            location='asia-northeast1',
+            private_key=private_key_path)
         print(df)
         assert df['max_year'][0] >= 2000
 
