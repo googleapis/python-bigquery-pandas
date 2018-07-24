@@ -51,5 +51,3 @@ def test_encode_chunks_with_chunksize_none():
     remaining, buffer = chunks[0]
     assert remaining == 0
     assert len(buffer.readlines()) == 6
-
-
