@@ -27,7 +27,7 @@ def test_encode_chunk_with_floats():
 
     See: https://github.com/pydata/pandas-gbq/issues/192
     """
-    input_csv = StringIO('01/01/17 23:00,1.05148,1.05153,1.05148,1.05153,4')
+    input_csv = StringIO(u'01/01/17 23:00,1.05148,1.05153,1.05148,1.05153,4')
     df = pandas.read_csv(input_csv, header=None)
     csv_buffer = load.encode_chunk(df)
     csv_bytes = csv_buffer.read()
