@@ -4,16 +4,16 @@ matrix:
   include:
   - os: linux
     python: 2.7
-    env: PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' TRAVIS_PYTHON_VERSION=2.7.15
+    env: PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true'
   - os: linux
     python: 3.5
-    env: PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' TRAVIS_PYTHON_VERSION=3.5.4
+    env: PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false'
   - os: linux
     python: 3.6
-    env: PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' TRAVIS_PYTHON_VERSION=3.6.4
+    env: PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false'
   - os: linux
     python: 3.6
-    env: PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' TRAVIS_PYTHON_VERSION=3.6.4
+    env: PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true'
 env:
 
 before_install:
