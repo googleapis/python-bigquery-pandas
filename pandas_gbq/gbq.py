@@ -471,7 +471,7 @@ def _parse_data(schema, rows):
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
              reauth=False, private_key=None, auth_local_webserver=False,
-             dialect='legacy', location=None, configuration=None,
+             dialect=None, location=None, configuration=None,
              verbose=None):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -515,6 +515,8 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
         .. versionadded:: 0.2.0
     dialect : str, default 'legacy'
+        Note: The default value is changing to 'standard' in a future verion.
+
         SQL syntax dialect to use. Value can be one of:
 
         ``'legacy'``
@@ -552,6 +554,13 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     df: DataFrame
         DataFrame representing results of query.
     """
+    if dialect is None:
+        dialect = 'legacy'
+        warnings.warn(
+            'The default value for dialect is changing to "standard" in a '
+            'future version. Pass in dialect="legacy" to disable this '
+            'warning.',
+            FutureWarning, stacklevel=1)
 
     _test_google_api_imports()
 
