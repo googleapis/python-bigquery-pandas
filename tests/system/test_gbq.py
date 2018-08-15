@@ -167,7 +167,8 @@ class TestReadGBQIntegration(object):
     def test_should_properly_handle_valid_integers(self, project_id):
         query = 'SELECT INTEGER(3) AS valid_integer'
         df = gbq.read_gbq(query, project_id=project_id,
-                          private_key=self.credentials)
+                          private_key=self.credentials,
+                          dialect='legacy')
         tm.assert_frame_equal(df, DataFrame({'valid_integer': [3]}))
 
     def test_should_properly_handle_nullable_integers(self, project_id):
@@ -175,7 +176,8 @@ class TestReadGBQIntegration(object):
                     (SELECT 1 AS nullable_integer),
                     (SELECT NULL AS nullable_integer)'''
         df = gbq.read_gbq(query, project_id=project_id,
-                          private_key=self.credentials)
+                          private_key=self.credentials,
+                          dialect='legacy')
         tm.assert_frame_equal(
             df, DataFrame({'nullable_integer': [1, None]}).astype(object))
 
