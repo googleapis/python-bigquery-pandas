@@ -1,24 +1,26 @@
-sudo: false
-
 language: python
 
+matrix:
+  include:
+  - os: linux
+    python: 2.7
+    env: PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' TRAVIS_PYTHON_VERSION=2.7.15
+  - os: linux
+    python: 3.5
+    env: PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' TRAVIS_PYTHON_VERSION=3.5.4
+  - os: linux
+    python: 3.6
+    env: PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' TRAVIS_PYTHON_VERSION=3.6.4
+  - os: linux
+    python: 3.6
+    env: PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' TRAVIS_PYTHON_VERSION=3.6.4
 env:
-  - PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true' PYENV_VERSION=2.7.15
-  - PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false' PYENV_VERSION=3.5.4
-  - PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false' PYENV_VERSION=3.6.4
-  - PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true' PYENV_VERSION=3.6.4
 
 before_install:
   - echo "before_install"
   - source ci/travis_process_gbq_encryption.sh
 
 install:
-  # work around https://github.com/travis-ci/travis-ci/issues/8363
-  # https://github.com/pre-commit/pre-commit/commit/e3ab8902692e896da9ded42bd4d76ea4e1de359d
-  - git clone git://github.com/pyenv/pyenv-update.git ~/.pyenv/plugins/pyenv-update
-  - pyenv update
-  - pyenv install -s $PYENV_VERSION
-  - pyenv global system $PYENV_VERSION
   # Upgrade setuptools and pip to work around
   # https://github.com/pypa/setuptools/issues/885
   - pip install --upgrade setuptools
