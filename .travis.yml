@@ -15,6 +15,8 @@ before_install:
 install:
   # work around https://github.com/travis-ci/travis-ci/issues/8363
   # https://github.com/pre-commit/pre-commit/commit/e3ab8902692e896da9ded42bd4d76ea4e1de359d
+  - git clone git://github.com/pyenv/pyenv-update.git ~/.pyenv/plugins/pyenv-update
+  - pyenv update
   - pyenv install -s $PYENV_VERSION
   - pyenv global system $PYENV_VERSION
   # Upgrade setuptools and pip to work around
