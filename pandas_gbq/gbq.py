@@ -1,4 +1,4 @@
-import json
+
 import logging
 import os
 import time
@@ -6,13 +6,14 @@ import uuid
 import warnings
 from datetime import datetime
 from io import BytesIO
-from time import sleep
 
 import numpy as np
 import pandas as pd
 from google.cloud.bigquery.job import ExtractJobConfig
-from pandas import DataFrame, compat
+from pandas import DataFrame
 from pandas.compat import lzip
+
+from pandas_gbq.exceptions import AccessDenied
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ def _check_google_client_version():
         raise ImportError('Could not import pkg_resources (setuptools).')
 
     # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
-    bigquery_minimum_version = pkg_resources.parse_version('0.29.0')
+    bigquery_minimum_version = pkg_resources.parse_version('0.32.0')
     BIGQUERY_INSTALLED_VERSION = pkg_resources.get_distribution(
         'google-cloud-bigquery').parsed_version
 
@@ -76,36 +77,6 @@ def _test_google_api_imports():
             "pandas-gbq requires google-cloud-bigquery: {0}".format(ex))
 
     _check_google_client_version()
-
-
-def _try_credentials(project_id, credentials):
-    from google.cloud import bigquery
-    import google.api_core.exceptions
-
-    if credentials is None:
-        return None
-
-    try:
-        client = bigquery.Client(project=project_id, credentials=credentials)
-        # Check if the application has rights to the BigQuery project
-        client.query('SELECT 1').result()
-        return credentials
-    except google.api_core.exceptions.GoogleAPIError:
-        return None
-
-
-class InvalidPrivateKeyFormat(ValueError):
-    """
-    Raised when provided private key has invalid format.
-    """
-    pass
-
-
-class AccessDenied(ValueError):
-    """
-    Raised when invalid credentials are provided, or tokens have expired.
-    """
-    pass
 
 
 class DatasetCreationError(ValueError):
@@ -181,21 +152,24 @@ class TableCreationError(ValueError):
 
 
 class GbqConnector(object):
-    scope = 'https://www.googleapis.com/auth/bigquery'
 
     def __init__(self, project_id, reauth=False,
                  private_key=None, auth_local_webserver=False,
-                 dialect='legacy'):
+                 dialect='legacy', location=None):
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
+        from pandas_gbq import auth
         self.http_error = (ClientError, GoogleAPIError)
         self.project_id = project_id
+        self.location = location
         self.reauth = reauth
         self.private_key = private_key
         self.auth_local_webserver = auth_local_webserver
         self.dialect = dialect
         self.credentials_path = _get_credentials_file()
-        self.credentials, default_project = self.get_credentials()
+        self.credentials, default_project = auth.get_credentials(
+            private_key=private_key, project_id=project_id, reauth=reauth,
+            auth_local_webserver=auth_local_webserver)
 
         if self.project_id is None:
             self.project_id = default_project
@@ -209,238 +183,6 @@ class GbqConnector(object):
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
         self.query_price_for_TB = 5. / 2**40  # USD/TB
-
-    def get_credentials(self):
-        if self.private_key:
-            return self.get_service_account_credentials()
-
-        # Try to retrieve Application Default Credentials
-        credentials, default_project = (
-            self.get_application_default_credentials())
-        if credentials:
-            return credentials, default_project
-
-        return self.get_user_account_credentials(), None
-
-    def get_application_default_credentials(self):
-        """
-        This method tries to retrieve the "default application credentials".
-        This could be useful for running code on Google Cloud Platform.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        - GoogleCredentials,
-            If the default application credentials can be retrieved
-            from the environment. The retrieved credentials should also
-            have access to the project (self.project_id) on BigQuery.
-        - OR None,
-            If default application credentials can not be retrieved
-            from the environment. Or, the retrieved credentials do not
-            have access to the project (self.project_id) on BigQuery.
-        """
-        import google.auth
-        from google.auth.exceptions import DefaultCredentialsError
-
-        try:
-            credentials, default_project = google.auth.default(
-                scopes=[self.scope])
-        except (DefaultCredentialsError, IOError):
-            return None, None
-
-        billing_project = self.project_id or default_project
-        return _try_credentials(billing_project, credentials), default_project
-
-    def load_user_account_credentials(self):
-        """
-        Loads user account credentials from a local file.
-
-        .. versionadded 0.2.0
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        - GoogleCredentials,
-            If the credentials can loaded. The retrieved credentials should
-            also have access to the project (self.project_id) on BigQuery.
-        - OR None,
-            If credentials can not be loaded from a file. Or, the retrieved
-            credentials do not have access to the project (self.project_id)
-            on BigQuery.
-        """
-        import google.auth.transport.requests
-        from google.oauth2.credentials import Credentials
-
-        # Use the default credentials location under ~/.config and the
-        # equivalent directory on windows if the user has not specified a
-        # credentials path.
-        if not self.credentials_path:
-            self.credentials_path = self.get_default_credentials_path()
-
-            # Previously, pandas-gbq saved user account credentials in the
-            # current working directory. If the bigquery_credentials.dat file
-            # exists in the current working directory, move the credentials to
-            # the new default location.
-            if os.path.isfile('bigquery_credentials.dat'):
-                os.rename('bigquery_credentials.dat', self.credentials_path)
-
-        try:
-            with open(self.credentials_path) as credentials_file:
-                credentials_json = json.load(credentials_file)
-        except (IOError, ValueError):
-            return None
-
-        credentials = Credentials(
-            token=credentials_json.get('access_token'),
-            refresh_token=credentials_json.get('refresh_token'),
-            id_token=credentials_json.get('id_token'),
-            token_uri=credentials_json.get('token_uri'),
-            client_id=credentials_json.get('client_id'),
-            client_secret=credentials_json.get('client_secret'),
-            scopes=credentials_json.get('scopes'))
-
-        # Refresh the token before trying to use it.
-        request = google.auth.transport.requests.Request()
-        credentials.refresh(request)
-
-        return _try_credentials(self.project_id, credentials)
-
-    def get_default_credentials_path(self):
-        """
-        Gets the default path to the BigQuery credentials
-
-        .. versionadded 0.3.0
-
-        Returns
-        -------
-        Path to the BigQuery credentials
-        """
-
-        import os
-
-        if os.name == 'nt':
-            config_path = os.environ['APPDATA']
-        else:
-            config_path = os.path.join(os.path.expanduser('~'), '.config')
-
-        config_path = os.path.join(config_path, 'pandas_gbq')
-
-        # Create a pandas_gbq directory in an application-specific hidden
-        # user folder on the operating system.
-        if not os.path.exists(config_path):
-            os.makedirs(config_path)
-
-        return os.path.join(config_path, 'bigquery_credentials.dat')
-
-    def save_user_account_credentials(self, credentials):
-        """
-        Saves user account credentials to a local file.
-
-        .. versionadded 0.2.0
-        """
-        try:
-            with open(self.credentials_path, 'w') as credentials_file:
-                credentials_json = {
-                    'refresh_token': credentials.refresh_token,
-                    'id_token': credentials.id_token,
-                    'token_uri': credentials.token_uri,
-                    'client_id': credentials.client_id,
-                    'client_secret': credentials.client_secret,
-                    'scopes': credentials.scopes,
-                }
-                json.dump(credentials_json, credentials_file)
-        except IOError:
-            logger.warning('Unable to save credentials.')
-
-    def get_user_account_credentials(self):
-        """Gets user account credentials.
-
-        This method authenticates using user credentials, either loading saved
-        credentials from a file or by going through the OAuth flow.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        GoogleCredentials : credentials
-            Credentials for the user with BigQuery access.
-        """
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        from oauthlib.oauth2.rfc6749.errors import OAuth2Error
-
-        credentials = self.load_user_account_credentials()
-
-        client_config = {
-            'installed': {
-                'client_id': ('495642085510-k0tmvj2m941jhre2nbqka17vqpjfddtd'
-                              '.apps.googleusercontent.com'),
-                'client_secret': 'kOc9wMptUtxkcIFbtZCcrEAc',
-                'redirect_uris': ['urn:ietf:wg:oauth:2.0:oob'],
-                'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
-                'token_uri': 'https://accounts.google.com/o/oauth2/token',
-            }
-        }
-
-        if credentials is None or self.reauth:
-            app_flow = InstalledAppFlow.from_client_config(
-                client_config, scopes=[self.scope])
-
-            try:
-                if self.auth_local_webserver:
-                    credentials = app_flow.run_local_server()
-                else:
-                    credentials = app_flow.run_console()
-            except OAuth2Error as ex:
-                raise AccessDenied(
-                    "Unable to get valid credentials: {0}".format(ex))
-
-            self.save_user_account_credentials(credentials)
-
-        return credentials
-
-    def get_service_account_credentials(self):
-        import google.auth.transport.requests
-        from google.oauth2.service_account import Credentials
-        from os.path import isfile
-
-        try:
-            if isfile(self.private_key):
-                with open(self.private_key) as f:
-                    json_key = json.loads(f.read())
-            else:
-                # ugly hack: 'private_key' field has new lines inside,
-                # they break json parser, but we need to preserve them
-                json_key = json.loads(self.private_key.replace('\n', '   '))
-                json_key['private_key'] = json_key['private_key'].replace(
-                    '   ', '\n')
-
-            if compat.PY3:
-                json_key['private_key'] = bytes(
-                    json_key['private_key'], 'UTF-8')
-
-            credentials = Credentials.from_service_account_info(json_key)
-            credentials = credentials.with_scopes([self.scope])
-
-            # Refresh the token before trying to use it.
-            request = google.auth.transport.requests.Request()
-            credentials.refresh(request)
-
-            return credentials, json_key.get('project_id')
-        except (KeyError, ValueError, TypeError, AttributeError):
-            raise InvalidPrivateKeyFormat(
-                "Private key is missing or invalid. It should be service "
-                "account private key JSON (file path or string contents) "
-                "with at least two keys: 'client_email' and 'private_key'. "
-                "Can be obtained from: https://console.developers.google."
-                "com/permissions/serviceaccounts")
 
     def _start_timer(self):
         self.start = time.time()
@@ -477,9 +219,9 @@ class GbqConnector(object):
         raise GenericGBQException("Reason: {0}".format(ex))
 
     def run_query(self, query, **kwargs):
-        from google.auth.exceptions import RefreshError
         from concurrent.futures import TimeoutError
-        import pandas_gbq.query
+        from google.auth.exceptions import RefreshError
+        from google.cloud import bigquery
 
         job_config = {
             'query': {
@@ -505,8 +247,8 @@ class GbqConnector(object):
             logger.info('Requesting query... ')
             query_reply = self.client.query(
                 query,
-                job_config=pandas_gbq.query.query_config(
-                    job_config, BIGQUERY_INSTALLED_VERSION))
+                job_config=bigquery.QueryJobConfig.from_api_repr(job_config),
+                location=self.location)
             logger.info('ok.\nQuery running...')
         except (RefreshError, ValueError):
             if self.private_key:
@@ -679,7 +421,7 @@ class GbqConnector(object):
         try:
             chunks = load.load_chunks(self.client, dataframe, dataset_id,
                                       table_id, chunksize=chunksize,
-                                      schema=schema)
+                                      schema=schema, location=self.location)
             if progress_bar and tqdm:
                 chunks = tqdm.tqdm(chunks)
             for remaining_rows in chunks:
@@ -792,24 +534,10 @@ class GbqConnector(object):
         return all(field in fields_remote for field in fields_local)
 
     def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
-        delay = 0
-
-        # Changes to table schema may take up to 2 minutes as of May 2015 See
-        # `Issue 191
-        # <https://code.google.com/p/google-bigquery/issues/detail?id=191>`__
-        # Compare previous schema with new schema to determine if there should
-        # be a 120 second delay
-
-        if not self.verify_schema(dataset_id, table_id, table_schema):
-            logger.info('The existing table has a different schema. Please '
-                        'wait 2 minutes. See Google BigQuery issue #191')
-            delay = 120
-
         table = _Table(self.project_id, dataset_id,
                        private_key=self.private_key)
         table.delete(table_id)
         table.create(table_id, table_schema)
-        sleep(delay)
 
 
 def _get_credentials_file():
@@ -843,85 +571,97 @@ def _parse_data(schema, rows):
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=None, private_key=None,
-             auth_local_webserver=False, dialect='legacy', **kwargs):
+             reauth=False, private_key=None, auth_local_webserver=False,
+             dialect=None, location=None, configuration=None,
+             verbose=None):
     r"""Load data from Google BigQuery using google-cloud-python
 
     The main method a user calls to execute a Query in Google BigQuery
     and read results into a pandas DataFrame.
 
-    The Google Cloud library is used.
-    Documentation is available `here
-    <https://googlecloudplatform.github.io/google-cloud-python/stable/>`__
+    This method uses the Google Cloud client library to make requests to
+    Google BigQuery, documented `here
+    <https://google-cloud-python.readthedocs.io/en/latest/bigquery/usage.html>`__.
 
-    Authentication to the Google BigQuery service is via OAuth 2.0.
-
-    - If "private_key" is not provided:
-
-      By default "application default credentials" are used.
-
-      If default application credentials are not found or are restrictive,
-      user account credentials are used. In this case, you will be asked to
-      grant permissions for product name 'pandas GBQ'.
-
-    - If "private_key" is provided:
-
-      Service account credentials will be used to authenticate.
+    See the :ref:`How to authenticate with Google BigQuery <authentication>`
+    guide for authentication instructions.
 
     Parameters
     ----------
     query : str
-        SQL-Like Query to return data values
-    project_id : str (optional when available in environment)
-        Google BigQuery Account project ID.
-    index_col : str (optional)
-        Name of result column to use for index in results DataFrame
-    col_order : list(str) (optional)
+        SQL-Like Query to return data values.
+    project_id : str, optional
+        Google BigQuery Account project ID. Optional when available from
+        the environment.
+    index_col : str, optional
+        Name of result column to use for index in results DataFrame.
+    col_order : list(str), optional
         List of BigQuery column names in the desired order for results
-        DataFrame
-    reauth : boolean (default False)
-        Force Google BigQuery to reauthenticate the user. This is useful
+        DataFrame.
+    reauth : boolean, default False
+        Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    private_key : str (optional)
+    private_key : str, optional
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
-        authentication (eg. jupyter iPython notebook on remote host)
+        authentication (eg. Jupyter/IPython notebook on remote host).
     auth_local_webserver : boolean, default False
-        Use the [local webserver flow] instead of the [console flow] when
-        getting user credentials. A file named bigquery_credentials.dat will
-        be created in current dir. You can also set PANDAS_GBQ_CREDENTIALS_FILE
-        environment variable so as to define a specific path to store this
-        credential (eg. /etc/keys/bigquery.dat).
+        Use the `local webserver flow`_ instead of the `console flow`_
+        when getting user credentials.
 
-        .. [local webserver flow]
+        .. _local webserver flow:
             http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-        .. [console flow]
+        .. _console flow:
             http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+
         .. versionadded:: 0.2.0
+    dialect : str, default 'legacy'
+        Note: The default value is changing to 'standard' in a future verion.
 
-    dialect : {'legacy', 'standard'}, default 'legacy'
-        'legacy' : Use BigQuery's legacy SQL dialect.
-        'standard' : Use BigQuery's standard SQL (beta), which is
-        compliant with the SQL 2011 standard. For more information
-        see `BigQuery SQL Reference
-        <https://cloud.google.com/bigquery/sql-reference/>`__
-    verbose : None, deprecated
+        SQL syntax dialect to use. Value can be one of:
 
-    **kwargs : Arbitrary keyword arguments
-        configuration (dict): query config parameters for job processing.
+        ``'legacy'``
+            Use BigQuery's legacy SQL dialect. For more information see
+            `BigQuery Legacy SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/legacy-sql>`__.
+        ``'standard'``
+            Use BigQuery's standard SQL, which is
+            compliant with the SQL 2011 standard. For more information
+            see `BigQuery Standard SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
+    location : str, optional
+        Location where the query job should run. See the `BigQuery locations
+        documentation
+        <https://cloud.google.com/bigquery/docs/dataset-locations>`__ for a
+        list of available locations. The location must match that of any
+        datasets used in the query.
+
+        .. versionadded:: 0.5.0
+    configuration : dict, optional
+        Query config parameters for job processing.
         For example:
 
             configuration = {'query': {'useQueryCache': False}}
 
-        For more information see `BigQuery SQL Reference
-        <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__
+        For more information see `BigQuery REST API Reference
+        <https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query>`__.
+    verbose : None, deprecated
+        Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
+        to adjust verbosity instead
+        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
 
     Returns
     -------
     df: DataFrame
-        DataFrame representing results of query
-
+        DataFrame representing results of query.
     """
+    if dialect is None:
+        dialect = 'legacy'
+        warnings.warn(
+            'The default value for dialect is changing to "standard" in a '
+            'future version. Pass in dialect="legacy" to disable this '
+            'warning.',
+            FutureWarning, stacklevel=2)
 
     _test_google_api_imports()
 
@@ -929,15 +669,15 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         warnings.warn(
             "verbose is deprecated and will be removed in "
             "a future version. Set logging level in order to vary "
-            "verbosity", FutureWarning, stacklevel=1)
+            "verbosity", FutureWarning, stacklevel=2)
 
     if dialect not in ('legacy', 'standard'):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
 
     connector = GbqConnector(
-        project_id, reauth=reauth, private_key=private_key,
-        dialect=dialect, auth_local_webserver=auth_local_webserver)
-    schema, rows = connector.run_query(query, **kwargs)
+        project_id, reauth=reauth, private_key=private_key, dialect=dialect,
+        auth_local_webserver=auth_local_webserver, location=location)
+    schema, rows = connector.run_query(query, configuration=configuration)
     final_df = _parse_data(schema, rows)
 
     # Reindex the DataFrame on the provided column
@@ -979,74 +719,84 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
-           verbose=None, reauth=False, if_exists='fail', private_key=None,
-           auth_local_webserver=False, table_schema=None, progress_bar=True):
+           reauth=False, if_exists='fail', private_key=None,
+           auth_local_webserver=False, table_schema=None, location=None,
+           progress_bar=True, verbose=None):
     """Write a DataFrame to a Google BigQuery table.
 
     The main method a user calls to export pandas DataFrame contents to
     Google BigQuery table.
 
-    Google BigQuery API Client Library v2 for Python is used.
-    Documentation is available `here
-    <https://developers.google.com/api-client-library/python/apis/bigquery/v2>`__
+    This method uses the Google Cloud client library to make requests to
+    Google BigQuery, documented `here
+    <https://google-cloud-python.readthedocs.io/en/latest/bigquery/usage.html>`__.
 
-    Authentication to the Google BigQuery service is via OAuth 2.0.
-
-    - If "private_key" is not provided:
-
-      By default "application default credentials" are used.
-
-      If default application credentials are not found or are restrictive,
-      user account credentials are used. In this case, you will be asked to
-      grant permissions for product name 'pandas GBQ'.
-
-    - If "private_key" is provided:
-
-      Service account credentials will be used to authenticate.
+    See the :ref:`How to authenticate with Google BigQuery <authentication>`
+    guide for authentication instructions.
 
     Parameters
     ----------
-    dataframe : DataFrame
-        DataFrame to be written
-    destination_table : string
-        Name of table to be written, in the form 'dataset.tablename'
-    project_id : str (optional when available in environment)
-        Google BigQuery Account project ID.
-    chunksize : int (default None)
-        Number of rows to be inserted in each chunk from the dataframe. Use
-        ``None`` to load the dataframe in a single chunk.
-    reauth : boolean (default False)
-        Force Google BigQuery to reauthenticate the user. This is useful
+    dataframe : pandas.DataFrame
+        DataFrame to be written to a Google BigQuery table.
+    destination_table : str
+        Name of table to be written, in the form ``dataset.tablename``.
+    project_id : str, optional
+        Google BigQuery Account project ID. Optional when available from
+        the environment.
+    chunksize : int, optional
+        Number of rows to be inserted in each chunk from the dataframe.
+        Set to ``None`` to load the whole dataframe at once.
+    reauth : bool, default False
+        Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    if_exists : {'fail', 'replace', 'append'}, default 'fail'
-        'fail': If table exists, do nothing.
-        'replace': If table exists, drop it, recreate it, and insert data.
-        'append': If table exists and the dataframe schema is a subset of
-        the destination table schema, insert data. Create destination table
-        if does not exist.
-    private_key : str (optional)
+    if_exists : str, default 'fail'
+        Behavior when the destination table exists. Value can be one of:
+
+        ``'fail'``
+            If table exists, do nothing.
+        ``'replace'``
+            If table exists, drop it, recreate it, and insert data.
+        ``'append'``
+            If table exists, insert data. Create if does not exist.
+    private_key : str, optional
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
-        authentication (eg. jupyter iPython notebook on remote host)
-    auth_local_webserver : boolean, default False
-        Use the [local webserver flow] instead of the [console flow] when
-        getting user credentials.
+        authentication (eg. Jupyter/IPython notebook on remote host).
+    auth_local_webserver : bool, default False
+        Use the `local webserver flow`_ instead of the `console flow`_
+        when getting user credentials.
 
-        .. [local webserver flow]
+        .. _local webserver flow:
             http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-        .. [console flow]
+        .. _console flow:
             http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+
         .. versionadded:: 0.2.0
-    table_schema : list of dicts
-        List of BigQuery table fields to which according DataFrame columns
-        conform to, e.g. `[{'name': 'col1', 'type': 'STRING'},...]`. If
-        schema is not provided, it will be generated according to dtypes
-        of DataFrame columns. See BigQuery API documentation on available
-        names of a field.
+    table_schema : list of dicts, optional
+        List of BigQuery table fields to which according DataFrame
+        columns conform to, e.g. ``[{'name': 'col1', 'type':
+        'STRING'},...]``. If schema is not provided, it will be
+        generated according to dtypes of DataFrame columns. See
+        BigQuery API documentation on available names of a field.
+
         .. versionadded:: 0.3.1
-    verbose : None, deprecated
-    progress_bar : boolean, True by default. It uses the library `tqdm` to show
-        the progress bar for the upload, chunk by chunk.
+    location : str, optional
+        Location where the load job should run. See the `BigQuery locations
+        documentation
+        <https://cloud.google.com/bigquery/docs/dataset-locations>`__ for a
+        list of available locations. The location must match that of the
+        target dataset.
+
+        .. versionadded:: 0.5.0
+    progress_bar : bool, default True
+        Use the library `tqdm` to show the progress bar for the upload,
+        chunk by chunk.
+
+        .. versionadded:: 0.5.0
+    verbose : bool, deprecated
+        Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
+        to adjust verbosity instead
+        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
     """
 
     _test_google_api_imports()
@@ -1066,7 +816,7 @@ def to_gbq(dataframe, destination_table, project_id=None, chunksize=None,
 
     connector = GbqConnector(
         project_id, reauth=reauth, private_key=private_key,
-        auth_local_webserver=auth_local_webserver)
+        auth_local_webserver=auth_local_webserver, location=location)
     dataset_id, table_id = destination_table.rsplit('.', 1)
 
     table = _Table(project_id, dataset_id, reauth=reauth,
