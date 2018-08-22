@@ -4,6 +4,7 @@ import os
 import time
 import uuid
 import warnings
+from collections import OrderedDict
 from datetime import datetime
 from io import BytesIO
 
@@ -11,7 +12,6 @@ import numpy as np
 import pandas as pd
 from google.cloud.bigquery.job import ExtractJobConfig
 from pandas import DataFrame
-from pandas.compat import lzip
 
 from pandas_gbq.exceptions import AccessDenied
 
@@ -545,29 +545,30 @@ def _get_credentials_file():
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
 
-def _parse_data(schema, rows):
+def _parse_schema(schema_fields):
     # see:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
     dtype_map = {'FLOAT': np.dtype(float),
                  'TIMESTAMP': 'M8[ns]'}
 
-    fields = schema['fields']
-    col_types = [field['type'] for field in fields]
-    col_names = [str(field['name']) for field in fields]
-    col_dtypes = [
-        dtype_map.get(field['type'].upper(), object)
-        if field['mode'].lower() != 'repeated'
-        else object
-        for field in fields
-    ]
-    page_array = np.zeros((len(rows),), dtype=lzip(col_names, col_dtypes))
-    for row_num, entries in enumerate(rows):
-        for col_num in range(len(col_types)):
-            field_value = entries[col_num]
-            page_array[row_num][col_num] = field_value
+    for field in schema_fields:
+        name = str(field['name'])
+        if field['mode'].upper() == 'REPEATED':
+            yield name, object
+        else:
+            dtype = dtype_map.get(field['type'].upper(), object)
+            yield name, dtype
 
-    return DataFrame(page_array, columns=col_names)
+
+def _parse_data(schema, rows):
+
+    column_dtypes = OrderedDict(_parse_schema(schema['fields']))
+
+    df = DataFrame(data=(iter(r) for r in rows), columns=column_dtypes.keys())
+    for column in df:
+        df[column] = df[column].astype(column_dtypes[column])
+    return df
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
