@@ -1,4 +1,5 @@
 google-auth
 google-auth-oauthlib
-mock
-google-cloud-bigquery
+git+https://github.com/GoogleCloudPlatform/google-cloud-python.git#egg=version_subpkg&subdirectory=api_core
+git+https://github.com/GoogleCloudPlatform/google-cloud-python.git#egg=version_subpkg&subdirectory=core
+git+https://github.com/GoogleCloudPlatform/google-cloud-python.git#egg=version_subpkg&subdirectory=bigquery
