@@ -3,6 +3,7 @@ import logging
 import os
 import time
 import warnings
+from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
@@ -442,19 +443,25 @@ def _get_credentials_file():
         'PANDAS_GBQ_CREDENTIALS_FILE')
 
 
-def _parse_data(schema, rows):
+def _parse_schema(schema_fields):
     # see:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
     dtype_map = {'FLOAT': np.dtype(float),
                  'TIMESTAMP': 'M8[ns]'}
 
-    fields = schema['fields']
+    for field in schema_fields:
+        name = str(field['name'])
+        if field['mode'].upper() == 'REPEATED':
+            yield name, object
+        else:
+            dtype = dtype_map.get(field['type'].upper(), object)
+            yield name, dtype
 
-    column_dtypes = {
-        str(field['name']):
-        dtype_map.get(field['type'].upper(), object) for field in fields
-    }
+
+def _parse_data(schema, rows):
+
+    column_dtypes = OrderedDict(_parse_schema(schema['fields']))
 
     df = DataFrame(data=(iter(r) for r in rows), columns=column_dtypes.keys())
     for column in df:
