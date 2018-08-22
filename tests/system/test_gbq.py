@@ -654,7 +654,6 @@ class TestReadGBQIntegration(object):
         tm.assert_frame_equal(df, DataFrame([["a", [1, 3]], ["b", [2]]],
                                             columns=["letter", "numbers"]))
 
-    # @pytest.mark.xfail
     def test_array_of_floats(self, private_key_path, project_id):
         query = """select [1.1, 2.2, 3.3] as a, 4 as b"""
         df = gbq.read_gbq(query, project_id=project_id,
