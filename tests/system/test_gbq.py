@@ -141,13 +141,6 @@ class TestReadGBQIntegration(object):
             project, private_key=credentials)
         self.credentials = credentials
 
-    def test_should_properly_handle_valid_strings(self, project_id):
-        query = 'SELECT "PI" AS valid_string'
-        df = gbq.read_gbq(query, project_id=project_id,
-                          private_key=self.credentials,
-                          dialect='legacy')
-        tm.assert_frame_equal(df, DataFrame({'valid_string': ['PI']}))
-
     def test_should_properly_handle_empty_strings(self, project_id):
         query = 'SELECT "" AS empty_string'
         df = gbq.read_gbq(query, project_id=project_id,
