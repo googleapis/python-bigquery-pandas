@@ -1,9 +1,7 @@
 [tool.black]
 line-length = 79
 exclude = '''
-/(
 versioneer.py
-| docs
 | _version.py
-)/
+| docs
 '''
