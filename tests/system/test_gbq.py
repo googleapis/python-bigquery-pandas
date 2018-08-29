@@ -447,8 +447,10 @@ class TestReadGBQIntegration(object):
         assert len(df.drop_duplicates()) == 10
 
     def test_standard_sql(self, project_id):
-        standard_sql = "SELECT DISTINCT id FROM " \
-                       "`publicdata.samples.wikipedia` LIMIT 10"
+        standard_sql = (
+            "SELECT DISTINCT id FROM "
+            "`publicdata.samples.wikipedia` LIMIT 10"
+        )
 
         # Test that a standard sql statement fails when using
         # the legacy SQL dialect.

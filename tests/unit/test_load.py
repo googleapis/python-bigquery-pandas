@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from io import StringIO
+
 import numpy
 import pandas
 
 from pandas_gbq import load
-from io import StringIO
 
 
 def test_encode_chunk_with_unicode():

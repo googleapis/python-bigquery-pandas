@@ -9,7 +9,6 @@ import pandas.compat
 
 import pandas_gbq.exceptions
 
-
 logger = logging.getLogger(__name__)
 
 
