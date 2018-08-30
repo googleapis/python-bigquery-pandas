@@ -23,6 +23,7 @@ def default(session):
     # ref https://github.com/pydata/pandas-gbq/issues/189
     additional_args = list(session.posargs)
     if "TRAVIS_BUILD_DIR" in os.environ:
+
         additional_args = additional_args + ["-m", "not local_auth"]
 
     session.run(
@@ -81,12 +82,13 @@ def test36(session):
 
 @nox.session
 def test37master(session):
-    session.interpreter = 'python3.7'
+    session.interpreter = "python3.7"
     session.install(
         "--pre", "--upgrade", "--timeout=60", "-f", PANDAS_PRE_WHEELS, "pandas"
     )
     session.install(
-        '-r', os.path.join('.', 'ci', 'requirements-3.7-MASTER.pip'))
+        "-r", os.path.join(".", "ci", "requirements-3.7-MASTER.pip")
+    )
     default(session)
 
 
