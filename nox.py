@@ -70,9 +70,12 @@ def test35(session):
         '-r', os.path.join('.', 'ci', 'requirements-3.5-0.18.1.pip'))
     default(session)
 
+# TODO: fix conda issues around namespace packages
+# @nox.session
+# def test36(session):
 
-@nox.session
-def test36(session):
+
+def _test36(session):
     session.interpreter = 'python3.6'
     session.install(
         '-r', os.path.join('.', 'ci', 'requirements-3.6-0.20.1.conda'))
