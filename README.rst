@@ -43,5 +43,5 @@ See the `pandas-gbq documentation <https://pandas-gbq.readthedocs.io/>`_ for mor
    :target: https://pypi.python.org/pypi/pandas-gbq/
 .. |Coverage Status| image:: https://img.shields.io/codecov/c/github/pydata/pandas-gbq.svg
    :target: https://codecov.io/gh/pydata/pandas-gbq/
-.. [Black Formatted] image:: https://img.shields.io/badge/code%20style-black-000000.svg
-    :target: https://github.com/ambv/black
+.. |Black Formatted| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/ambv/black
