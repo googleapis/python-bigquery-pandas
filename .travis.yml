@@ -1,6 +1,4 @@
 language: python
-dist: xenial
-# sudo: true
 
 matrix:
   include:
@@ -16,6 +14,8 @@ matrix:
   #   env: PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false'
   - os: linux
     python: 3.7
+    dist: xenial
+    sudo: true
     env: PYTHON=3.7 PANDAS=MASTER COVERAGE='false' LINT='true'
 env:
 
