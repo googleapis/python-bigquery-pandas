@@ -13,8 +13,8 @@ matrix:
   #   python: 3.6
   #   env: PYTHON=3.6 PANDAS=0.20.1 COVERAGE='false' LINT='false'
   - os: linux
-    python: 3.6
-    env: PYTHON=3.6 PANDAS=MASTER COVERAGE='false' LINT='true'
+    python: 3.7
+    env: PYTHON=3.7 PANDAS=MASTER COVERAGE='false' LINT='true'
 env:
 
 before_install:
@@ -51,7 +51,7 @@ install:
 script:
   - if [[ $PYTHON == '2.7' ]]; then nox -s test27 ; fi
   - if [[ $PYTHON == '3.5' ]]; then nox -s test35 ; fi
-  - if [[ $PYTHON == '3.6' ]] && [[ "$PANDAS" == "MASTER" ]]; then nox -s test36master ; fi
+  - if [[ $PYTHON == '3.7' ]] && [[ "$PANDAS" == "MASTER" ]]; then nox -s test37master ; fi
   - REQ="ci/requirements-${PYTHON}-${PANDAS}" ;
     if [ -f "$REQ.conda" ]; then
       pytest --quiet -m 'not local_auth' -v tests ;
