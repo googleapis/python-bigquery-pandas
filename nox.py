@@ -19,7 +19,8 @@ def default(session):
     session.install("mock", "pytest", "pytest-cov")
     session.install("-e", ".")
 
-    # Skip local auth tests on Travis.
+    # Skip local auth tests on Travis
+    # ref https://github.com/pydata/pandas-gbq/issues/189
     additional_args = list(session.posargs)
     if "TRAVIS_BUILD_DIR" in os.environ:
         additional_args = additional_args + ["-m", "not local_auth"]
