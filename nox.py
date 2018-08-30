@@ -80,8 +80,8 @@ def test36(session):
 
 
 @nox.session
-def test36master(session):
-    session.interpreter = 'python3.6'
+def test37master(session):
+    session.interpreter = 'python3.7'
     session.install(
         '--pre',
         '--upgrade',
@@ -89,7 +89,7 @@ def test36master(session):
         '-f', PANDAS_PRE_WHEELS,
         'pandas')
     session.install(
-        '-r', os.path.join('.', 'ci', 'requirements-3.6-MASTER.pip'))
+        '-r', os.path.join('.', 'ci', 'requirements-3.7-MASTER.pip'))
     default(session)
 
 
