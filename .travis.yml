@@ -7,6 +7,7 @@ matrix:
     env: PYTHON=2.7 PANDAS=0.19.2 COVERAGE='false' LINT='true'
   - os: linux
     python: 3.5
+    sudo: true
     env: PYTHON=3.5 PANDAS=0.18.1 COVERAGE='true' LINT='false'
   # TODO: fix conda issues around namespace packages
   # - os: linux
