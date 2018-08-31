@@ -210,6 +210,17 @@ def test_to_gbq_with_verbose_old_pandas_no_warnings(recwarn, min_bq_version):
         assert len(recwarn) == 0
 
 
+def test_to_gbq_doesnt_run_query(recwarn, min_bq_version):
+    try:
+        gbq.to_gbq(
+            DataFrame([[1]]), "dataset.tablename", project_id="my-project"
+        )
+    except gbq.TableCreationError:
+        pass
+
+    gbq.GbqConnector.get_client(None).query.assert_not_called()
+
+
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
     from pandas_gbq import auth
 
