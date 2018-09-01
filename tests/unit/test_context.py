@@ -29,7 +29,7 @@ def test_read_gbq_should_save_credentials(mock_get_credentials):
 
     pandas_gbq.read_gbq("SELECT 1", dialect="standard")
 
-    mock_get_credentials.assert_called_once()
+    assert mock_get_credentials.call_count == 1
     mock_get_credentials.reset_mock()
     assert pandas_gbq.context.credentials is not None
     assert pandas_gbq.context.project is not None
