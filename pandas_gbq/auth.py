@@ -160,7 +160,7 @@ def get_user_account_credentials(
             os.rename("bigquery_credentials.dat", credentials_path)
 
     credentials = None
-    if not reauth
+    if not reauth:
         credentials = load_user_account_credentials(
             try_credentials,
             project_id=project_id,
