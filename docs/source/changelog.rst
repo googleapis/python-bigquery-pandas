@@ -1,9 +1,17 @@
 Changelog
 =========
 
+.. _changelog-0.7.0:
+
+0.7.0 / [unreleased]
+--------------------
+
+- Add :class:`pandas_gbq.Context` to cache credentials in-memory, across
+  calls to ``read_gbq`` and ``to_gbq``. (:issue:`198`, :issue:`208`)
+
 .. _changelog-0.6.1:
 
-0.6.1 / [unreleased]
+0.6.1 / 2018-09-11
 --------------------
 
 - Improved ``read_gbq`` performance and memory consumption by delegating
