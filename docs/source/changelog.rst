@@ -10,7 +10,7 @@ Changelog
   calls to ``read_gbq`` and ``to_gbq``. (:issue:`198`, :issue:`208`)
 - Fast queries now do not log above ``DEBUG`` level. (:issue:`204`).
   With BigQuery's release of `clustering <https://cloud.google.com/bigquery/docs/clustered-tables>`__
-  querying smaller samples of data is now more faster and cheaper.
+  querying smaller samples of data is now faster and cheaper.
 
 .. _changelog-0.6.1:
 
