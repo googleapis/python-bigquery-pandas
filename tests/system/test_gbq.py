@@ -2,7 +2,6 @@
 
 import sys
 from datetime import datetime
-from random import randint
 import uuid
 
 import numpy as np
