@@ -33,21 +33,26 @@ def _check_google_client_version():
     # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
     bigquery_minimum_version = pkg_resources.parse_version("0.32.0")
     BIGQUERY_INSTALLED_VERSION = pkg_resources.get_distribution(
-        "google-cloud-bigquery").parsed_version
+        "google-cloud-bigquery"
+    ).parsed_version
 
     if BIGQUERY_INSTALLED_VERSION < bigquery_minimum_version:
-        raise ImportError("pandas-gbq requires google-cloud-bigquery >= {0}, "
-                          "current version {1}".format(
-                              bigquery_minimum_version,
-                              BIGQUERY_INSTALLED_VERSION))
+        raise ImportError(
+            "pandas-gbq requires google-cloud-bigquery >= {0}, "
+            "current version {1}".format(
+                bigquery_minimum_version, BIGQUERY_INSTALLED_VERSION
+            )
+        )
 
     # Add check for Pandas version before showing deprecation warning.
     # https://github.com/pydata/pandas-gbq/issues/157
     pandas_installed_version = pkg_resources.get_distribution(
-        "pandas").parsed_version
+        "pandas"
+    ).parsed_version
     pandas_version_wo_verbosity = pkg_resources.parse_version("0.23.0")
-    SHOW_VERBOSE_DEPRECATION = (pandas_installed_version >=
-                                pandas_version_wo_verbosity)
+    SHOW_VERBOSE_DEPRECATION = (
+        pandas_installed_version >= pandas_version_wo_verbosity
+    )
 
 
 def _test_google_api_imports():
@@ -56,7 +61,8 @@ def _test_google_api_imports():
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas-gbq requires google-auth-oauthlib: {0}".format(ex))
+            "pandas-gbq requires google-auth-oauthlib: {0}".format(ex)
+        )
 
     try:
         import google.auth  # noqa
@@ -67,7 +73,8 @@ def _test_google_api_imports():
         from google.cloud import bigquery  # noqa
     except ImportError as ex:
         raise ImportError(
-            "pandas-gbq requires google-cloud-bigquery: {0}".format(ex))
+            "pandas-gbq requires google-cloud-bigquery: {0}".format(ex)
+        )
 
     _check_google_client_version()
 
@@ -221,14 +228,14 @@ and :func:`pandas_gbq.to_gbq`.
 
 class GbqConnector(object):
     def __init__(
-            self,
-            project_id,
-            reauth=False,
-            private_key=None,
-            auth_local_webserver=False,
-            dialect="legacy",
-            location=None,
-            try_credentials=None,
+        self,
+        project_id,
+        reauth=False,
+        private_key=None,
+        auth_local_webserver=False,
+        dialect="legacy",
+        location=None,
+        try_credentials=None,
     ):
         global context
         from google.api_core.exceptions import GoogleAPIError
@@ -263,7 +270,8 @@ class GbqConnector(object):
 
         if self.project_id is None:
             raise ValueError(
-                "Could not determine project ID and one was not supplied.")
+                "Could not determine project ID and one was not supplied."
+            )
 
         # Cache the credentials if they haven't been set yet.
         if context.credentials is None:
@@ -275,7 +283,7 @@ class GbqConnector(object):
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
-        self.query_price_for_TB = 5. / 2**40  # USD/TB
+        self.query_price_for_TB = 5. / 2 ** 40  # USD/TB
 
     def _start_timer(self):
         self.start = time.time()
@@ -302,7 +310,8 @@ class GbqConnector(object):
         from google.cloud import bigquery
 
         return bigquery.Client(
-            project=self.project_id, credentials=self.credentials)
+            project=self.project_id, credentials=self.credentials
+        )
 
     @staticmethod
     def process_http_error(ex):
@@ -318,7 +327,8 @@ class GbqConnector(object):
 
         job_config = {
             "query": {
-                "useLegacySql": self.dialect == "legacy"
+                "useLegacySql": self.dialect
+                == "legacy"
                 # 'allowLargeResults', 'createDisposition',
                 # 'preserveNulls', destinationTable, useQueryCache
             }
@@ -329,9 +339,11 @@ class GbqConnector(object):
 
             if "query" in config and "query" in config["query"]:
                 if query is not None:
-                    raise ValueError("Query statement can't be specified "
-                                     "inside config while it is specified "
-                                     "as parameter")
+                    raise ValueError(
+                        "Query statement can't be specified "
+                        "inside config while it is specified "
+                        "as parameter"
+                    )
                 query = config["query"].pop("query")
 
         self._start_timer()
@@ -347,11 +359,13 @@ class GbqConnector(object):
         except (RefreshError, ValueError):
             if self.private_key:
                 raise AccessDenied(
-                    "The service account credentials are not valid")
+                    "The service account credentials are not valid"
+                )
             else:
                 raise AccessDenied(
                     "The credentials have been revoked or expired, "
-                    "please re-run the application to re-authorize")
+                    "please re-run the application to re-authorize"
+                )
         except self.http_error as ex:
             self.process_http_error(ex)
 
@@ -383,12 +397,17 @@ class GbqConnector(object):
         else:
             bytes_processed = query_reply.total_bytes_processed or 0
             bytes_billed = query_reply.total_bytes_billed or 0
-            logger.debug("Query done.\nProcessed: {} Billed: {}".format(
-                self.sizeof_fmt(bytes_processed),
-                self.sizeof_fmt(bytes_billed),
-            ))
-            logger.debug("Standard price: ${:,.2f} USD\n".format(
-                bytes_billed * self.query_price_for_TB))
+            logger.debug(
+                "Query done.\nProcessed: {} Billed: {}".format(
+                    self.sizeof_fmt(bytes_processed),
+                    self.sizeof_fmt(bytes_billed),
+                )
+            )
+            logger.debug(
+                "Standard price: ${:,.2f} USD\n".format(
+                    bytes_billed * self.query_price_for_TB
+                )
+            )
 
         try:
             rows_iter = query_reply.result()
@@ -405,13 +424,13 @@ class GbqConnector(object):
         return schema, result_rows
 
     def load_data(
-            self,
-            dataframe,
-            dataset_id,
-            table_id,
-            chunksize=None,
-            schema=None,
-            progress_bar=True,
+        self,
+        dataframe,
+        dataset_id,
+        table_id,
+        chunksize=None,
+        schema=None,
+        progress_bar=True,
     ):
         from pandas_gbq import load
 
@@ -430,8 +449,11 @@ class GbqConnector(object):
             if progress_bar and tqdm:
                 chunks = tqdm.tqdm(chunks)
             for remaining_rows in chunks:
-                logger.info("\rLoad is {0}% Complete".format(
-                    ((total_rows - remaining_rows) * 100) / total_rows))
+                logger.info(
+                    "\rLoad is {0}% Complete".format(
+                        ((total_rows - remaining_rows) * 100) / total_rows
+                    )
+                )
         except self.http_error as ex:
             self.process_http_error(ex)
 
@@ -474,10 +496,10 @@ class GbqConnector(object):
         """Return a sanitized version of the schema for comparisons."""
         fields_sorted = sorted(fields, key=lambda field: field["name"])
         # Ignore mode and description when comparing schemas.
-        return [{
-            "name": field["name"],
-            "type": field["type"]
-        } for field in fields_sorted]
+        return [
+            {"name": field["name"], "type": field["type"]}
+            for field in fields_sorted
+        ]
 
     def verify_schema(self, dataset_id, table_id, schema):
         """Indicate whether schemas match exactly
@@ -503,7 +525,8 @@ class GbqConnector(object):
         """
 
         fields_remote = self._clean_schema_fields(
-            self.schema(dataset_id, table_id))
+            self.schema(dataset_id, table_id)
+        )
         fields_local = self._clean_schema_fields(schema["fields"])
 
         return fields_remote == fields_local
@@ -532,14 +555,16 @@ class GbqConnector(object):
         """
 
         fields_remote = self._clean_schema_fields(
-            self.schema(dataset_id, table_id))
+            self.schema(dataset_id, table_id)
+        )
         fields_local = self._clean_schema_fields(schema["fields"])
 
         return all(field in fields_remote for field in fields_local)
 
     def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
         table = _Table(
-            self.project_id, dataset_id, private_key=self.private_key)
+            self.project_id, dataset_id, private_key=self.private_key
+        )
         table.delete(table_id)
         table.create(table_id, table_schema)
 
@@ -574,17 +599,17 @@ def _parse_data(schema, rows):
 
 
 def read_gbq(
-        query,
-        project_id=None,
-        index_col=None,
-        col_order=None,
-        reauth=False,
-        private_key=None,
-        auth_local_webserver=False,
-        dialect=None,
-        location=None,
-        configuration=None,
-        verbose=None,
+    query,
+    project_id=None,
+    index_col=None,
+    col_order=None,
+    reauth=False,
+    private_key=None,
+    auth_local_webserver=False,
+    dialect=None,
+    location=None,
+    configuration=None,
+    verbose=None,
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -709,7 +734,9 @@ def read_gbq(
         else:
             raise InvalidIndexColumn(
                 'Index column "{0}" does not exist in DataFrame.'.format(
-                    index_col))
+                    index_col
+                )
+            )
 
     # Change the order of columns in the DataFrame based on provided list
     if col_order is not None:
@@ -717,17 +744,21 @@ def read_gbq(
             final_df = final_df[col_order]
         else:
             raise InvalidColumnOrder(
-                "Column order does not match this DataFrame.")
+                "Column order does not match this DataFrame."
+            )
 
     # cast BOOLEAN and INTEGER columns from object to bool/int
     # if they dont have any nulls AND field mode is not repeated (i.e., array)
     type_map = {"BOOLEAN": bool, "INTEGER": np.int64}
     for field in schema["fields"]:
-        if (field["type"].upper() in type_map
-                and final_df[field["name"]].notnull().all()
-                and field["mode"].lower() != "repeated"):
+        if (
+            field["type"].upper() in type_map
+            and final_df[field["name"]].notnull().all()
+            and field["mode"].lower() != "repeated"
+        ):
             final_df[field["name"]] = final_df[field["name"]].astype(
-                type_map[field["type"].upper()])
+                type_map[field["type"].upper()]
+            )
 
     connector.log_elapsed_seconds(
         "Total time taken",
@@ -738,18 +769,18 @@ def read_gbq(
 
 
 def to_gbq(
-        dataframe,
-        destination_table,
-        project_id=None,
-        chunksize=None,
-        reauth=False,
-        if_exists="fail",
-        private_key=None,
-        auth_local_webserver=False,
-        table_schema=None,
-        location=None,
-        progress_bar=True,
-        verbose=None,
+    dataframe,
+    destination_table,
+    project_id=None,
+    chunksize=None,
+    reauth=False,
+    if_exists="fail",
+    private_key=None,
+    auth_local_webserver=False,
+    table_schema=None,
+    location=None,
+    progress_bar=True,
+    verbose=None,
 ):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -848,7 +879,8 @@ def to_gbq(
 
     if "." not in destination_table:
         raise NotFoundException(
-            "Invalid Table Name. Should be of the form 'datasetId.tableId' ")
+            "Invalid Table Name. Should be of the form 'datasetId.tableId' "
+        )
 
     connector = GbqConnector(
         project_id,
@@ -863,7 +895,8 @@ def to_gbq(
     dataset_id, table_id = destination_table.rsplit(".", 1)
 
     table = _Table(
-        project_id, dataset_id, reauth=reauth, private_key=private_key)
+        project_id, dataset_id, reauth=reauth, private_key=private_key
+    )
 
     if not table_schema:
         table_schema = _generate_bq_schema(dataframe)
@@ -873,19 +906,25 @@ def to_gbq(
     # If table exists, check if_exists parameter
     if table.exists(table_id):
         if if_exists == "fail":
-            raise TableCreationError("Could not create the table because it "
-                                     "already exists. "
-                                     "Change the if_exists parameter to "
-                                     "'append' or 'replace' data.")
+            raise TableCreationError(
+                "Could not create the table because it "
+                "already exists. "
+                "Change the if_exists parameter to "
+                "'append' or 'replace' data."
+            )
         elif if_exists == "replace":
-            connector.delete_and_recreate_table(dataset_id, table_id,
-                                                table_schema)
+            connector.delete_and_recreate_table(
+                dataset_id, table_id, table_schema
+            )
         elif if_exists == "append":
-            if not connector.schema_is_subset(dataset_id, table_id,
-                                              table_schema):
-                raise InvalidSchema("Please verify that the structure and "
-                                    "data types in the DataFrame match the "
-                                    "schema of the destination table.")
+            if not connector.schema_is_subset(
+                dataset_id, table_id, table_schema
+            ):
+                raise InvalidSchema(
+                    "Please verify that the structure and "
+                    "data types in the DataFrame match the "
+                    "schema of the destination table."
+                )
     else:
         table.create(table_id, table_schema)
 
@@ -971,15 +1010,16 @@ class _Table(GbqConnector):
         from google.cloud.bigquery import Table
 
         if self.exists(table_id):
-            raise TableCreationError("Table {0} already "
-                                     "exists".format(table_id))
+            raise TableCreationError(
+                "Table {0} already " "exists".format(table_id)
+            )
 
-        if not _Dataset(
-                self.project_id, private_key=self.private_key).exists(
-                    self.dataset_id):
-            _Dataset(
-                self.project_id,
-                private_key=self.private_key).create(self.dataset_id)
+        if not _Dataset(self.project_id, private_key=self.private_key).exists(
+            self.dataset_id
+        ):
+            _Dataset(self.project_id, private_key=self.private_key).create(
+                self.dataset_id
+            )
 
         table_ref = self.client.dataset(self.dataset_id).table(table_id)
         table = Table(table_ref)
@@ -1061,8 +1101,9 @@ class _Dataset(GbqConnector):
         from google.cloud.bigquery import Dataset
 
         if self.exists(dataset_id):
-            raise DatasetCreationError("Dataset {0} already "
-                                       "exists".format(dataset_id))
+            raise DatasetCreationError(
+                "Dataset {0} already " "exists".format(dataset_id)
+            )
 
         dataset = Dataset(self.client.dataset(dataset_id))
 
