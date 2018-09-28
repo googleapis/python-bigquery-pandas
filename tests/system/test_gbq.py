@@ -200,9 +200,7 @@ class TestReadGBQIntegration(object):
             private_key=self.credentials,
             dialect="legacy",
         )
-        tm.assert_frame_equal(
-            df, DataFrame({"nullable_integer": [1, None]}).astype(object)
-        )
+        tm.assert_frame_equal(df, DataFrame({"nullable_integer": [1, None]}))
 
     def test_should_properly_handle_valid_longs(self, project_id):
         query = "SELECT 1 << 62 AS valid_long"
@@ -225,7 +223,7 @@ class TestReadGBQIntegration(object):
             dialect="legacy",
         )
         tm.assert_frame_equal(
-            df, DataFrame({"nullable_long": [1 << 62, None]}).astype(object)
+            df, DataFrame({"nullable_long": [1 << 62, None]})
         )
 
     def test_should_properly_handle_null_integers(self, project_id):
@@ -344,6 +342,8 @@ class TestReadGBQIntegration(object):
             ("current_date()", "<M8[ns]"),
             ("current_timestamp()", "<M8[ns]"),
             ("current_datetime()", "<M8[ns]"),
+            ("TRUE", bool),
+            ("FALSE", bool),
         ],
     )
     def test_return_correct_types(self, project_id, expression, type_):
@@ -373,26 +373,6 @@ class TestReadGBQIntegration(object):
             dialect="legacy",
         )
         tm.assert_frame_equal(df, DataFrame({"null_timestamp": [NaT]}))
-
-    def test_should_properly_handle_true_boolean(self, project_id):
-        query = "SELECT BOOLEAN(TRUE) AS true_boolean"
-        df = gbq.read_gbq(
-            query,
-            project_id=project_id,
-            private_key=self.credentials,
-            dialect="legacy",
-        )
-        tm.assert_frame_equal(df, DataFrame({"true_boolean": [True]}))
-
-    def test_should_properly_handle_false_boolean(self, project_id):
-        query = "SELECT BOOLEAN(FALSE) AS false_boolean"
-        df = gbq.read_gbq(
-            query,
-            project_id=project_id,
-            private_key=self.credentials,
-            dialect="legacy",
-        )
-        tm.assert_frame_equal(df, DataFrame({"false_boolean": [False]}))
 
     def test_should_properly_handle_null_boolean(self, project_id):
         query = "SELECT BOOLEAN(NULL) AS null_boolean"
