@@ -345,7 +345,7 @@ class TestReadGBQIntegration(object):
         self, project_id, date_type
     ):
         query = 'SELECT {typ}("2004-09-15") AS valid_timestamp'.format(
-            date_type
+            typ=date_type
         )
         df = gbq.read_gbq(
             query,
