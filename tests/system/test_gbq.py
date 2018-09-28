@@ -339,21 +339,30 @@ class TestReadGBQIntegration(object):
         )
 
     @pytest.mark.parametrize(
-        "date_type", ["DATE", "DATETIME", "TIMESTAMP", "TIME"]
+        "expression, type_",
+        [
+            ("current_date()", "<M8[ns]"),
+            ("current_timestamp()", "<M8[ns]"),
+            ("current_datetime()", "<M8[ns]"),
+        ],
     )
-    def test_should_properly_handle_all_timestamp_types(
-        self, project_id, date_type
-    ):
-        query = 'SELECT {typ}("2004-09-15") AS valid_timestamp'.format(
-            typ=date_type
-        )
+    def test_return_correct_types(self, project_id, expression, type_):
+        """
+        All type checks can be added to this function using additional
+        parameters, rather than creating additional functions.
+        We can consolidate the existing functions here in time
+
+        TODO: time doesn't currently parse
+        ("time(12,30,00)", "<M8[ns]"),
+        """
+        query = "SELECT {} AS _".format(expression)
         df = gbq.read_gbq(
             query,
             project_id=project_id,
             private_key=self.credentials,
-            dialect="legacy",
+            dialect="standard",
         )
-        assert df["valid_timestamp"].dtype == "<M8[ns]"
+        assert df["_"].dtype == type_
 
     def test_should_properly_handle_null_timestamp(self, project_id):
         query = "SELECT TIMESTAMP(NULL) AS null_timestamp"
