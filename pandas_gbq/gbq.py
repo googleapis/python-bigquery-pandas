@@ -603,7 +603,9 @@ def _parse_data(schema, rows):
     for column in df:
         dtype = column_dtypes[column]
         if dtype:
-            df[column] = df[column].astype(column_dtypes[column])
+            df[column] = df[column].astype(
+                column_dtypes[column], errors="ignore"
+            )
     return df
 
 
