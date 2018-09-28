@@ -577,7 +577,13 @@ def _parse_schema(schema_fields):
     # see:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
-    dtype_map = {"FLOAT": np.dtype(float), "TIMESTAMP": "M8[ns]"}
+    dtype_map = {
+        "FLOAT": np.dtype(float),
+        "TIMESTAMP": "datetime64[ns]",
+        "TIME": "datetime64[ns]",
+        "DATE": "datetime64[ns]",
+        "DATETIME": "datetime64[ns]",
+    }
 
     for field in schema_fields:
         name = str(field["name"])

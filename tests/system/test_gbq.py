@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from datetime import datetime
 import uuid
+from datetime import datetime
 
 import numpy as np
 import pandas.util.testing as tm
@@ -337,6 +337,23 @@ class TestReadGBQIntegration(object):
                 }
             ),
         )
+
+    @pytest.mark.parametrize(
+        "date_type", ["DATE", "DATETIME", "TIMESTAMP", "TIME"]
+    )
+    def test_should_properly_handle_all_timestamp_types(
+        self, project_id, date_type
+    ):
+        query = 'SELECT {typ}("2004-09-15") AS valid_timestamp'.format(
+            date_type
+        )
+        df = gbq.read_gbq(
+            query,
+            project_id=project_id,
+            private_key=self.credentials,
+            dialect="legacy",
+        )
+        assert df["valid_timestamp"].dtype == "<M8[ns]"
 
     def test_should_properly_handle_null_timestamp(self, project_id):
         query = "SELECT TIMESTAMP(NULL) AS null_timestamp"
