@@ -598,11 +598,16 @@ def _parse_schema(schema_fields):
 def _parse_data(schema, rows):
 
     column_dtypes = dict(_parse_schema(schema["fields"]))
-
     df = DataFrame(data=(iter(r) for r in rows), columns=column_dtypes.keys())
+
     for column in df:
         dtype = column_dtypes[column]
-        if dtype:
+        null_safe = (
+            df[column].notnull().all()
+            or dtype == float
+            or dtype == "datetime64[ns]"
+        )
+        if dtype and null_safe:
             df[column] = df[column].astype(
                 column_dtypes[column], errors="ignore"
             )
