@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import warnings
+from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
@@ -597,7 +598,7 @@ def _parse_schema(schema_fields):
 
 def _parse_data(schema, rows):
 
-    column_dtypes = dict(_parse_schema(schema["fields"]))
+    column_dtypes = OrderedDict(_parse_schema(schema["fields"]))
     df = DataFrame(data=(iter(r) for r in rows), columns=column_dtypes.keys())
 
     for column in df:
