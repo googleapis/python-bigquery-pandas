@@ -283,7 +283,7 @@ class GbqConnector(object):
 
         # BQ Queries costs $5 per TB. First 1 TB per month is free
         # see here for more: https://cloud.google.com/bigquery/pricing
-        self.query_price_for_TB = 5. / 2 ** 40  # USD/TB
+        self.query_price_for_TB = 5.0 / 2 ** 40  # USD/TB
 
     def _start_timer(self):
         self.start = time.time()
