@@ -758,19 +758,6 @@ def read_gbq(
                 "Column order does not match this DataFrame."
             )
 
-    # cast BOOLEAN and INTEGER columns from object to bool/int
-    # if they dont have any nulls AND field mode is not repeated (i.e., array)
-    # type_map = {"BOOLEAN": bool, "INTEGER": np.int64}
-    # for field in schema["fields"]:
-    #     if (
-    #         field["type"].upper() in type_map
-    #         and final_df[field["name"]].notnull().all()
-    #         and field["mode"].lower() != "repeated"
-    #     ):
-    #         final_df[field["name"]] = final_df[field["name"]].astype(
-    #             type_map[field["type"].upper()]
-    #         )
-
     connector.log_elapsed_seconds(
         "Total time taken",
         datetime.now().strftime("s.\nFinished at %Y-%m-%d %H:%M:%S."),
