@@ -1,6 +1,11 @@
 Changelog
 =========
 
+.. _changelog-0.7.1:
+
+0.7.1 / unreleased
+--------------------
+
 - Allow newlines in data passed to ``to_gbq``. (:issue:`180`)
 
 .. _changelog-0.7.0:
