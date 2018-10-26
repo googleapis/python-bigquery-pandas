@@ -20,6 +20,16 @@ key file.
 
 To use service account credentials, set the ``credentials`` parameter to the result of a call to:
 
+* :func:`google.oauth2.service_account.Credentials.from_service_account_file`,
+    which accepts a file path to the JSON file.
+
+    .. code:: python
+
+        credentials = google.oauth2.service_account.Credentials.from_service_account_file(
+            'path/to/key.json',
+        )
+        df = pandas_gbq.read_gbq(sql, project_id="YOUR-PROJECT-ID", credentials=credentials)
+
 * :func:`google.oauth2.service_account.Credentials.from_service_account_info`,
     which accepts a dictionary corresponding to the JSON file contents.
 
@@ -38,16 +48,6 @@ To use service account credentials, set the ``credentials`` parameter to the res
                 "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                 "client_x509_cert_url": "https://www.googleapis.com/...iam.gserviceaccount.com"
             },
-        )
-        df = pandas_gbq.read_gbq(sql, project_id="YOUR-PROJECT-ID", credentials=credentials)
-
-* :func:`google.oauth2.service_account.Credentials.from_service_account_file`,
-    which accepts a file path to the JSON file.
-
-    .. code:: python
-
-        credentials = google.oauth2.service_account.Credentials.from_service_account_file(
-            'path/to/key.json',
         )
         df = pandas_gbq.read_gbq(sql, project_id="YOUR-PROJECT-ID", credentials=credentials)
 
