@@ -16,7 +16,7 @@ Breaking changes
   or
   :func:`google.oauth2.service_account.Credentials.from_service_account_file`.
   See the :doc:`authentication how-to guide <howto/authentication>` for
-  examples. (:issue:`161`, :issue:`TODO`)
+  examples. (:issue:`161`, :issue:`231`)
 
 Enhancements
 ~~~~~~~~~~~~
