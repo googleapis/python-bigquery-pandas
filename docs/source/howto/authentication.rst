@@ -87,8 +87,7 @@ methods:
 3. User account credentials.
 
    pandas-gbq loads cached credentials from a hidden user folder on the
-   operating system. Override the location of the cached user credentials
-   by setting the ``PANDAS_GBQ_CREDENTIALS_FILE`` environment variable.
+   operating system.
 
    If pandas-gbq does not find cached credentials, it opens a browser window
    asking for you to authenticate to your BigQuery account using the product
