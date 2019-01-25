@@ -1,11 +1,9 @@
 import logging
 import time
 import warnings
-from collections import OrderedDict
 from datetime import datetime
 
 import numpy as np
-from pandas import DataFrame
 
 from pandas_gbq.exceptions import AccessDenied
 
@@ -482,15 +480,9 @@ class GbqConnector(object):
             rows_iter = query_reply.result()
         except self.http_error as ex:
             self.process_http_error(ex)
-        result_rows = list(rows_iter)
-        total_rows = rows_iter.total_rows
-        schema = {
-            "fields": [field.to_api_repr() for field in rows_iter.schema]
-        }
-
-        logger.debug("Got {} rows.\n".format(total_rows))
-
-        return schema, result_rows
+        df = rows_iter.to_dataframe()
+        logger.debug("Got {} rows.\n".format(rows_iter.total_rows))
+        return df
 
     def load_data(
         self,
@@ -661,25 +653,6 @@ def _parse_schema(schema_fields):
             yield name, dtype
 
 
-def _parse_data(schema, rows):
-
-    column_dtypes = OrderedDict(_parse_schema(schema["fields"]))
-    df = DataFrame(data=(iter(r) for r in rows), columns=column_dtypes.keys())
-
-    for column in df:
-        dtype = column_dtypes[column]
-        null_safe = (
-            df[column].notnull().all()
-            or dtype == float
-            or dtype == "datetime64[ns]"
-        )
-        if dtype and null_safe:
-            df[column] = df[column].astype(
-                column_dtypes[column], errors="ignore"
-            )
-    return df
-
-
 def read_gbq(
     query,
     project_id=None,
@@ -825,8 +798,8 @@ def read_gbq(
         credentials=credentials,
         private_key=private_key,
     )
-    schema, rows = connector.run_query(query, configuration=configuration)
-    final_df = _parse_data(schema, rows)
+
+    final_df = connector.run_query(query, configuration=configuration)
 
     # Reindex the DataFrame on the provided column
     if index_col is not None:
