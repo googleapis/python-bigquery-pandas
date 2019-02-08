@@ -138,14 +138,6 @@ class TestGBQConnectorIntegration(object):
         bigquery_client = gbq_connector.get_client()
         assert bigquery_client is not None
 
-    def test_should_be_able_to_get_schema_from_query(self, gbq_connector):
-        schema, pages = gbq_connector.run_query("SELECT 1")
-        assert schema is not None
-
-    def test_should_be_able_to_get_results_from_query(self, gbq_connector):
-        schema, pages = gbq_connector.run_query("SELECT 1")
-        assert pages is not None
-
 
 def test_should_read(project, credentials):
     query = 'SELECT "PI" AS valid_string'

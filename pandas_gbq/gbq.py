@@ -480,7 +480,10 @@ class GbqConnector(object):
             rows_iter = query_reply.result()
         except self.http_error as ex:
             self.process_http_error(ex)
-        df = rows_iter.to_dataframe()
+
+        schema_fields = [field.to_api_repr() for field in rows_iter.schema]
+        dtypes = _bqschema_to_dtypes(schema_fields)
+        df = rows_iter.to_dataframe(dtypes=dtypes)
         logger.debug("Got {} rows.\n".format(rows_iter.total_rows))
         return df
 
@@ -630,27 +633,32 @@ class GbqConnector(object):
         table.create(table_id, table_schema)
 
 
-def _parse_schema(schema_fields):
+def _bqschema_to_dtypes(schema_fields):
+    # Only specify dtype when the dtype allows nulls. Otherwise, use pandas's
+    # default dtype choice.
+    #
     # see:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
     dtype_map = {
         "FLOAT": np.dtype(float),
-        "TIMESTAMP": "datetime64[ns]",
+        "TIMESTAMP": "datetime64[ns, UTC]",
         "TIME": "datetime64[ns]",
         "DATE": "datetime64[ns]",
         "DATETIME": "datetime64[ns]",
-        "BOOLEAN": bool,
-        "INTEGER": np.int64,
     }
 
+    dtypes = {}
     for field in schema_fields:
         name = str(field["name"])
         if field["mode"].upper() == "REPEATED":
-            yield name, object
-        else:
-            dtype = dtype_map.get(field["type"].upper())
-            yield name, dtype
+            continue
+
+        dtype = dtype_map.get(field["type"].upper())
+        if dtype:
+            dtypes[name] = dtype
+
+    return dtypes
 
 
 def read_gbq(
