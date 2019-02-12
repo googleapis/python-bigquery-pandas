@@ -1,4 +1,3 @@
-
 import pandas_gbq
 
 # Select 163 MB worth of data, to time how long it takes to download large

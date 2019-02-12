@@ -1,4 +1,3 @@
-
 import pandas_gbq
 
 # Select a few KB worth of data, to time downloading small result sets.
