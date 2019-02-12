@@ -75,7 +75,7 @@ def no_auth(monkeypatch):
     ],
 )
 def test_should_return_bigquery_correctly_typed(type_, expected):
-    result = gbq._bqschema_to_dtypes(
+    result = gbq._bqschema_to_nullsafe_dtypes(
         [dict(name="x", type=type_, mode="NULLABLE")]
     )
     if not expected:

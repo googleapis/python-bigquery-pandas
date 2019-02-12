@@ -482,8 +482,12 @@ class GbqConnector(object):
             self.process_http_error(ex)
 
         schema_fields = [field.to_api_repr() for field in rows_iter.schema]
-        dtypes = _bqschema_to_dtypes(schema_fields)
-        df = rows_iter.to_dataframe(dtypes=dtypes)
+        nullsafe_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
+        df = rows_iter.to_dataframe(dtypes=nullsafe_dtypes)
+
+        if df.empty:
+            df = _cast_empty_df_dtypes(schema_fields, df)
+
         logger.debug("Got {} rows.\n".format(rows_iter.total_rows))
         return df
 
@@ -633,11 +637,11 @@ class GbqConnector(object):
         table.create(table_id, table_schema)
 
 
-def _bqschema_to_dtypes(schema_fields):
+def _bqschema_to_nullsafe_dtypes(schema_fields):
     # Only specify dtype when the dtype allows nulls. Otherwise, use pandas's
     # default dtype choice.
     #
-    # see:
+    # See:
     # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     # #missing-data-casting-rules-and-indexing
     dtype_map = {
@@ -659,6 +663,37 @@ def _bqschema_to_dtypes(schema_fields):
             dtypes[name] = dtype
 
     return dtypes
+
+
+def _cast_empty_df_dtypes(schema_fields, df):
+    """Cast any columns in an empty dataframe to correct type.
+
+    In an empty dataframe, pandas cannot choose a dtype unless one is
+    explicitly provided. The _bqschema_to_nullsafe_dtypes() function only
+    provides dtypes when the dtype safely handles null values. This means
+    that empty int64 and boolean columns are incorrectly classified as
+    ``object``.
+    """
+    if not df.empty:
+        raise ValueError(
+            "DataFrame must be empty in order to cast non-nullsafe dtypes"
+        )
+
+    dtype_map = {
+        "BOOLEAN": bool,
+        "INTEGER": np.int64,
+    }
+
+    for field in schema_fields:
+        column = str(field["name"])
+        if field["mode"].upper() == "REPEATED":
+            continue
+
+        dtype = dtype_map.get(field["type"].upper())
+        if dtype:
+            df[column] = df[column].astype(dtype)
+
+    return df
 
 
 def read_gbq(

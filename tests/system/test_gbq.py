@@ -590,8 +590,8 @@ class TestReadGBQIntegration(object):
         )
         empty_columns = {
             "title": pandas.Series([], dtype=object),
-            "id": pandas.Series([], dtype=object),
-            "is_bot": pandas.Series([], dtype=object),
+            "id": pandas.Series([], dtype=np.dtype(int)),
+            "is_bot": pandas.Series([], dtype=np.dtype(bool)),
             "ts": pandas.Series([], dtype="datetime64[ns, UTC]"),
         }
         expected_result = DataFrame(empty_columns)
