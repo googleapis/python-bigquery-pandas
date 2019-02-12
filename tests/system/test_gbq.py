@@ -344,7 +344,7 @@ class TestReadGBQIntegration(object):
         tm.assert_frame_equal(
             df,
             DataFrame(
-                {"unix_epoch": ["1970-01-01T00:00:00.000000Z"]},
+                {"unix_epoch": ["1970-01-01T00:00:00"]},
                 dtype="datetime64[ns]",
             ),
         )
@@ -362,7 +362,7 @@ class TestReadGBQIntegration(object):
             DataFrame(
                 {
                     "valid_timestamp": [
-                        np.datetime64("2004-09-15T05:00:00.000000Z")
+                        np.datetime64("2004-09-15T05:00:00")
                     ]
                 }
             ),
