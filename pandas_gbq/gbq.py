@@ -679,10 +679,7 @@ def _cast_empty_df_dtypes(schema_fields, df):
             "DataFrame must be empty in order to cast non-nullsafe dtypes"
         )
 
-    dtype_map = {
-        "BOOLEAN": bool,
-        "INTEGER": np.int64,
-    }
+    dtype_map = {"BOOLEAN": bool, "INTEGER": np.int64}
 
     for field in schema_fields:
         column = str(field["name"])
