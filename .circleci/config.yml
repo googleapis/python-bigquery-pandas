@@ -36,6 +36,10 @@ jobs:
   "lint":
     docker:
       - image: thekevjames/nox
+    environment:
+      # Resolve "Python 3 was configured to use ASCII as encoding for the environment"
+      LC_ALL: C.UTF-8
+      LANG: C.UTF-8
     steps:
       - checkout
       - run: nox -s lint
