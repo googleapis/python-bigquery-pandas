@@ -35,7 +35,7 @@ def unit(session):
     session.run(
         "pytest",
         os.path.join(".", "tests", "unit"),
-        "--quiet",
+        "-v",
         "--cov=pandas_gbq",
         "--cov=tests.unit",
         "--cov-report",
@@ -74,6 +74,6 @@ def system(session):
     session.run(
         "pytest",
         os.path.join(".", "tests", "system"),
-        "--quiet",
+        "-v",
         *additional_args
     )
