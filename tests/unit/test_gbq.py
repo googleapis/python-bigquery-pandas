@@ -23,7 +23,7 @@ pytestmark = pytest.mark.filter_warnings(
 def min_bq_version():
     import pkg_resources
 
-    return pkg_resources.parse_version("0.32.0")
+    return pkg_resources.parse_version("1.9.0")
 
 
 def mock_none_credentials(*args, **kwargs):
