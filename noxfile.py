@@ -28,9 +28,7 @@ def blacken(session):
     session.run("black", ".")
 
 
-@nox.session(
-    python=supported_pythons,
-)
+@nox.session(python=supported_pythons)
 def unit(session):
     session.install("mock", "pytest", "pytest-cov")
     session.install("-e", ".")
@@ -53,20 +51,20 @@ def cover(session, python=latest_python):
     session.run("coverage", "erase")
 
 
-@nox.session(
-    python=supported_pythons,
-)
+@nox.session(python=supported_pythons)
 def system(session):
     session.install("pytest", "pytest-cov")
     session.install(
-        "-r", os.path.join(".", "ci", "requirements-{}.pip".format(session.python))
+        "-r",
+        os.path.join(".", "ci", "requirements-{}.pip".format(session.python)),
     )
     session.install(
         "-e",
         ".",
         # Use dependencies from requirements file instead.
         # This enables testing with specific versions of the dependencies.
-        "--no-dependencies")
+        "--no-dependencies",
+    )
 
     # Skip local auth tests on Travis.
     additional_args = list(session.posargs)
