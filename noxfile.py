@@ -66,14 +66,11 @@ def system(session):
         "--no-dependencies",
     )
 
-    # Skip local auth tests on Travis.
+    # Skip local auth tests on CI.
     additional_args = list(session.posargs)
     if "CIRCLECI" in os.environ:
         additional_args = additional_args + ["-m", "not local_auth"]
 
     session.run(
-        "pytest",
-        os.path.join(".", "tests", "system"),
-        "-v",
-        *additional_args
+        "pytest", os.path.join(".", "tests", "system"), "-v", *additional_args
     )
