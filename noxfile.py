@@ -68,7 +68,7 @@ def system(session):
 
     # Skip local auth tests on Travis.
     additional_args = list(session.posargs)
-    if "TRAVIS_BUILD_DIR" in os.environ:
+    if "CIRCLECI" in os.environ:
         additional_args = additional_args + ["-m", "not local_auth"]
 
     session.run(
