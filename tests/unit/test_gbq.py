@@ -4,7 +4,6 @@ import pandas.util.testing as tm
 import pytest
 import numpy
 from pandas import DataFrame
-from pandas.compat.numpy import np_datetime64_compat
 
 import pandas_gbq.exceptions
 from pandas_gbq import gbq
