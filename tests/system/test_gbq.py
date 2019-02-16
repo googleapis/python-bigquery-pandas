@@ -589,7 +589,9 @@ class TestReadGBQIntegration(object):
             "is_bot": pandas.Series([], dtype=np.dtype(bool)),
             "ts": pandas.Series([], dtype="datetime64[ns, UTC]"),
         }
-        expected_result = DataFrame(empty_columns)
+        expected_result = DataFrame(
+            empty_columns, columns=["title", "id", "is_bot", "ts"]
+        )
         tm.assert_frame_equal(df, expected_result, check_index_type=False)
 
     def test_one_row_one_column(self, project_id):
