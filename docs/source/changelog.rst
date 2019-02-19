@@ -6,6 +6,9 @@ Changelog
 0.10.0 / TBD
 ------------
 
+- ``read_gbq()`` converts BigQuery ``TIMESTAMP`` columns to the
+  timezone-aware ``datetime64`` ``dtype``. (:issue:`247`)
+
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
 
