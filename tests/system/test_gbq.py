@@ -400,8 +400,7 @@ class TestReadGBQIntegration(object):
             dialect="legacy",
         )
         tm.assert_frame_equal(
-            df,
-            DataFrame({"null_timestamp": [NaT]}, dtype="datetime64[ns]"),
+            df, DataFrame({"null_timestamp": [NaT]}, dtype="datetime64[ns]")
         )
 
     def test_should_properly_handle_null_datetime(self, project_id):
