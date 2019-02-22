@@ -246,6 +246,28 @@ def test_to_gbq_doesnt_run_query(
     mock_bigquery_client.query.assert_not_called()
 
 
+def test_to_gbq_uploading_empty_dataframe(
+    recwarn, min_bq_version, monkeypatch
+):
+    import pkg_resources
+
+    pandas_version = pkg_resources.parse_version("0.23.0")
+    with pytest.warns(FutureWarning), mock.patch(
+        "pkg_resources.Distribution.parsed_version",
+        new_callable=mock.PropertyMock,
+    ) as mock_version:
+        mock_version.side_effect = [min_bq_version, pandas_version]
+        try:
+            gbq.to_gbq(
+                DataFrame(),
+                "dataset.tablename",
+                project_id="my-project",
+                verbose=True,
+            )
+        except gbq.TableCreationError:
+            pass
+
+
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
     import pydata_google_auth
 
