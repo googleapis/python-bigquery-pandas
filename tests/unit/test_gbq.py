@@ -69,7 +69,7 @@ def no_auth(monkeypatch):
         ("INTEGER", None),  # Can't handle NULL
         ("BOOLEAN", None),  # Can't handle NULL
         ("FLOAT", numpy.dtype(float)),
-        ("TIMESTAMP", "datetime64[ns, UTC]"),
+        ("TIMESTAMP", "datetime64[ns]"),
         ("DATETIME", "datetime64[ns]"),
     ],
 )

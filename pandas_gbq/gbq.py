@@ -646,7 +646,10 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     # #missing-data-casting-rules-and-indexing
     dtype_map = {
         "FLOAT": np.dtype(float),
-        "TIMESTAMP": "datetime64[ns, UTC]",
+        # Even though TIMESTAMPs are timezone-aware in BigQuery, pandas doesn't
+        # support datetime64[ns, UTC] as dtype in DataFrame constructors. See:
+        # https://github.com/pandas-dev/pandas/issues/12513
+        "TIMESTAMP": "datetime64[ns]",
         "TIME": "datetime64[ns]",
         "DATE": "datetime64[ns]",
         "DATETIME": "datetime64[ns]",

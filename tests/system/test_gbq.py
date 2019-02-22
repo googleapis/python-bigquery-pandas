@@ -313,7 +313,7 @@ class TestReadGBQIntegration(object):
             df,
             DataFrame(
                 {"unix_epoch": ["1970-01-01T00:00:00.000000Z"]},
-                dtype="datetime64[ns, UTC]",
+                dtype="datetime64[ns]",
             ),
         )
 
@@ -329,7 +329,7 @@ class TestReadGBQIntegration(object):
             df,
             DataFrame(
                 {"valid_timestamp": ["2004-09-15T05:00:00.000000Z"]},
-                dtype="datetime64[ns, UTC]",
+                dtype="datetime64[ns]",
             ),
         )
 
@@ -367,7 +367,7 @@ class TestReadGBQIntegration(object):
         "expression, type_",
         [
             ("current_date()", "<M8[ns]"),
-            ("current_timestamp()", "datetime64[ns, UTC]"),
+            ("current_timestamp()", "datetime64[ns]"),
             ("current_datetime()", "<M8[ns]"),
             ("TRUE", bool),
             ("FALSE", bool),
@@ -401,7 +401,7 @@ class TestReadGBQIntegration(object):
         )
         tm.assert_frame_equal(
             df,
-            DataFrame({"null_timestamp": [NaT]}, dtype="datetime64[ns, UTC]"),
+            DataFrame({"null_timestamp": [NaT]}, dtype="datetime64[ns]"),
         )
 
     def test_should_properly_handle_null_datetime(self, project_id):
@@ -587,7 +587,7 @@ class TestReadGBQIntegration(object):
             "title": pandas.Series([], dtype=object),
             "id": pandas.Series([], dtype=np.dtype(int)),
             "is_bot": pandas.Series([], dtype=np.dtype(bool)),
-            "ts": pandas.Series([], dtype="datetime64[ns, UTC]"),
+            "ts": pandas.Series([], dtype="datetime64[ns]"),
         }
         expected_result = DataFrame(
             empty_columns, columns=["title", "id", "is_bot", "ts"]
