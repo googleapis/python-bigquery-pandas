@@ -520,8 +520,7 @@ class GbqConnector(object):
             for remaining_rows in chunks:
                 logger.info(
                     "\r{} out of {} rows loaded.".format(
-                        total_rows - remaining_rows,
-                        total_rows
+                        total_rows - remaining_rows, total_rows
                     )
                 )
         except self.http_error as ex:
