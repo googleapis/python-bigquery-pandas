@@ -8,6 +8,23 @@ Changelog
 
 - This fixes a bug where pandas-gbq could not upload an empty database. (:issue:`237`)
 
+
+0.10.0 / TBD
+------------
+
+Dependency updates
+~~~~~~~~~~~~~~~~~~
+
+- Update the minimum version of ``google-cloud-bigquery`` to 1.9.0.
+  (:issue:`247`)
+
+Internal changes
+~~~~~~~~~~~~~~~~
+
+- Use ``to_dataframe()`` from ``google-cloud-bigquery`` in the ``read_gbq()``
+  function. (:issue:`247`)
+
+
 .. _changelog-0.9.0:
 
 0.9.0 / 2019-01-11
