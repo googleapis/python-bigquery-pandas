@@ -1,13 +1,15 @@
 Changelog
 =========
 
-.. _changelog-0.10.0:
+.. _changelog-0.11.0:
 
-0.10.0 / 2019-02-25
+0.11.0 / 2019-02-25
 ------------------
 
 - This fixes a bug where pandas-gbq could not upload an empty database. (:issue:`237`)
 
+
+.. _changelog-0.10.0:
 
 0.10.0 / TBD
 ------------
