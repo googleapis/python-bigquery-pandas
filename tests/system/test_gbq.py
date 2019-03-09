@@ -902,7 +902,9 @@ class TestToGBQIntegration(object):
         )
         self.destination_table = "{}.{}".format(random_dataset_id, TABLE_ID)
         self.credentials = credentials
-        self.bqclient = bigquery.Client(project=project, credentials=credentials)
+        self.bqclient = bigquery.Client(
+            project=project, credentials=credentials
+        )
 
     def test_upload_data(self, project_id):
         test_id = "1"
@@ -950,7 +952,7 @@ class TestToGBQIntegration(object):
             {
                 "a": pandas.Series(dtype="int64"),
                 "b": pandas.Series(dtype="object"),
-            },
+            }
         )
 
         gbq.to_gbq(
