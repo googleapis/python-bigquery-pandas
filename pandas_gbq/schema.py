@@ -46,7 +46,7 @@ def update_schema(schema_old, schema_new):
     """
     old_fields = schema_old["fields"]
     new_fields = schema_new["fields"]
-    output_fields = old_fields.copy()
+    output_fields = list(old_fields)
 
     field_indices = {field["name"]: i for i, field in enumerate(output_fields)}
 
