@@ -55,16 +55,19 @@ def test_generate_bq_schema(dataframe, expected_schema):
     schema = pandas_gbq.schema.generate_bq_schema(dataframe)
     assert schema == expected_schema
 
+
 @pytest.mark.parametrize(
     "schema_old,schema_new,expected_output",
     [
         (
             {"fields": [{"name": "col1", "type": "INTEGER"}]},
             {"fields": [{"name": "col2", "type": "TIMESTAMP"}]},
-            {"fields": [
-                {"name": "col1", "type": "INTEGER"},
-                {"name": "col2", "type": "TIMESTAMP"}
-            ]},
+            {
+                "fields": [
+                    {"name": "col1", "type": "INTEGER"},
+                    {"name": "col2", "type": "TIMESTAMP"},
+                ]
+            },
         ),
         (
             {"fields": [{"name": "col1", "type": "INTEGER"}]},
@@ -72,21 +75,27 @@ def test_generate_bq_schema(dataframe, expected_schema):
             {"fields": [{"name": "col1", "type": "BOOLEAN"}]},
         ),
         (
-            {"fields": [
-                {"name": "col1", "type": "INTEGER"},
-                {"name": "col2", "type": "INTEGER"}
-            ]},
-            {"fields": [
-                {"name": "col2", "type": "BOOLEAN"},
-                {"name": "col3", "type": "FLOAT"}
-            ]},
-            {"fields": [
-                {"name": "col1", "type": "INTEGER"},
-                {"name": "col2", "type": "BOOLEAN"},
-                {"name": "col3", "type": "FLOAT"}
-            ]},
-        )
-    ]
+            {
+                "fields": [
+                    {"name": "col1", "type": "INTEGER"},
+                    {"name": "col2", "type": "INTEGER"},
+                ]
+            },
+            {
+                "fields": [
+                    {"name": "col2", "type": "BOOLEAN"},
+                    {"name": "col3", "type": "FLOAT"},
+                ]
+            },
+            {
+                "fields": [
+                    {"name": "col1", "type": "INTEGER"},
+                    {"name": "col2", "type": "BOOLEAN"},
+                    {"name": "col3", "type": "FLOAT"},
+                ]
+            },
+        ),
+    ],
 )
 def test_update_schema(schema_old, schema_new, expected_output):
     output = pandas_gbq.schema.update_schema(schema_old, schema_new)

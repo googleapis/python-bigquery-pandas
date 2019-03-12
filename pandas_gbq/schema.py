@@ -60,4 +60,3 @@ def update_schema(schema_old, schema_new):
             output_fields.append(field)
 
     return {"fields": output_fields}
-

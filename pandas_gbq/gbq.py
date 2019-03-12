@@ -1027,7 +1027,9 @@ def to_gbq(
     if not table_schema:
         table_schema = default_schema
     else:
-        table_schema = _update_bq_schema(default_schema, dict(fields=table_schema))
+        table_schema = _update_bq_schema(
+            default_schema, dict(fields=table_schema)
+        )
 
     # If table exists, check if_exists parameter
     if table.exists(table_id):
