@@ -1023,10 +1023,11 @@ def to_gbq(
         credentials=connector.credentials,
     )
 
+    default_schema = _generate_bq_schema(dataframe)
     if not table_schema:
-        table_schema = _generate_bq_schema(dataframe)
+        table_schema = default_schema
     else:
-        table_schema = dict(fields=table_schema)
+        table_schema = _update_bq_schema(default_schema, dict(fields=table_schema))
 
     # If table exists, check if_exists parameter
     if table.exists(table_id):
@@ -1089,6 +1090,12 @@ def _generate_bq_schema(df, default_type="STRING"):
     from pandas_gbq import schema
 
     return schema.generate_bq_schema(df, default_type=default_type)
+
+
+def _update_bq_schema(schema_old, schema_new):
+    from pandas_gbq import schema
+
+    return schema.update_schema(schema_old, schema_new)
 
 
 class _Table(GbqConnector):
