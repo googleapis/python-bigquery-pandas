@@ -939,9 +939,11 @@ def to_gbq(
         'STRING'},...]``.
         If schema is not provided, it will be
         generated according to dtypes of DataFrame columns.
-        If schema is provided, it must contain all DataFrame columns.
-        pandas_gbq.gbq._generate_bq_schema() may be used to create an initial
-        schema, though it doesn't preserve column order.
+        If schema is provided, it may contain all or a subset of DataFrame
+        columns. If a subset is provided, the rest will be inferred from
+        the DataFrame dtypes.
+        pandas_gbq.gbq._generate_bq_schema() may be used to create an
+        initial schema, though it doesn't preserve column order.
         See BigQuery API documentation on available names of a field.
 
         .. versionadded:: 0.3.1
