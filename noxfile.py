@@ -56,19 +56,21 @@ def cover(session, python=latest_python):
 def docs(session):
     """Build the docs."""
 
-    session.install('-r', os.path.join('docs', 'requirements-docs.txt'))
-    session.install('-e', '.')
+    session.install("-r", os.path.join("docs", "requirements-docs.txt"))
+    session.install("-e", ".")
 
-    shutil.rmtree(os.path.join('docs', 'source', '_build'), ignore_errors=True)
+    shutil.rmtree(os.path.join("docs", "source", "_build"), ignore_errors=True)
     session.run(
-        'sphinx-build',
-        '-W',  # warnings as errors
-        '-T',  # show full traceback on exception
-        '-N',  # no colors
-        '-b', 'html',
-        '-d', os.path.join('docs', 'source', '_build', 'doctrees', ''),
-        os.path.join('docs', 'source', ''),
-        os.path.join('docs', 'source', '_build', 'html', ''),
+        "sphinx-build",
+        "-W",  # warnings as errors
+        "-T",  # show full traceback on exception
+        "-N",  # no colors
+        "-b",
+        "html",
+        "-d",
+        os.path.join("docs", "source", "_build", "doctrees", ""),
+        os.path.join("docs", "source", ""),
+        os.path.join("docs", "source", "_build", "html", ""),
     )
 
 

@@ -65,7 +65,9 @@ master_doc = "index"
 
 # General information about the project.
 project = u"pandas-gbq"
-copyright = u"2017-{}, PyData Development Team".format(datetime.datetime.now().year)
+copyright = u"2017-{}, PyData Development Team".format(
+    datetime.datetime.now().year
+)
 author = u"PyData Development Team"
 
 # The version info for the project you're documenting, acts as replacement for
