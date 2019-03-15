@@ -1007,7 +1007,9 @@ def to_gbq(
         raise NotFoundException(
             "Invalid Table Name. Should be of the form 'datasetId.tableId' "
         )
-
+    if project_id is None and credentials is not None and credentials.__class__.__name__.endswith("Credentials"):
+        project_id = credentials.project_id
+    
     connector = GbqConnector(
         project_id,
         reauth=reauth,
