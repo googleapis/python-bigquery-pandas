@@ -931,7 +931,6 @@ class TestToGBQIntegration(object):
 
     def test_upload_empty_data(self, project_id):
         test_id = "data_with_0_rows"
-        test_size = 0
         df = DataFrame()
 
         gbq.to_gbq(
@@ -947,7 +946,6 @@ class TestToGBQIntegration(object):
 
     def test_upload_empty_data_with_schema(self, project_id):
         test_id = "data_with_0_rows"
-        test_size = 0
         df = DataFrame(
             {
                 "a": pandas.Series(dtype="int64"),
