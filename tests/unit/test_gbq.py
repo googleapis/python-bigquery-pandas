@@ -47,6 +47,24 @@ def mock_get_credentials(*args, **kwargs):
     return mock_credentials, "default-project"
 
 
+def mock_get_service_account_credentials(*args, **kwargs):
+    import google.oauth2.service_account
+
+    mock_credentials = mock.create_autospec(
+        google.oauth2.service_account.Credentials
+    )
+    return mock_credentials, mock_credentials.project_id
+
+
+def mock_get_compute_engine_credentials(*args, **kwargs):
+    import google.auth.compute_engine
+
+    mock_credentials = mock.create_autospec(
+        google.auth.compute_engine.Credentials
+    )
+    return mock_credentials, None
+
+
 def mock_get_user_credentials(*args, **kwargs):
     import google.auth.credentials
 
@@ -97,6 +115,46 @@ def test_to_gbq_with_no_project_id_given_should_fail(monkeypatch):
 
     with pytest.raises(ValueError) as exception:
         gbq.to_gbq(DataFrame([[1]]), "dataset.tablename")
+    assert "Could not determine project ID" in str(exception)
+    
+
+def test_to_gbq_read_projectid_from_service_account_credentials(min_bq_version):
+    import pkg_resources
+
+    credentials, _ = mock_get_service_account_credentials()
+    pandas_version = pkg_resources.parse_version("0.24.0")
+    with mock.patch(
+        "pkg_resources.Distribution.parsed_version",
+        new_callable=mock.PropertyMock,
+    ) as mock_version:
+        mock_version.side_effect = [min_bq_version, pandas_version]
+        try:
+            gbq.to_gbq(
+                DataFrame([[1]]),
+                "dataset.tablename",
+                credentials=credentials
+            )
+        except gbq.TableCreationError:
+            pass
+
+def test_to_gbq_read_projectid_from_compute_engine_credentials(min_bq_version):
+    import pkg_resources
+
+    credentials, _ = mock_get_compute_engine_credentials()
+    pandas_version = pkg_resources.parse_version("0.24.0")
+    with mock.patch(
+        "pkg_resources.Distribution.parsed_version",
+        new_callable=mock.PropertyMock,
+    ) as mock_version, pytest.raises(ValueError) as exception:
+        mock_version.side_effect = [min_bq_version, pandas_version]
+        try:
+            gbq.to_gbq(
+                DataFrame([[1]]),
+                "dataset.tablename",
+                credentials=credentials
+            )
+        except gbq.TableCreationError:
+            pass
     assert "Could not determine project ID" in str(exception)
 
 
