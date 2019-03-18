@@ -116,9 +116,11 @@ def test_to_gbq_with_no_project_id_given_should_fail(monkeypatch):
     with pytest.raises(ValueError) as exception:
         gbq.to_gbq(DataFrame([[1]]), "dataset.tablename")
     assert "Could not determine project ID" in str(exception)
-    
 
-def test_to_gbq_read_projectid_from_service_account_credentials(min_bq_version):
+
+def test_to_gbq_read_projectid_from_service_account_credentials(
+    min_bq_version
+):
     import pkg_resources
 
     credentials, _ = mock_get_service_account_credentials()
@@ -130,12 +132,11 @@ def test_to_gbq_read_projectid_from_service_account_credentials(min_bq_version):
         mock_version.side_effect = [min_bq_version, pandas_version]
         try:
             gbq.to_gbq(
-                DataFrame([[1]]),
-                "dataset.tablename",
-                credentials=credentials
+                DataFrame([[1]]), "dataset.tablename", credentials=credentials
             )
         except gbq.TableCreationError:
             pass
+
 
 def test_to_gbq_read_projectid_from_compute_engine_credentials(min_bq_version):
     import pkg_resources
@@ -149,9 +150,7 @@ def test_to_gbq_read_projectid_from_compute_engine_credentials(min_bq_version):
         mock_version.side_effect = [min_bq_version, pandas_version]
         try:
             gbq.to_gbq(
-                DataFrame([[1]]),
-                "dataset.tablename",
-                credentials=credentials
+                DataFrame([[1]]), "dataset.tablename", credentials=credentials
             )
         except gbq.TableCreationError:
             pass
