@@ -282,8 +282,7 @@ def test_read_gbq_with_inferred_project_id(monkeypatch):
 
 
 def test_read_gbq_with_inferred_project_id_from_service_account_credentials(
-    mock_bigquery_client,
-    mock_service_account_credentials
+    mock_bigquery_client, mock_service_account_credentials
 ):
     mock_service_account_credentials.project_id = "service_account_project_id"
     df = gbq.read_gbq(
@@ -296,7 +295,7 @@ def test_read_gbq_with_inferred_project_id_from_service_account_credentials(
         "SELECT 1",
         job_config=mock.ANY,
         location=None,
-        project="service_account_project_id"
+        project="service_account_project_id",
     )
 
 
