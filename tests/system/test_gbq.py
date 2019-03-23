@@ -374,7 +374,9 @@ class TestReadGBQIntegration(object):
             ("FALSE", pandas.api.types.is_bool_dtype),
         ],
     )
-    def test_return_correct_types(self, project_id, expression, is_expected_dtype):
+    def test_return_correct_types(
+        self, project_id, expression, is_expected_dtype
+    ):
         """
         All type checks can be added to this function using additional
         parameters, rather than creating additional functions.
