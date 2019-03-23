@@ -12,6 +12,12 @@ Changelog
   version. This is required to use new functionality such as the BigQuery
   Storage API. (:issue:`267`)
 
+Documentation
+~~~~~~~~~~~~~
+
+- Document :ref:`BigQuery data type to pandas dtype conversion
+  <reading-dtypes>` for ``read_gbq``. (:issue:`269`)
+
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
 
