@@ -644,21 +644,24 @@ class GbqConnector(object):
 
 
 def _bqschema_to_nullsafe_dtypes(schema_fields):
-    # Only specify dtype when the dtype allows nulls. Otherwise, use pandas's
-    # default dtype choice.
-    #
-    # See:
-    # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
-    # #missing-data-casting-rules-and-indexing
+    """Specify explicit dtypes based on BigQuery schema.
+
+    This function only specifies a dtype when the dtype allows nulls.
+    Otherwise, use pandas's default dtype choice.
+
+    See: http://pandas.pydata.org/pandas-docs/dev/missing_data.html
+    #missing-data-casting-rules-and-indexing
+    """
+    import pandas
+
+    # If you update this mapping, also update the table at
+    # `docs/source/reading.rst`.
     dtype_map = {
         "FLOAT": np.dtype(float),
-        # Even though TIMESTAMPs are timezone-aware in BigQuery, pandas doesn't
-        # support datetime64[ns, UTC] as dtype in DataFrame constructors. See:
-        # https://github.com/pandas-dev/pandas/issues/12513
-        "TIMESTAMP": "datetime64[ns]",
+        "TIMESTAMP": pandas.DatetimeTZDtype(tz="UTC"),
+        "DATETIME": "datetime64[ns]",
         "TIME": "datetime64[ns]",
         "DATE": "datetime64[ns]",
-        "DATETIME": "datetime64[ns]",
     }
 
     dtypes = {}

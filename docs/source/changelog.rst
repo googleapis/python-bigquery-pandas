@@ -6,8 +6,6 @@ Changelog
 0.10.0 / TBD
 ------------
 
-- This fixes a bug where pandas-gbq could not upload an empty database. (:issue:`237`)
-
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
 
@@ -23,11 +21,21 @@ Internal changes
 
 Enhancements
 ~~~~~~~~~~~~
+
 - Allow ``table_schema`` in :func:`to_gbq` to contain only a subset of columns,
   with the rest being populated using the DataFrame dtypes (:issue:`218`)
   (contributed by @johnpaton)
 - Read ``project_id`` in :func:`to_gbq` from provided ``credentials`` if
   available (contributed by @daureg)
+- ``read_gbq`` uses the timezone-aware ``DatetimeTZDtype(unit='ns',
+  tz='UTC')`` dtype for BigQuery ``TIMESTAMP`` columns. (:issue:`263`)
+
+Bug fixes
+~~~~~~~~~
+
+- Fix a bug where pandas-gbq could not upload an empty database.
+  (:issue:`237`)
+
 
 .. _changelog-0.9.0:
 

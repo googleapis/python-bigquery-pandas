@@ -368,7 +368,7 @@ class TestReadGBQIntegration(object):
         "expression, is_expected_dtype",
         [
             ("current_date()", pandas.api.types.is_datetime64_ns_dtype),
-            ("current_timestamp()", pandas.api.types.is_datetime64_ns_dtype),
+            ("current_timestamp()", pandas.api.types.is_datetime64tz_dtype),
             ("current_datetime()", pandas.api.types.is_datetime64_ns_dtype),
             ("TRUE", pandas.api.types.is_bool_dtype),
             ("FALSE", pandas.api.types.is_bool_dtype),
