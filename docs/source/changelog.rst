@@ -6,7 +6,11 @@ Changelog
 0.10.0 / TBD
 ------------
 
-- This fixes a bug where pandas-gbq could not upload an empty database. (:issue:`237`)
+- Fix a bug where pandas-gbq could not upload an empty DataFrame. (:issue:`237`)
+- Update the authentication credentials. **Note:** You may need to set
+  ``reauth=True`` in order to update your credentials to the most recent
+  version. This is required to use new functionality such as the BigQuery
+  Storage API. (:issue:`267`)
 
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
@@ -23,7 +27,7 @@ Internal changes
 Enhancements
 ~~~~~~~~~~~~
 - Allow ``table_schema`` in :func:`to_gbq` to contain only a subset of columns,
-  with the rest being populated using the DataFrame dtypes (:issue:`218`) 
+  with the rest being populated using the DataFrame dtypes (:issue:`218`)
   (contributed by @johnpaton)
 - Read ``project_id`` in :func:`to_gbq` from provided ``credentials`` if
   available (contributed by @daureg)
