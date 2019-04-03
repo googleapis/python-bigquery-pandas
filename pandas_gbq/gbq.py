@@ -652,13 +652,13 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     See: http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     #missing-data-casting-rules-and-indexing
     """
-    import pandas
+    import pandas.api.types
 
     # If you update this mapping, also update the table at
     # `docs/source/reading.rst`.
     dtype_map = {
         "FLOAT": np.dtype(float),
-        "TIMESTAMP": pandas.DatetimeTZDtype(tz="UTC"),
+        "TIMESTAMP": pandas.api.types.DatetimeTZDtype(tz="UTC"),
         "DATETIME": "datetime64[ns]",
         "TIME": "datetime64[ns]",
         "DATE": "datetime64[ns]",
