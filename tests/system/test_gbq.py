@@ -314,7 +314,8 @@ class TestReadGBQIntegration(object):
             {"unix_epoch": ["1970-01-01T00:00:00.000000Z"]},
             dtype="datetime64[ns]",
         )
-        expected["unix_epoch"] = expected["unix_epoch"].dt.tz_localize("UTC")
+        if expected["unix_epoch"].dt.tz is None:
+            expected["unix_epoch"] = expected["unix_epoch"].dt.tz_localize("UTC")
         tm.assert_frame_equal(df, expected)
 
     def test_should_properly_handle_arbitrary_timestamp(self, project_id):
