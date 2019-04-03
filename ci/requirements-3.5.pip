@@ -1,4 +1,4 @@
-pandas==0.20.0
+pandas==0.23.0
 google-auth==1.4.1
 google-auth-oauthlib==0.0.1
 google-cloud-bigquery==1.9.0
