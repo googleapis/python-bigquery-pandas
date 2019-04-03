@@ -11,7 +11,7 @@ Dependency updates
 
 - Update the minimum version of ``google-cloud-bigquery`` to 1.9.0.
   (:issue:`247`)
-- Update the minimum version of ``pandas`` to 0.19.0. (:issue:`262`)
+- Update the minimum version of ``pandas`` to 0.20.0. (:issue:`263`)
 
 Internal changes
 ~~~~~~~~~~~~~~~~
