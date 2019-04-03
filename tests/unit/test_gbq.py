@@ -95,6 +95,8 @@ def no_auth(monkeypatch):
         ("INTEGER", None),  # Can't handle NULL
         ("BOOLEAN", None),  # Can't handle NULL
         ("FLOAT", numpy.dtype(float)),
+        # TIMESTAMP will be localized after DataFrame construction.
+        ("TIMESTAMP", "datetime64[ns]"),
         ("DATETIME", "datetime64[ns]"),
     ],
 )
@@ -106,16 +108,6 @@ def test_should_return_bigquery_correctly_typed(type_, expected):
         assert result == {}
     else:
         assert result == {"x": expected}
-
-
-def test_should_return_bigquery_correctly_typed_timestamp():
-    result = gbq._bqschema_to_nullsafe_dtypes(
-        [dict(name="x", type="TIMESTAMP", mode="NULLABLE")]
-    )
-    if pandas_installed_version < pkg_resources.parse_version("0.24.0"):
-        assert result == {"x": "datetime64[ns]"}
-    else:
-        assert result == {"x": "datetime64[ns, UTC]"}
 
 
 def test_to_gbq_should_fail_if_invalid_table_name_passed():
