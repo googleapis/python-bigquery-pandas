@@ -3,6 +3,7 @@
 import pandas.util.testing as tm
 import pytest
 import numpy
+import pandas.api.types
 from pandas import DataFrame
 
 import pandas_gbq.exceptions
@@ -90,7 +91,7 @@ def no_auth(monkeypatch):
         ("INTEGER", None),  # Can't handle NULL
         ("BOOLEAN", None),  # Can't handle NULL
         ("FLOAT", numpy.dtype(float)),
-        ("TIMESTAMP", "datetime64[ns]"),
+        ("TIMESTAMP", pandas.api.types.DatetimeTZDtype(tz="UTC")),
         ("DATETIME", "datetime64[ns]"),
     ],
 )
