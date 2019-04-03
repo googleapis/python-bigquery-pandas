@@ -329,9 +329,10 @@ class TestReadGBQIntegration(object):
             {"valid_timestamp": ["2004-09-15T05:00:00.000000Z"]},
             dtype="datetime64[ns]",
         )
-        expected["valid_timestamp"] = expected[
-            "valid_timestamp"
-        ].dt.tz_localize("UTC")
+        if expected["valid_timestamp"].dt.tz is None:
+            expected["valid_timestamp"] = expected[
+                "valid_timestamp"
+            ].dt.tz_localize("UTC")
         tm.assert_frame_equal(df, expected)
 
     def test_should_properly_handle_datetime_unix_epoch(self, project_id):
