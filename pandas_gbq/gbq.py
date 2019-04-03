@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 BIGQUERY_INSTALLED_VERSION = None
 SHOW_VERBOSE_DEPRECATION = False
 SHOW_PRIVATE_KEY_DEPRECATION = False
+USE_TZAWARE_TIMESTAMP = False
 PRIVATE_KEY_DEPRECATION_MESSAGE = (
     "private_key is deprecated and will be removed in a future version."
     "Use the credentials argument instead. See "
@@ -26,7 +27,7 @@ except ImportError:
 
 
 def _check_google_client_version():
-    global BIGQUERY_INSTALLED_VERSION, SHOW_VERBOSE_DEPRECATION, SHOW_PRIVATE_KEY_DEPRECATION
+    global BIGQUERY_INSTALLED_VERSION, SHOW_VERBOSE_DEPRECATION, SHOW_PRIVATE_KEY_DEPRECATION, USE_TZAWARE_TIMESTAMP
 
     try:
         import pkg_resources
@@ -60,6 +61,12 @@ def _check_google_client_version():
     pandas_version_with_credentials_arg = pkg_resources.parse_version("0.24.0")
     SHOW_PRIVATE_KEY_DEPRECATION = (
         pandas_installed_version >= pandas_version_with_credentials_arg
+    )
+    pandas_version_supporting_tzaware_dtype = pkg_resources.parse_version(
+        "0.24.0"
+    )
+    USE_TZAWARE_TIMESTAMP = (
+        pandas_installed_version >= pandas_version_supporting_tzaware_dtype
     )
 
 
@@ -494,6 +501,9 @@ class GbqConnector(object):
         if df.empty:
             df = _cast_empty_df_dtypes(schema_fields, df)
 
+        if not USE_TZAWARE_TIMESTAMP:
+            df = _localize_df(schema_fields, df)
+
         logger.debug("Got {} rows.\n".format(rows_iter.total_rows))
         return df
 
@@ -644,21 +654,28 @@ class GbqConnector(object):
 
 
 def _bqschema_to_nullsafe_dtypes(schema_fields):
-    # Only specify dtype when the dtype allows nulls. Otherwise, use pandas's
-    # default dtype choice.
-    #
-    # See:
-    # http://pandas.pydata.org/pandas-docs/dev/missing_data.html
-    # #missing-data-casting-rules-and-indexing
-    #
+    """Specify explicit dtypes based on BigQuery schema.
+
+    This function only specifies a dtype when the dtype allows nulls.
+    Otherwise, use pandas's default dtype choice.
+
+    See: http://pandas.pydata.org/pandas-docs/dev/missing_data.html
+    #missing-data-casting-rules-and-indexing
+    """
+    import pandas.api.types
+
+    # pandas doesn't support timezone-aware dtype in DataFrame/Series
+    # constructors until 0.24.0. See:
+    # https://github.com/pandas-dev/pandas/issues/25843#issuecomment-479656947
+    timestamp_dtype = "datetime64[ns]"
+    if USE_TZAWARE_TIMESTAMP:
+        timestamp_dtype = pandas.api.types.DatetimeTZDtype(unit="ns", tz="UTC")
+
     # If you update this mapping, also update the table at
     # `docs/source/reading.rst`.
     dtype_map = {
         "FLOAT": np.dtype(float),
-        # Even though TIMESTAMPs are timezone-aware in BigQuery, pandas doesn't
-        # support datetime64[ns, UTC] as dtype in DataFrame constructors. See:
-        # https://github.com/pandas-dev/pandas/issues/12513
-        "TIMESTAMP": "datetime64[ns]",
+        "TIMESTAMP": timestamp_dtype,
         "TIME": "datetime64[ns]",
         "DATE": "datetime64[ns]",
         "DATETIME": "datetime64[ns]",
@@ -701,6 +718,24 @@ def _cast_empty_df_dtypes(schema_fields, df):
         dtype = dtype_map.get(field["type"].upper())
         if dtype:
             df[column] = df[column].astype(dtype)
+
+    return df
+
+
+def _localize_df(schema_fields, df):
+    """Localize any TIMESTAMP columns to tz-aware type.
+
+    In pandas versions before 0.24.0, DatetimeTZDtype cannot be used as the
+    dtype in Series/DataFrame construction, so localize those columns after
+    the DataFrame is constructed.
+    """
+    for field in schema_fields:
+        column = str(field["name"])
+        if field["mode"].upper() == "REPEATED":
+            continue
+
+        if field["type"].upper() == "TIMESTAMP":
+            df[column] = df[column].dt.tz_localize("UTC")
 
     return df
 

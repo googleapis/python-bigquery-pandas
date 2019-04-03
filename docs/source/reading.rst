@@ -79,13 +79,7 @@ The :func:`~pandas_gbq.read_gbq` method infers the pandas dtype for each column,
 BigQuery Data Type dtype
 ================== =========================
 FLOAT              float
------------------- -------------------------
-TIMESTAMP          **pandas versions 0.24.0+**
-                     :class:`~pandas.DatetimeTZDtype` with ``unit='ns'`` and
-                     ``tz='UTC'``
-                   **Earlier versions**
-                     datetime64[ns]
------------------- -------------------------
+TIMESTAMP          :class:`~pandas.DatetimeTZDtype` with ``unit='ns'`` and ``tz='UTC'``
 DATETIME           datetime64[ns]
 TIME               datetime64[ns]
 DATE               datetime64[ns]
