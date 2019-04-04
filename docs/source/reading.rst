@@ -84,3 +84,10 @@ DATETIME           datetime64[ns]
 TIME               datetime64[ns]
 DATE               datetime64[ns]
 ================== =========================
+
+.. _reading-bqstorage-api:
+
+Using the BigQuery Storage API
+------------------------------
+
+The BigQuery Storage API

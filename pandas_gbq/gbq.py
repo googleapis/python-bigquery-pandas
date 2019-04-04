@@ -885,27 +885,6 @@ def read_gbq(
     -------
     df: DataFrame
         DataFrame representing results of query.
-
-    Examples
-    --------
-
-    Use the BigQuery Storage API to fetch results quickly, but at an addition
-    cost. Due to a known issue in the BigQuery Storage API, you must write
-    your query results to a destination table.
-
-    >>> pandas_gbq.read_gbq(
-    ...     query_string,
-    ...     configuration={
-    ...         'query': {
-    ...             'destinationTable': {
-    ...                 'projectId': 'your-project',
-    ...                 'datasetId': 'destination_dataset',
-    ...                 'tableId': 'new_table_name',
-    ...             }
-    ...         }
-    ...     },
-    ...     use_bqstorage_api=True,
-    ... )
     """
     global context
 
