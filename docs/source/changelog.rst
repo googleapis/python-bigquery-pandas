@@ -39,16 +39,12 @@ Enhancements
   (contributed by @johnpaton)
 - Read ``project_id`` in :func:`to_gbq` from provided ``credentials`` if
   available (contributed by @daureg)
-<<<<<<< Updated upstream
 - ``read_gbq`` uses the timezone-aware ``DatetimeTZDtype(unit='ns',
   tz='UTC')`` dtype for BigQuery ``TIMESTAMP`` columns. (:issue:`269`)
-||||||| merged common ancestors
-=======
 - Add ``use_bqstorage_api`` to :func:`read_gbq`. The BigQuery Storage API can
   be used to download large query results (>125 MB) more quickly. If the BQ
   Storage API can't be used, the BigQuery API is used instead. (:issue:`133`,
   :issue:`270`)
->>>>>>> Stashed changes
 
 .. _changelog-0.9.0:
 
