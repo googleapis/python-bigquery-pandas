@@ -893,7 +893,7 @@ class TestReadGBQIntegration(object):
         assert df["max_year"][0] >= 2000
 
 
-@pytest.mark.skip(reason="large query for BQ Storage API tests")
+@pytest.mark.slow(reason="large query for BQ Storage API tests")
 def test_read_gbq_w_bqstorage_api(credentials):
     df = gbq.read_gbq(
         """

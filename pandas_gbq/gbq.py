@@ -18,6 +18,8 @@ import pandas_gbq.schema
 logger = logging.getLogger(__name__)
 
 BIGQUERY_INSTALLED_VERSION = None
+BIGQUERY_CLIENT_INFO_VERSION = "1.12.0"
+HAS_CLIENT_INFO = False
 SHOW_VERBOSE_DEPRECATION = False
 SHOW_PRIVATE_KEY_DEPRECATION = False
 PRIVATE_KEY_DEPRECATION_MESSAGE = (
@@ -34,7 +36,7 @@ except ImportError:
 
 
 def _check_google_client_version():
-    global BIGQUERY_INSTALLED_VERSION, SHOW_VERBOSE_DEPRECATION, SHOW_PRIVATE_KEY_DEPRECATION
+    global BIGQUERY_INSTALLED_VERSION, HAS_CLIENT_INFO, SHOW_VERBOSE_DEPRECATION, SHOW_PRIVATE_KEY_DEPRECATION
 
     try:
         import pkg_resources
@@ -44,9 +46,16 @@ def _check_google_client_version():
 
     # https://github.com/GoogleCloudPlatform/google-cloud-python/blob/master/bigquery/CHANGELOG.md
     bigquery_minimum_version = pkg_resources.parse_version("1.9.0")
+    bigquery_client_info_version = pkg_resources.parse_version(
+        BIGQUERY_CLIENT_INFO_VERSION
+    )
     BIGQUERY_INSTALLED_VERSION = pkg_resources.get_distribution(
         "google-cloud-bigquery"
     ).parsed_version
+
+    HAS_CLIENT_INFO = (
+        BIGQUERY_INSTALLED_VERSION >= bigquery_client_info_version
+    )
 
     if BIGQUERY_INSTALLED_VERSION < bigquery_minimum_version:
         raise ImportError(
@@ -392,6 +401,29 @@ class GbqConnector(object):
 
     def get_client(self):
         from google.cloud import bigquery
+        import pandas
+
+        try:
+            # This module was added in google-api-core 1.11.0.
+            # We don't have a hard requirement on that version, so only
+            # populate the client_info if available.
+            import google.api_core.client_info
+
+            client_info = google.api_core.client_info.ClientInfo(
+                user_agent="pandas-{}".format(pandas.__version__)
+            )
+        except ImportError:
+            client_info = None
+
+        # In addition to new enough version of google-api-core, a new enough
+        # version of google-cloud-bigquery is required to populate the
+        # client_info.
+        if HAS_CLIENT_INFO:
+            return bigquery.Client(
+                project=self.project_id,
+                credentials=self.credentials,
+                client_info=client_info,
+            )
 
         return bigquery.Client(
             project=self.project_id, credentials=self.credentials
@@ -747,12 +779,18 @@ def _make_bqstorage_client(use_bqstorage_api, credentials):
 
     if bigquery_storage_v1beta1 is None:
         raise ImportError(
-            "Install the google-cloud-bigquery-storage and fastavro packages "
-            "to use the BigQuery Storage API."
+            "Install the google-cloud-bigquery-storage and fastavro/pyarrow "
+            "packages to use the BigQuery Storage API."
         )
 
+    import google.api_core.gapic_v1.client_info
+    import pandas
+
+    client_info = google.api_core.gapic_v1.client_info.ClientInfo(
+        user_agent="pandas-{}".format(pandas.__version__)
+    )
     return bigquery_storage_v1beta1.BigQueryStorageClient(
-        credentials=credentials
+        credentials=credentials, client_info=client_info
     )
 
 

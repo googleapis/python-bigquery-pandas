@@ -10,6 +10,11 @@ Changelog
   with the pandas package which dropped Python 2 support at the end of 2019.
   (:issue:`268`)
 
+Internal changes
+~~~~~~~~~~~~~~~~
+
+- Populate ``user-agent`` with ``pandas`` version information. (:issue:`281`)
+
 .. _changelog-0.10.0:
 
 0.10.0 / 2019-04-05
