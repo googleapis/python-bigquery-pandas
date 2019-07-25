@@ -71,6 +71,16 @@ def random_dataset_id(bigquery_client):
 
 
 @pytest.fixture()
+def random_dataset(bigquery_client, random_dataset_id):
+    from google.cloud import bigquery
+
+    dataset_ref = bigquery_client.dataset(random_dataset_id)
+    dataset = bigquery.Dataset(dataset_ref)
+    bigquery_client.create_dataset(dataset)
+    return dataset
+
+
+@pytest.fixture()
 def tokyo_dataset(bigquery_client, random_dataset_id):
     from google.cloud import bigquery
 
@@ -893,14 +903,41 @@ class TestReadGBQIntegration(object):
         assert df["max_year"][0] >= 2000
 
 
-def test_read_gbq_w_bqstorage_api(credentials):
-    pytest.importorskip("google.cloud.bigquery_storage_v1beta1")
+@pytest.mark.slow(reason="Large query for BQ Storage API tests.")
+def test_read_gbq_w_bqstorage_api(credentials, random_dataset):
+    pytest.importorskip("google.cloud.bigquery_storage")
     df = gbq.read_gbq(
-        "SELECT * FROM `bigquery-public-data.usa_names.usa_1910_2013` LIMIT 5500000",
+        """
+        SELECT
+          total_amount,
+          passenger_count,
+          trip_distance
+        FROM `bigquery-public-data.new_york_taxi_trips.tlc_green_trips_2014`
+        -- Select non-null rows for no-copy conversion from Arrow to pandas.
+        WHERE total_amount IS NOT NULL
+          AND passenger_count IS NOT NULL
+          AND trip_distance IS NOT NULL
+        LIMIT 10000000
+        """,
         use_bqstorage_api=True,
         credentials=credentials,
+        configuration={
+            "query": {
+                "destinationTable": {
+                    "projectId": random_dataset.project,
+                    "datasetId": random_dataset.dataset_id,
+                    "tableId": "".join(
+                        [
+                            "test_read_gbq_w_bqstorage_api_",
+                            str(uuid.uuid4()).replace("-", "_"),
+                        ]
+                    ),
+                },
+                "writeDisposition": "WRITE_TRUNCATE",
+            }
+        },
     )
-    assert len(df) == 5500000
+    assert len(df) == 10000000
 
 
 class TestToGBQIntegration(object):
