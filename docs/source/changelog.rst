@@ -14,7 +14,7 @@ Implementation changes
 ~~~~~~~~~~~~~~~~~~~~~~
 
 - Use object dtype for ``STRING``, ``ARRAY``, and ``STRUCT`` columns when
-  there are zero rows. (issue TBD)
+  there are zero rows. (:issue:`285`)
 
 .. _changelog-0.10.0:
 
