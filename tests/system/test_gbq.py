@@ -590,9 +590,12 @@ class TestReadGBQIntegration(object):
             "iso_time": pandas.Series([], dtype="datetime64[ns]"),
         }
         expected_result = DataFrame(
-            empty_columns, columns=["name", "number", "is_hurricane", "iso_time"]
+            empty_columns,
+            columns=["name", "number", "is_hurricane", "iso_time"],
         )
-        expected_result["iso_time"] = expected_result["iso_time"].dt.tz_localize("UTC")
+        expected_result["iso_time"] = expected_result[
+            "iso_time"
+        ].dt.tz_localize("UTC")
         tm.assert_frame_equal(df, expected_result, check_index_type=False)
 
     def test_one_row_one_column(self, project_id):
