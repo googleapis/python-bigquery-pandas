@@ -541,8 +541,10 @@ class GbqConnector(object):
 
         try:
             query_job.result()
+            # Get the table schema, so that we can list rows.
+            destination = self.client.get_table(query_job.destination)
             rows_iter = self.client.list_rows(
-                query_job.destination, max_results=max_results
+                destination, max_results=max_results
             )
         except self.http_error as ex:
             self.process_http_error(ex)
