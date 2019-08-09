@@ -2,6 +2,7 @@
 
 import os
 import os.path
+import uuid
 
 import pytest
 
@@ -37,10 +38,23 @@ def private_key_path():
     return path
 
 
-@pytest.fixture(scope="session")
-def private_key_contents(private_key_path):
-    if private_key_path is None:
-        return None
+@pytest.fixture(scope="module")
+def bigquery_client(project_id, private_key_path):
+    from google.cloud import bigquery
 
-    with open(private_key_path) as f:
-        return f.read()
+    return bigquery.Client.from_service_account_json(
+        private_key_path, project=project_id
+    )
+
+
+@pytest.fixture()
+def random_dataset_id(bigquery_client):
+    import google.api_core.exceptions
+
+    dataset_id = "".join(["pandas_gbq_", str(uuid.uuid4()).replace("-", "_")])
+    dataset_ref = bigquery_client.dataset(dataset_id)
+    yield dataset_id
+    try:
+        bigquery_client.delete_dataset(dataset_ref, delete_contents=True)
+    except google.api_core.exceptions.NotFound:
+        pass  # Not all tests actually create a dataset
