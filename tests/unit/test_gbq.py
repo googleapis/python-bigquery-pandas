@@ -511,8 +511,12 @@ def test_generate_bq_schema_deprecated():
         gbq.generate_bq_schema(df)
 
 
-def test_load_does_not_modify_schema_arg():
-    # Test of Issue # 277
+def test_load_does_not_modify_schema_arg(mock_bigquery_client):
+    """Test of Issue # 277."""
+    from google.api_core.exceptions import NotFound
+
+    # Create table with new schema.
+    mock_bigquery_client.get_table.side_effect = NotFound("nope")
     df = DataFrame(
         {
             "field1": ["a", "b"],
