@@ -38,6 +38,15 @@ def private_key_path():
     return path
 
 
+@pytest.fixture(scope="session")
+def private_key_contents(private_key_path):
+    if private_key_path is None:
+        return None
+
+    with open(private_key_path) as f:
+        return f.read()
+
+
 @pytest.fixture(scope="module")
 def bigquery_client(project_id, private_key_path):
     from google.cloud import bigquery

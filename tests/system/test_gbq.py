@@ -36,15 +36,6 @@ def project(request, project_id):
         return None
 
 
-@pytest.fixture(scope="session")
-def private_key_contents(private_key_path):
-    if private_key_path is None:
-        return None
-
-    with open(private_key_path) as f:
-        return f.read()
-
-
 @pytest.fixture()
 def credentials(private_key_path):
     return google.oauth2.service_account.Credentials.from_service_account_file(
