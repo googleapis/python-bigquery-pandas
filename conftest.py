@@ -4,6 +4,7 @@ import os
 import os.path
 import uuid
 
+import google.oauth2.service_account
 import pytest
 
 
@@ -16,18 +17,12 @@ def project_id():
 
 @pytest.fixture(scope="session")
 def private_key_path():
-    path = None
+    path = "service_account.json"  # Written by the 'ci/config_auth.sh' script.
     if "GBQ_GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
         path = os.environ["GBQ_GOOGLE_APPLICATION_CREDENTIALS"]
     elif "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
         path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
 
-    if path is None:
-        pytest.skip(
-            "Cannot run integration tests without a "
-            "private key json file path"
-        )
-        return None
     if not os.path.isfile(path):
         pytest.skip(
             "Cannot run integration tests when there is "
@@ -67,3 +62,10 @@ def random_dataset_id(bigquery_client):
         bigquery_client.delete_dataset(dataset_ref, delete_contents=True)
     except google.api_core.exceptions.NotFound:
         pass  # Not all tests actually create a dataset
+
+
+@pytest.fixture()
+def credentials(private_key_path):
+    return google.oauth2.service_account.Credentials.from_service_account_file(
+        private_key_path
+    )
