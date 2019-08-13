@@ -17,7 +17,9 @@ def project_id():
 
 @pytest.fixture(scope="session")
 def private_key_path():
-    path = "service_account.json"  # Written by the 'ci/config_auth.sh' script.
+    path = os.path.join(
+        "ci", "service_account.json"
+    )  # Written by the 'ci/config_auth.sh' script.
     if "GBQ_GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
         path = os.environ["GBQ_GOOGLE_APPLICATION_CREDENTIALS"]
     elif "GOOGLE_APPLICATION_CREDENTIALS" in os.environ:
