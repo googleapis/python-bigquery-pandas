@@ -526,9 +526,13 @@ class GbqConnector(object):
                 )
             )
 
-        return self._download_results(query_reply, max_results=max_results, progress_bar=progress_bar)
+        return self._download_results(
+            query_reply, max_results=max_results, progress_bar=progress_bar
+        )
 
-    def _download_results(self, query_job, max_results=None, progress_bar=None):
+    def _download_results(
+        self, query_job, max_results=None, progress_bar=None
+    ):
         # No results are desired, so don't bother downloading anything.
         if max_results == 0:
             return None
@@ -552,7 +556,9 @@ class GbqConnector(object):
         schema_fields = [field.to_api_repr() for field in rows_iter.schema]
         nullsafe_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
         df = rows_iter.to_dataframe(
-            dtypes=nullsafe_dtypes, bqstorage_client=bqstorage_client, progress_bar_type=progress_bar
+            dtypes=nullsafe_dtypes,
+            bqstorage_client=bqstorage_client,
+            progress_bar_type=progress_bar,
         )
 
         if df.empty:
@@ -1014,8 +1020,10 @@ def read_gbq(
     )
 
     final_df = connector.run_query(
-        query, configuration=configuration, max_results=max_results, 
-        progress_bar=progress_bar
+        query,
+        configuration=configuration,
+        max_results=max_results,
+        progress_bar=progress_bar,
     )
 
     # Reindex the DataFrame on the provided column
