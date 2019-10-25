@@ -436,10 +436,12 @@ class GbqConnector(object):
 
         raise GenericGBQException("Reason: {0}".format(ex))
 
-    def run_query(self, query, max_results=None, **kwargs):
+    def run_query(self, query, max_results=None, progress_bar=None, **kwargs):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
         from google.cloud import bigquery
+
+        print(f"BBBB progress_bar={progress_bar}")
 
         job_config = {
             "query": {
@@ -525,10 +527,11 @@ class GbqConnector(object):
                     bytes_billed * self.query_price_for_TB
                 )
             )
+        print(f"AAAA progress_bar={progress_bar}")
 
-        return self._download_results(query_reply, max_results=max_results)
+        return self._download_results(query_reply, max_results=max_results, progress_bar=progress_bar)
 
-    def _download_results(self, query_job, max_results=None):
+    def _download_results(self, query_job, max_results=None, progress_bar=None):
         # No results are desired, so don't bother downloading anything.
         if max_results == 0:
             return None
@@ -551,8 +554,9 @@ class GbqConnector(object):
 
         schema_fields = [field.to_api_repr() for field in rows_iter.schema]
         nullsafe_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
+        print(f"progress_bar={progress_bar}")
         df = rows_iter.to_dataframe(
-            dtypes=nullsafe_dtypes, bqstorage_client=bqstorage_client
+            dtypes=nullsafe_dtypes, bqstorage_client=bqstorage_client, progress_bar_type=progress_bar
         )
 
         if df.empty:
@@ -833,6 +837,7 @@ def read_gbq(
     max_results=None,
     verbose=None,
     private_key=None,
+    progress_bar=None,
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -952,6 +957,23 @@ def read_gbq(
         or string contents. This is useful for remote server
         authentication (eg. Jupyter/IPython notebook on remote host).
 
+    progress_bar_type (Optional[str]):
+        If set, use the `tqdm <https://tqdm.github.io/>`_ library to
+        display a progress bar while the data downloads. Install the
+        ``tqdm`` package to use this feature.
+        Possible values of ``progress_bar_type`` include:
+        ``None``
+            No progress bar.
+        ``'tqdm'``
+            Use the :func:`tqdm.tqdm` function to print a progress bar
+            to :data:`sys.stderr`.
+        ``'tqdm_notebook'``
+            Use the :func:`tqdm.tqdm_notebook` function to display a
+            progress bar as a Jupyter notebook widget.
+        ``'tqdm_gui'``
+            Use the :func:`tqdm.tqdm_gui` function to display a
+            progress bar as a graphical dialog box.
+
     Returns
     -------
     df: DataFrame
@@ -996,7 +1018,8 @@ def read_gbq(
     )
 
     final_df = connector.run_query(
-        query, configuration=configuration, max_results=max_results
+        query, configuration=configuration, max_results=max_results, 
+        progress_bar=progress_bar
     )
 
     # Reindex the DataFrame on the provided column
