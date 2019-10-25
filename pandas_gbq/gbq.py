@@ -441,8 +441,6 @@ class GbqConnector(object):
         from google.auth.exceptions import RefreshError
         from google.cloud import bigquery
 
-        print(f"BBBB progress_bar={progress_bar}")
-
         job_config = {
             "query": {
                 "useLegacySql": self.dialect
@@ -527,7 +525,6 @@ class GbqConnector(object):
                     bytes_billed * self.query_price_for_TB
                 )
             )
-        print(f"AAAA progress_bar={progress_bar}")
 
         return self._download_results(query_reply, max_results=max_results, progress_bar=progress_bar)
 
@@ -554,7 +551,6 @@ class GbqConnector(object):
 
         schema_fields = [field.to_api_repr() for field in rows_iter.schema]
         nullsafe_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
-        print(f"progress_bar={progress_bar}")
         df = rows_iter.to_dataframe(
             dtypes=nullsafe_dtypes, bqstorage_client=bqstorage_client, progress_bar_type=progress_bar
         )
