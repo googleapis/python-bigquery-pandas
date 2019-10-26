@@ -562,7 +562,7 @@ def test_read_gbq_calls_tqdm(
         "SELECT 1",
         dialect="standard",
         credentials=mock_service_account_credentials,
-        progress_bar="foobar",
+        progress_bar_type="foobar",
     )
     assert df is not None
 
