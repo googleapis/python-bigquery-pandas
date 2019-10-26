@@ -839,7 +839,7 @@ def read_gbq(
     max_results=None,
     verbose=None,
     private_key=None,
-    progress_bar_type=None,
+    progress_bar_type='tqdm',
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
