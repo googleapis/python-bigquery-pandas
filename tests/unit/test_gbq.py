@@ -571,4 +571,3 @@ def test_read_gbq_calls_tqdm(
     mock_list_rows.to_dataframe.assert_called_once_with(
         dtypes=mock.ANY, bqstorage_client=mock.ANY, progress_bar_type="foobar"
     )
-

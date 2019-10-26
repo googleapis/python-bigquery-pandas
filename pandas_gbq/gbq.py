@@ -436,7 +436,9 @@ class GbqConnector(object):
 
         raise GenericGBQException("Reason: {0}".format(ex))
 
-    def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
+    def run_query(
+        self, query, max_results=None, progress_bar_type=None, **kwargs
+    ):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
         from google.cloud import bigquery
@@ -527,7 +529,9 @@ class GbqConnector(object):
             )
 
         return self._download_results(
-            query_reply, max_results=max_results, progress_bar_type=progress_bar_type
+            query_reply,
+            max_results=max_results,
+            progress_bar_type=progress_bar_type,
         )
 
     def _download_results(
@@ -839,7 +843,7 @@ def read_gbq(
     max_results=None,
     verbose=None,
     private_key=None,
-    progress_bar_type='tqdm',
+    progress_bar_type="tqdm",
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
