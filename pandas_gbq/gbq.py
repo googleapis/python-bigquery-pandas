@@ -543,7 +543,9 @@ class GbqConnector(object):
             bqstorage_client = None
             if max_results is None:
                 # Only use the BigQuery Storage API if the full result set is requested.
-                bqstorage_client = _make_bqstorage_client(self.use_bqstorage_api, self.credentials)
+                bqstorage_client = _make_bqstorage_client(
+                    self.use_bqstorage_api, self.credentials
+                )
 
             query_job.result()
             # Get the table schema, so that we can list rows.
