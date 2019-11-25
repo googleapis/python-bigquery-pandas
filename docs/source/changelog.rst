@@ -112,6 +112,9 @@ Internal changes
 0.12.0 / 2019-11-25
 -------------------
 
+New features
+~~~~~~~~~~~~
+
 - Add ``max_results`` argument to :func:`~pandas_gbq.read_gbq()`. Use this
   argument to limit the number of rows in the results DataFrame. Set
   ``max_results`` to 0 to ignore query outputs, such as for DML or DDL
@@ -119,6 +122,12 @@ Internal changes
 - Add ``progress_bar_type`` argument to :func:`~pandas_gbq.read_gbq()`. Use
   this argument to display a progress bar when downloading data.
   (:issue:`182`)
+
+Bug fixes
+~~~~~~~~~
+
+- Fix resource leak with ``use_bqstorage_api`` by closing BigQuery Storage
+  API client after use. (:issue:`294`)
 
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
