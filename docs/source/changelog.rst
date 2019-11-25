@@ -17,7 +17,7 @@ Changelog
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
 
-- Update the minimum version of ``google-cloud-bigquery`` to 1.11.0.
+- Update the minimum version of ``google-cloud-bigquery`` to 1.11.1.
   (:issue:`296`)
 
 Documentation
