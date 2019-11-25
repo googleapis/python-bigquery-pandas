@@ -1,5 +1,6 @@
 codecov
 coverage
+fastavro
 flake8
 google-cloud-bigquery==1.11.1
 google-cloud-bigquery-storage
