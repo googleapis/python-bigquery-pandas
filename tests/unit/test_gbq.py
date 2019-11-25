@@ -31,7 +31,7 @@ def _make_connector(project_id="some-project", **kwargs):
 def min_bq_version():
     import pkg_resources
 
-    return pkg_resources.parse_version("1.9.0")
+    return pkg_resources.parse_version("1.11.0")
 
 
 def mock_get_credentials_no_project(*args, **kwargs):
