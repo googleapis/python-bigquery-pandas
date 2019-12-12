@@ -245,6 +245,19 @@ def test_to_gbq_doesnt_run_query(
     mock_bigquery_client.query.assert_not_called()
 
 
+def test_to_gbq_creates_dataset(mock_bigquery_client):
+    import google.api_core.exceptions
+
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
+    )
+    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
+        "my_dataset"
+    )
+    gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
+    mock_bigquery_client.create_dataset.assert_called()
+
+
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
     import pydata_google_auth
 
@@ -338,6 +351,20 @@ def test_read_gbq_wo_verbose_w_new_pandas_no_warnings(recwarn, min_bq_version):
         mock_version.side_effect = [min_bq_version, pandas_version]
         gbq.read_gbq("SELECT 1", project_id="my-project", dialect="standard")
         assert len(recwarn) == 0
+
+
+def test_read_gbq_with_old_bq_raises_importerror():
+    import pkg_resources
+
+    bigquery_version = pkg_resources.parse_version("0.27.0")
+    with pytest.raises(ImportError, match="google-cloud-bigquery"), mock.patch(
+        "pkg_resources.Distribution.parsed_version",
+        new_callable=mock.PropertyMock,
+    ) as mock_version:
+        mock_version.side_effect = [bigquery_version]
+        gbq.read_gbq(
+            "SELECT 1", project_id="my-project",
+        )
 
 
 def test_read_gbq_with_verbose_old_pandas_no_warnings(recwarn, min_bq_version):
