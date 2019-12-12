@@ -224,15 +224,12 @@ def test_to_gbq_with_verbose_old_pandas_no_warnings(recwarn, min_bq_version):
 
 def test_to_gbq_with_private_key_raises_notimplementederror():
     with pytest.raises(NotImplementedError, match="private_key"):
-        try:
-            gbq.to_gbq(
-                DataFrame([[1]]),
-                "dataset.tablename",
-                project_id="my-project",
-                private_key="path/to/key.json",
-            )
-        except gbq.TableCreationError:
-            pass
+        gbq.to_gbq(
+            DataFrame([[1]]),
+            "dataset.tablename",
+            project_id="my-project",
+            private_key="path/to/key.json",
+        )
 
 
 def test_to_gbq_doesnt_run_query(

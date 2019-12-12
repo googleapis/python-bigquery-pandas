@@ -61,3 +61,10 @@ def test_get_credentials_load_user_no_default(monkeypatch):
     credentials, project = auth.get_credentials()
     assert project is None
     assert credentials is mock_user_credentials
+
+
+def test_get_credentials_cache_w_reauth():
+    import pydata_google_auth.cache
+
+    cache = auth.get_credentials_cache(True)
+    assert isinstance(cache, pydata_google_auth.cache.WriteOnlyCredentialsCache)
