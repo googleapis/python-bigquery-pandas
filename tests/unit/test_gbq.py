@@ -245,6 +245,18 @@ def test_to_gbq_doesnt_run_query(
     mock_bigquery_client.query.assert_not_called()
 
 
+def test_to_gbq_w_empty_df(mock_bigquery_client):
+    import google.api_core.exceptions
+
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
+    )
+    gbq.to_gbq(DataFrame(), "my_dataset.my_table", project_id="1234")
+    mock_bigquery_client.create_table.assert_called_with(mock.ANY)
+    mock_bigquery_client.load_table_from_dataframe.assert_not_called()
+    mock_bigquery_client.load_table_from_file.assert_not_called()
+
+
 def test_to_gbq_creates_dataset(mock_bigquery_client):
     import google.api_core.exceptions
 
@@ -255,7 +267,7 @@ def test_to_gbq_creates_dataset(mock_bigquery_client):
         "my_dataset"
     )
     gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
-    mock_bigquery_client.create_dataset.assert_called()
+    mock_bigquery_client.create_dataset.assert_called_with(mock.ANY)
 
 
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
@@ -395,6 +407,20 @@ def test_read_gbq_with_private_raises_notimplmentederror():
 def test_read_gbq_with_invalid_dialect():
     with pytest.raises(ValueError, match="is not valid for dialect"):
         gbq.read_gbq("SELECT 1", dialect="invalid")
+
+
+def test_read_gbq_with_configuration_query():
+    df = gbq.read_gbq(None, configuration={"query": {"query": "SELECT 2"}})
+    assert df is not None
+
+
+def test_read_gbq_with_configuration_duplicate_query_raises_error():
+    with pytest.raises(
+        ValueError, match="Query statement can't be specified inside config"
+    ):
+        gbq.read_gbq(
+            "SELECT 1", configuration={"query": {"query": "SELECT 2"}}
+        )
 
 
 def test_generate_bq_schema_deprecated():
