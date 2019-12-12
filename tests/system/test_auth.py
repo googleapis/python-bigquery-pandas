@@ -1,5 +1,6 @@
 """System tests for fetching Google BigQuery credentials."""
 
+import os
 from unittest import mock
 
 import pytest
@@ -56,7 +57,8 @@ def _check_if_can_get_correct_default_credentials():
     return _try_credentials(project, credentials) is not None
 
 
-def test_should_be_able_to_get_valid_credentials(project_id):
+def test_should_be_able_to_get_valid_credentials(project_id, private_key_path):
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = private_key_path
     credentials, _ = auth.get_credentials(project_id=project_id)
     assert credentials.valid
 
