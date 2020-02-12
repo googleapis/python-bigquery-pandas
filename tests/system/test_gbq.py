@@ -525,9 +525,6 @@ class TestReadGBQIntegration(object):
             empty_columns,
             columns=["name", "number", "is_hurricane", "iso_time"],
         )
-        expected_result["iso_time"] = expected_result[
-            "iso_time"
-        ].dt.tz_localize("UTC")
         tm.assert_frame_equal(df, expected_result, check_index_type=False)
 
     def test_one_row_one_column(self, project_id):
