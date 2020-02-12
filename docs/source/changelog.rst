@@ -3,7 +3,7 @@ Changelog
 
 .. _changelog-0.13.1:
 
-0.13.1 / 2020-02-12
+0.13.1 / 2020-02-13
 -------------------
 
 - Fix ``AttributeError`` with BQ Storage API to download empty results.
