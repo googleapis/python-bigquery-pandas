@@ -19,6 +19,8 @@ def credentials(private_key_path):
 
 @pytest.fixture()
 def gbq_connector(project, credentials):
+    from pandas_gbq import gbq
+
     return gbq.GbqConnector(project, credentials=credentials)
 
 

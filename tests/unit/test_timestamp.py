@@ -17,8 +17,8 @@ def test_localize_df_with_empty_dataframe(module_under_test):
     df = pandas.DataFrame({"timestamp_col": [], "other_col": []})
     original = df.copy()
     bq_schema = [
-        {"name": "timestamp_col", "type": "TIMESTAMP",},
-        {"name": "other_col", "type": "STRING",},
+        {"name": "timestamp_col", "type": "TIMESTAMP"},
+        {"name": "other_col", "type": "STRING"},
     ]
 
     localized = module_under_test.localize_df(df, bq_schema)
@@ -34,8 +34,8 @@ def test_localize_df_with_no_timestamp_columns(module_under_test):
     )
     original = df.copy()
     bq_schema = [
-        {"name": "integer_col", "type": "INTEGER",},
-        {"name": "float_col", "type": "FLOAT",},
+        {"name": "integer_col", "type": "INTEGER"},
+        {"name": "float_col", "type": "FLOAT"},
     ]
 
     localized = module_under_test.localize_df(df, bq_schema)
@@ -63,9 +63,9 @@ def test_localize_df_with_timestamp_column(module_under_test):
     expected = df.copy()
     expected["timestamp_col"] = df["timestamp_col"].dt.tz_localize("UTC")
     bq_schema = [
-        {"name": "integer_col", "type": "INTEGER",},
-        {"name": "timestamp_col", "type": "TIMESTAMP",},
-        {"name": "float_col", "type": "FLOAT",},
+        {"name": "integer_col", "type": "INTEGER"},
+        {"name": "timestamp_col", "type": "TIMESTAMP"},
+        {"name": "float_col", "type": "FLOAT"},
     ]
 
     localized = module_under_test.localize_df(df, bq_schema)
