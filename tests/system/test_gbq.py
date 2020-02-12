@@ -211,7 +211,10 @@ class TestReadGBQIntegration(object):
             credentials=self.credentials,
             dialect="legacy",
         )
-        tm.assert_frame_equal(df, DataFrame({"null_integer": [None]}))
+        tm.assert_frame_equal(
+            df,
+            DataFrame({"null_integer": pandas.Series([None], dtype="object")}),
+        )
 
     def test_should_properly_handle_valid_floats(self, project_id):
         from math import pi
