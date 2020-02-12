@@ -20,18 +20,17 @@ def method_under_test(credentials):
     "query_string",
     (
         ("SELECT * FROM (SELECT 1) WHERE TRUE = FALSE;"),
-        ("SELECT * FROM (SELECT TIMESTAMP('2020-02-11 16:33:32-06:00')) WHERE TRUE = FALSE;"),
-    )
+        (
+            "SELECT * FROM (SELECT TIMESTAMP('2020-02-11 16:33:32-06:00')) WHERE TRUE = FALSE;"
+        ),
+    ),
 )
 def test_empty_results(method_under_test, query_string):
     """Test with an empty dataframe.
 
     See: https://github.com/pydata/pandas-gbq/issues/299
     """
-    df = method_under_test(
-        query_string,
-        use_bqstorage_api=True,
-    )
+    df = method_under_test(query_string, use_bqstorage_api=True,)
     assert len(df.index) == 0
 
 
