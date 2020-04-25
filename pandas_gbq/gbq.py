@@ -1207,6 +1207,12 @@ def to_gbq(
                     "data types in the DataFrame match the "
                     "schema of the destination table."
                 )
+
+            # Fetch original schema, and update the local `table_schema`
+            original_schema = table.schema(table_id)
+            table_schema = schema.update_schema(
+                table_schema, dict(fields=original_schema)
+            )
     else:
         table.create(table_id, table_schema)
 
@@ -1366,6 +1372,28 @@ class _Table(GbqConnector):
             pass
         except self.http_error as ex:
             self.process_http_error(ex)
+
+    def schema(self, table_id):
+        """Retrieve the schema of the table
+
+        Obtain from BigQuery the field names and field types
+        for the table defined by the parameters
+
+        Parameters
+        ----------
+        table_id : str
+            Name of table whose schema is to be fetched
+
+        Returns
+        -------
+        list of dicts
+            Fields representing the schema
+        """
+        if not self.exists(table_id):
+            raise NotFoundException(f"Table {table_id} does not exist")
+
+        original_schema = super(_Table, self).schema(self.dataset_id, table_id)
+        return original_schema
 
 
 class _Dataset(GbqConnector):

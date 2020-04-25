@@ -1694,3 +1694,41 @@ def test_schema_is_subset_fails_if_not_subset(gbq_table, gbq_connector):
     assert not gbq_connector.schema_is_subset(
         gbq_table.dataset_id, table_id, tested_schema
     )
+
+
+def test_schema_is_not_overwritten(gbq_table, gbq_connector):
+    # Fixes bug #315
+    table_id = "test_schema_is_not_overwritten_for_existing_table"
+    table_schema = {
+        "fields": [
+            {
+                "mode": "REQUIRED",
+                "name": "A",
+                "type": "FLOAT",
+                "description": "A",
+            },
+            {
+                "mode": "NULLABLE",
+                "name": "B",
+                "type": "FLOAT",
+                "description": "B",
+            },
+            {
+                "mode": "NULLABLE",
+                "name": "C",
+                "type": "STRING",
+                "description": "C",
+            },
+        ]
+    }
+
+    gbq_table.create(table_id, table_schema)
+    gbq.to_gbq(
+        pandas.DataFrame({"A": [1.0], "B": [2.0], "C": ["a"]}),
+        f"{gbq_table.dataset_id}.{table_id}",
+        project_id=gbq_connector.project_id,
+        if_exists="append",
+    )
+
+    actual = gbq_table.schema(table_id)
+    assert table_schema["fields"] == actual
