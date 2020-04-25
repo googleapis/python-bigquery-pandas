@@ -1725,7 +1725,7 @@ def test_schema_is_not_overwritten(gbq_table, gbq_connector):
     gbq_table.create(table_id, table_schema)
     gbq.to_gbq(
         pandas.DataFrame({"A": [1.0], "B": [2.0], "C": ["a"]}),
-        f"{gbq_table.dataset_id}.{table_id}",
+        "{0}.{1}".format(gbq_table.dataset_id, table_id),
         project_id=gbq_connector.project_id,
         if_exists="append",
     )

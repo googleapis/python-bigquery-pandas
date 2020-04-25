@@ -1390,7 +1390,9 @@ class _Table(GbqConnector):
             Fields representing the schema
         """
         if not self.exists(table_id):
-            raise NotFoundException(f"Table {table_id} does not exist")
+            raise NotFoundException(
+                "Table {0} does not exist".format(table_id)
+            )
 
         original_schema = super(_Table, self).schema(self.dataset_id, table_id)
         return original_schema
