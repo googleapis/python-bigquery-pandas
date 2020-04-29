@@ -1650,9 +1650,9 @@ def test_retrieve_schema(gbq_table, gbq_connector):
     assert expected == actual, "Expected schema used to create table"
 
 
-def test_schema_is_not_overwritten(gbq_table, gbq_connector):
-    # Fixes bug #315
-    table_id = "test_schema_is_not_overwritten_for_existing_table"
+def test_to_gbq_does_not_override_mode(gbq_table, gbq_connector):
+    # See: https://github.com/pydata/pandas-gbq/issues/315
+    table_id = "test_to_gbq_does_not_override_mode"
     table_schema = {
         "fields": [
             {
