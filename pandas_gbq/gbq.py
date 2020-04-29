@@ -649,9 +649,11 @@ class GbqConnector(object):
 
     def verify_schema(self, dataset_id, table_id, schema):
         """Indicate whether schemas match exactly
+
         Compare the BigQuery table identified in the parameters with
         the schema passed in and indicate whether all fields in the former
         are present in the latter. Order is not considered.
+
         Parameters
         ----------
         dataset_id :str
@@ -661,6 +663,7 @@ class GbqConnector(object):
         schema : list(dict)
             Schema for comparison. Each item should have
             a 'name' and a 'type'
+
         Returns
         -------
         bool
