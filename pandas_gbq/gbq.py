@@ -5,6 +5,15 @@ from datetime import datetime
 
 import numpy as np
 
+# Required dependencies, but treat as optional so that _test_google_api_imports
+# can provide a better error message.
+try:
+    from google.api_core import exceptions as google_exceptions
+    from google.cloud import bigquery
+except ImportError:  # pragma: NO COVER
+    bigquery = None
+    google_exceptions = None
+
 try:
     # The BigQuery Storage API client is an optional dependency. It is only
     # required when use_bqstorage_api=True.
@@ -388,7 +397,6 @@ class GbqConnector(object):
         return fmt % (num, "Y", suffix)
 
     def get_client(self):
-        from google.cloud import bigquery
         import pandas
 
         try:
@@ -429,7 +437,6 @@ class GbqConnector(object):
     ):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
-        from google.cloud import bigquery
 
         job_config = {
             "query": {
@@ -640,22 +647,11 @@ class GbqConnector(object):
         except self.http_error as ex:
             self.process_http_error(ex)
 
-    def _clean_schema_fields(self, fields):
-        """Return a sanitized version of the schema for comparisons."""
-        fields_sorted = sorted(fields, key=lambda field: field["name"])
-        # Ignore mode and description when comparing schemas.
-        return [
-            {"name": field["name"], "type": field["type"]}
-            for field in fields_sorted
-        ]
-
     def verify_schema(self, dataset_id, table_id, schema):
         """Indicate whether schemas match exactly
-
         Compare the BigQuery table identified in the parameters with
         the schema passed in and indicate whether all fields in the former
         are present in the latter. Order is not considered.
-
         Parameters
         ----------
         dataset_id :str
@@ -665,49 +661,17 @@ class GbqConnector(object):
         schema : list(dict)
             Schema for comparison. Each item should have
             a 'name' and a 'type'
-
         Returns
         -------
         bool
             Whether the schemas match
         """
 
-        fields_remote = self._clean_schema_fields(
+        fields_remote = pandas_gbq.schema._clean_schema_fields(
             self.schema(dataset_id, table_id)
         )
-        fields_local = self._clean_schema_fields(schema["fields"])
-
+        fields_local = pandas_gbq.schema._clean_schema_fields(schema["fields"])
         return fields_remote == fields_local
-
-    def schema_is_subset(self, dataset_id, table_id, schema):
-        """Indicate whether the schema to be uploaded is a subset
-
-        Compare the BigQuery table identified in the parameters with
-        the schema passed in and indicate whether a subset of the fields in
-        the former are present in the latter. Order is not considered.
-
-        Parameters
-        ----------
-        dataset_id : str
-            Name of the BigQuery dataset for the table
-        table_id : str
-            Name of the BigQuery table
-        schema : list(dict)
-            Schema for comparison. Each item should have
-            a 'name' and a 'type'
-
-        Returns
-        -------
-        bool
-            Whether the passed schema is a subset
-        """
-
-        fields_remote = self._clean_schema_fields(
-            self.schema(dataset_id, table_id)
-        )
-        fields_local = self._clean_schema_fields(schema["fields"])
-
-        return all(field in fields_remote for field in fields_local)
 
     def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
         table = _Table(
@@ -1141,7 +1105,6 @@ def to_gbq(
     """
 
     _test_google_api_imports()
-    from pandas_gbq import schema
 
     if verbose is not None and SHOW_VERBOSE_DEPRECATION:
         warnings.warn(
@@ -1168,25 +1131,31 @@ def to_gbq(
         credentials=credentials,
         private_key=private_key,
     )
+    bqclient = connector.client
     dataset_id, table_id = destination_table.rsplit(".", 1)
-
-    table = _Table(
-        project_id,
-        dataset_id,
-        location=location,
-        credentials=connector.credentials,
-    )
 
     default_schema = _generate_bq_schema(dataframe)
     if not table_schema:
         table_schema = default_schema
     else:
-        table_schema = schema.update_schema(
+        table_schema = pandas_gbq.schema.update_schema(
             default_schema, dict(fields=table_schema)
         )
 
     # If table exists, check if_exists parameter
-    if table.exists(table_id):
+    try:
+        table = bqclient.get_table(destination_table)
+    except google_exceptions.NotFound:
+        table_connector = _Table(
+            project_id,
+            dataset_id,
+            location=location,
+            credentials=connector.credentials,
+        )
+        table_connector.create(table_id, table_schema)
+    else:
+        original_schema = pandas_gbq.schema.to_pandas_gbq(table.schema)
+
         if if_exists == "fail":
             raise TableCreationError(
                 "Could not create the table because it "
@@ -1199,8 +1168,8 @@ def to_gbq(
                 dataset_id, table_id, table_schema
             )
         elif if_exists == "append":
-            if not connector.schema_is_subset(
-                dataset_id, table_id, table_schema
+            if not pandas_gbq.schema.schema_is_subset(
+                original_schema, table_schema
             ):
                 raise InvalidSchema(
                     "Please verify that the structure and "
@@ -1208,13 +1177,11 @@ def to_gbq(
                     "schema of the destination table."
                 )
 
-            # Fetch original schema, and update the local `table_schema`
-            original_schema = table.schema(table_id)
-            table_schema = schema.update_schema(
-                table_schema, dict(fields=original_schema)
+            # Update the local `table_schema` so mode matches.
+            # See: https://github.com/pydata/pandas-gbq/issues/315
+            table_schema = pandas_gbq.schema.update_schema(
+                table_schema, original_schema
             )
-    else:
-        table.create(table_id, table_schema)
 
     if dataframe.empty:
         # Create the table (if needed), but don't try to run a load job with an
@@ -1372,30 +1339,6 @@ class _Table(GbqConnector):
             pass
         except self.http_error as ex:
             self.process_http_error(ex)
-
-    def schema(self, table_id):
-        """Retrieve the schema of the table
-
-        Obtain from BigQuery the field names and field types
-        for the table defined by the parameters
-
-        Parameters
-        ----------
-        table_id : str
-            Name of table whose schema is to be fetched
-
-        Returns
-        -------
-        list of dicts
-            Fields representing the schema
-        """
-        if not self.exists(table_id):
-            raise NotFoundException(
-                "Table {0} does not exist".format(table_id)
-            )
-
-        original_schema = super(_Table, self).schema(self.dataset_id, table_id)
-        return original_schema
 
 
 class _Dataset(GbqConnector):

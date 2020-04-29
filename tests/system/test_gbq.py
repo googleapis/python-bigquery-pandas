@@ -12,6 +12,7 @@ import pytest
 import pytz
 
 from pandas_gbq import gbq
+import pandas_gbq.schema
 
 
 TABLE_ID = "new_test"
@@ -1637,7 +1638,7 @@ def test_retrieve_schema(gbq_table, gbq_connector):
     }
 
     gbq_table.create(table_id, test_schema)
-    actual = gbq_connector._clean_schema_fields(
+    actual = pandas_gbq.schema._clean_schema_fields(
         gbq_connector.schema(gbq_table.dataset_id, table_id)
     )
     expected = [
@@ -1647,53 +1648,6 @@ def test_retrieve_schema(gbq_table, gbq_connector):
         {"name": "D", "type": "TIMESTAMP"},
     ]
     assert expected == actual, "Expected schema used to create table"
-
-
-def test_schema_is_subset_passes_if_subset(gbq_table, gbq_connector):
-    # Issue #24 schema_is_subset indicates whether the schema of the
-    # dataframe is a subset of the schema of the bigquery table
-    table_id = "test_schema_is_subset_passes_if_subset"
-    table_schema = {
-        "fields": [
-            {"name": "A", "type": "FLOAT"},
-            {"name": "B", "type": "FLOAT"},
-            {"name": "C", "type": "STRING"},
-        ]
-    }
-    tested_schema = {
-        "fields": [
-            {"name": "A", "type": "FLOAT"},
-            {"name": "B", "type": "FLOAT"},
-        ]
-    }
-
-    gbq_table.create(table_id, table_schema)
-    assert gbq_connector.schema_is_subset(
-        gbq_table.dataset_id, table_id, tested_schema
-    )
-
-
-def test_schema_is_subset_fails_if_not_subset(gbq_table, gbq_connector):
-    # For pull request #24
-    table_id = "test_schema_is_subset_fails_if_not_subset"
-    table_schema = {
-        "fields": [
-            {"name": "A", "type": "FLOAT"},
-            {"name": "B", "type": "FLOAT"},
-            {"name": "C", "type": "STRING"},
-        ]
-    }
-    tested_schema = {
-        "fields": [
-            {"name": "A", "type": "FLOAT"},
-            {"name": "C", "type": "FLOAT"},
-        ]
-    }
-
-    gbq_table.create(table_id, table_schema)
-    assert not gbq_connector.schema_is_subset(
-        gbq_table.dataset_id, table_id, tested_schema
-    )
 
 
 def test_schema_is_not_overwritten(gbq_table, gbq_connector):
@@ -1730,5 +1684,5 @@ def test_schema_is_not_overwritten(gbq_table, gbq_connector):
         if_exists="append",
     )
 
-    actual = gbq_table.schema(table_id)
+    actual = gbq_connector.schema(gbq_table.dataset_id, table_id)
     assert table_schema["fields"] == actual
