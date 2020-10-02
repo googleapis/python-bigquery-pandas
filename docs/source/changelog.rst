@@ -10,12 +10,12 @@ Dependency updates
 ~~~~~~~~~~~~~~~~~~
 
 - Update the minimum version of ``pandas`` to 0.20.1.
-  (:issue:`TBD`)
+  (:issue:`331`)
 
 Internal changes
 ~~~~~~~~~~~~~~~~
 
-- Update tests to run against for Python 3.8. (:issue:`TBD`)
+- Update tests to run against for Python 3.8. (:issue:`331`)
 
 
 .. _changelog-0.13.3:
