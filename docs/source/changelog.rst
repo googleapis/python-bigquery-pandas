@@ -3,8 +3,8 @@ Changelog
 
 .. _changelog-0.14.0:
 
-0.14.0 / TBD
-------------
+0.14.0 / 2020-10-05
+-------------------
 
 - Add ``dtypes`` argument to ``read_gbq``. Use this argument to override the
   default ``dtype`` for a particular column in the query results. For
