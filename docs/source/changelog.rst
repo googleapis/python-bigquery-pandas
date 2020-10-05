@@ -22,6 +22,7 @@ Changelog
 Dependency updates
 ~~~~~~~~~~~~~~~~~~
 
+- Support ``google-cloud-bigquery-storage`` 2.0 and higher. (:issue:`329`)
 - Update the minimum version of ``pandas`` to 0.20.1.
   (:issue:`331`)
 
