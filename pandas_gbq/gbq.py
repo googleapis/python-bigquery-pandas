@@ -15,6 +15,7 @@ except ImportError:  # pragma: NO COVER
     google_exceptions = None
 
 from pandas_gbq.exceptions import AccessDenied
+from pandas_gbq.exceptions import PerformanceWarning
 import pandas_gbq.schema
 import pandas_gbq.timestamp
 
@@ -558,7 +559,7 @@ class GbqConnector(object):
                 ).format(
                     BIGQUERY_INSTALLED_VERSION, BIGQUERY_BQSTORAGE_VERSION
                 ),
-                exceptions.PerformanceWarning,
+                PerformanceWarning,
                 stacklevel=4,
             )
 

@@ -490,11 +490,8 @@ def test_read_gbq_passes_dtypes(
 
     mock_list_rows = mock_bigquery_client.list_rows("dest", max_results=100)
 
-    mock_list_rows.to_dataframe.assert_called_once_with(
-        dtypes={"int_col": "my-custom-dtype"},
-        create_bqstorage_client=mock.ANY,
-        progress_bar_type=mock.ANY,
-    )
+    _, to_dataframe_kwargs = mock_list_rows.to_dataframe.call_args
+    assert to_dataframe_kwargs["dtypes"] == {"int_col": "my-custom-dtype"}
 
 
 def test_read_gbq_use_bqstorage_api(
@@ -502,7 +499,7 @@ def test_read_gbq_use_bqstorage_api(
 ):
     gbq._check_google_client_version()
     if not gbq.HAS_BQSTORAGE_SUPPORT:
-        pytest.skip(reason="requires BigQuery Storage API")
+        pytest.skip("requires BigQuery Storage API")
 
     mock_service_account_credentials.project_id = "service_account_project_id"
     df = gbq.read_gbq(
@@ -535,6 +532,5 @@ def test_read_gbq_calls_tqdm(
 
     mock_list_rows = mock_bigquery_client.list_rows("dest", max_results=100)
 
-    mock_list_rows.to_dataframe.assert_called_once_with(
-        dtypes=mock.ANY, create_bqstorage_client=mock.ANY, progress_bar_type="foobar"
-    )
+    _, to_dataframe_kwargs = mock_list_rows.to_dataframe.call_args
+    assert to_dataframe_kwargs["progress_bar_type"] == "foobar"
