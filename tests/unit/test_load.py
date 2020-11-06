@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import textwrap
 from io import StringIO
 
 import numpy
@@ -30,16 +31,16 @@ def test_encode_chunk_with_floats():
     See: https://github.com/pydata/pandas-gbq/issues/192 and
     https://github.com/pydata/pandas-gbq/issues/326
     """
-    input_csv = StringIO(
+    input_csv = textwrap.dedent(
         """01/01/17 23:00,0.14285714285714285,4
-    01/02/17 22:00,1.05148,3
-    01/03/17 21:00,1.05153,2
-    01/04/17 20:00,3.141592653589793,1
-    01/05/17 19:00,2.0988936657440586e+43,0
-    """
+        01/02/17 22:00,1.05148,3
+        01/03/17 21:00,1.05153,2
+        01/04/17 20:00,3.141592653589793,1
+        01/05/17 19:00,2.0988936657440586e+43,0
+        """
     )
     input_df = pandas.read_csv(
-        input_csv, header=None, float_precision="round_trip"
+        StringIO(input_csv), header=None, float_precision="round_trip"
     )
     csv_buffer = load.encode_chunk(input_df)
     round_trip = pandas.read_csv(
