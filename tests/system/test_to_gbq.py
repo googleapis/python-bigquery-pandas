@@ -23,7 +23,7 @@ def test_float_round_trip(
     See: https://github.com/pydata/pandas-gbq/issues/326
     """
 
-    table_id = f"{random_dataset_id}.float_round_trip"
+    table_id = "{}.float_round_trip".format(random_dataset_id)
     input_floats = pandas.Series(
         [
             0.14285714285714285,
