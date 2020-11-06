@@ -46,7 +46,9 @@ def test_encode_chunk_with_floats():
         csv_buffer, header=None, float_precision="round_trip"
     )
     pandas.testing.assert_frame_equal(
-        round_trip, input_df, check_exact=True,
+        round_trip,
+        input_df,
+        check_exact=True,
     )
 
 
