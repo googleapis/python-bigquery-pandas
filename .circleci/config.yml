@@ -37,12 +37,12 @@ jobs:
       - run: nox -s lint
 
   # Conda
-  "conda-3.7-0.20.1":
+  "conda-3.7":
     docker:
       - image: continuumio/miniconda3
     environment:
       PYTHON: "3.7"
-      PANDAS: "0.20.1"
+      PANDAS: "0.23.2"
     steps:
       - checkout
       - run: ci/config_auth.sh
@@ -66,5 +66,5 @@ workflows:
       - "pip-3.8"
       - "pip-3.9"
       - lint
-      - "conda-3.7-0.20.1"
+      - "conda-3.7"
       - "conda-3.9-NIGHTLY"
