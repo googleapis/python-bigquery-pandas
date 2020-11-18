@@ -1,22 +1,6 @@
 version: 2
 jobs:
   # Pip
-  "pip-3.5":
-    docker:
-      - image: thekevjames/nox
-    steps:
-      - checkout
-      - run: ci/config_auth.sh
-      - run: nox -s unit-3.5 system-3.5
-
-  "pip-3.6":
-    docker:
-      - image: thekevjames/nox
-    steps:
-      - checkout
-      - run: ci/config_auth.sh
-      - run: nox -s unit-3.6
-
   "pip-3.7":
     docker:
       - image: thekevjames/nox
@@ -33,6 +17,14 @@ jobs:
       - run: ci/config_auth.sh
       - run: nox -s unit-3.8 system-3.8 cover
 
+  "pip-3.9":
+    docker:
+      - image: thekevjames/nox
+    steps:
+      - checkout
+      - run: ci/config_auth.sh
+      - run: nox -s unit-3.9 system-3.9 cover
+
   "lint":
     docker:
       - image: thekevjames/nox
@@ -45,21 +37,21 @@ jobs:
       - run: nox -s lint
 
   # Conda
-  "conda-3.6-0.20.1":
+  "conda-3.7-0.20.1":
     docker:
       - image: continuumio/miniconda3
     environment:
-      PYTHON: "3.6"
+      PYTHON: "3.7"
       PANDAS: "0.20.1"
     steps:
       - checkout
       - run: ci/config_auth.sh
       - run: ci/run_conda.sh
-  "conda-3.8-NIGHTLY":
+  "conda-3.9-NIGHTLY":
     docker:
       - image: continuumio/miniconda3
     environment:
-      PYTHON: "3.8"
+      PYTHON: "3.9"
       PANDAS: "NIGHTLY"
     steps:
       - checkout
@@ -70,10 +62,9 @@ workflows:
   version: 2
   build:
     jobs:
-      - "pip-3.5"
-      - "pip-3.6"
       - "pip-3.7"
       - "pip-3.8"
+      - "pip-3.9"
       - lint
-      - "conda-3.6-0.20.1"
-      - "conda-3.8-NIGHTLY"
+      - "conda-3.7-0.20.1"
+      - "conda-3.9-NIGHTLY"

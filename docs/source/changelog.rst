@@ -1,6 +1,17 @@
 Changelog
 =========
 
+.. _changelog-0.15.0:
+
+0.15.0 / TBD
+------------
+
+Dependencies
+~~~~~~~~~~~~
+
+- Support Python 3.9. (:issue:`338`)
+- Drop support for Python 3.5 and 3.6. (:issue:`337`)
+
 .. _changelog-0.14.1:
 
 0.14.1 / 2020-11-10

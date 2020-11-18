@@ -10,9 +10,9 @@ import shutil
 import nox
 
 
-supported_pythons = ["3.5", "3.6", "3.7", "3.8"]
-system_test_pythons = ["3.5", "3.8"]
-latest_python = "3.8"
+supported_pythons = ["3.7", "3.8", "3.9"]
+system_test_pythons = ["3.7", "3.8", "3.9"]
+latest_python = "3.9"
 
 # Use a consistent version of black so CI is deterministic.
 # Should match Stickler: https://stickler-ci.com/docs#black
