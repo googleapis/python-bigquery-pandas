@@ -61,6 +61,22 @@ M (datetime)              TIMESTAMP
 If the data type inference does not suit your needs, supply a BigQuery schema
 as the ``table_schema`` parameter of :func:`~pandas_gbq.to_gbq`.
 
+Specifying a different billing project
+----------------------------
+
+If you want to upload to a table that is different from the project_id you
+need to run the job in, you can specify the project_id of the table as part
+of a three part identifier.
+
+
+.. code-block:: python
+
+   import pandas_gbq
+   pandas_gbq.to_gbq(
+       df, 'my_other_project.my_dataset.my_table', project_id=projectid, if_exists='fail',
+   )
+
+
 
 Troubleshooting Errors
 ----------------------
