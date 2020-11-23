@@ -604,6 +604,7 @@ class GbqConnector(object):
     def load_data(
         self,
         dataframe,
+        project_id,
         dataset_id,
         table_id,
         chunksize=None,
@@ -617,6 +618,7 @@ class GbqConnector(object):
         try:
             chunks = load.load_chunks(
                 self.client,
+                project_id,
                 dataframe,
                 dataset_id,
                 table_id,
@@ -1037,10 +1039,10 @@ def to_gbq(
     dataframe : pandas.DataFrame
         DataFrame to be written to a Google BigQuery table.
     destination_table : str
-        Name of table to be written, in the form ``dataset.tablename``.
+        Name of table to be written, in the form ``[project.]dataset.tablename``.
     project_id : str, optional
-        Google BigQuery Account project ID. Optional when available from
-        the environment.
+        Google BigQuery Account billing project ID. Optional when available from
+        the environment. The table will default to this project if no project_id is specified in the destination_table.
     chunksize : int, optional
         Number of rows to be inserted in each chunk from the dataframe.
         Set to ``None`` to load the whole dataframe at once.
@@ -1145,8 +1147,13 @@ def to_gbq(
         private_key=private_key,
     )
     bqclient = connector.client
-    dataset_id, table_id = destination_table.rsplit(".", 1)
-
+    if destination_table.count(".") == 2:
+        table_project_id, dataset_id, table_id = destination_table.rsplit(
+            ".", 2
+        )
+    else:
+        dataset_id, table_id = destination_table.rsplit(".", 1)
+        table_project_id = project_id
     default_schema = _generate_bq_schema(dataframe)
     if not table_schema:
         table_schema = default_schema
@@ -1203,6 +1210,7 @@ def to_gbq(
 
     connector.load_data(
         dataframe,
+        table_project_id,
         dataset_id,
         table_id,
         chunksize=chunksize,
