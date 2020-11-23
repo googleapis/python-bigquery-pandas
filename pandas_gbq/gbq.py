@@ -618,8 +618,8 @@ class GbqConnector(object):
         try:
             chunks = load.load_chunks(
                 self.client,
-                project_id,
                 dataframe,
+                project_id,
                 dataset_id,
                 table_id,
                 chunksize=chunksize,
