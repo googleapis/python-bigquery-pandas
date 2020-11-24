@@ -72,11 +72,13 @@ def tokyo_table(bigquery_client, tokyo_dataset):
 def gbq_dataset(project, credentials):
     from pandas_gbq import gbq
 
-    return gbq._Dataset(project, credentials=credentials)
+    return gbq._Dataset(project, project, credentials=credentials)
 
 
 @pytest.fixture()
 def gbq_table(project, credentials, random_dataset_id):
     from pandas_gbq import gbq
 
-    return gbq._Table(project, random_dataset_id, credentials=credentials)
+    return gbq._Table(
+        project, project, random_dataset_id, credentials=credentials
+    )

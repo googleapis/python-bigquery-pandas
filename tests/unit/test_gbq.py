@@ -374,10 +374,7 @@ def test_read_gbq_with_old_bq_raises_importerror():
         new_callable=mock.PropertyMock,
     ) as mock_version:
         mock_version.side_effect = [bigquery_version]
-        gbq.read_gbq(
-            "SELECT 1",
-            project_id="my-project",
-        )
+        gbq.read_gbq("SELECT 1", project_id="my-project")
 
 
 def test_read_gbq_with_verbose_old_pandas_no_warnings(recwarn, min_bq_version):
@@ -535,3 +532,28 @@ def test_read_gbq_calls_tqdm(
 
     _, to_dataframe_kwargs = mock_list_rows.to_dataframe.call_args
     assert to_dataframe_kwargs["progress_bar_type"] == "foobar"
+
+
+def test_extract_table():
+    project, dataset, table = gbq._process_table_id(
+        "test_project.test_dataset.test_table", "default_project"
+    )
+    assert project == "test_project"
+    assert dataset == "test_dataset"
+    assert table == "test_table"
+
+    project, dataset, table = gbq._process_table_id(
+        "test_dataset.test_table", "default_project"
+    )
+
+    assert project == "default_project"
+    assert dataset == "test_dataset"
+    assert table == "test_table"
+
+    project, dataset, table = gbq._process_table_id(
+        "`test_dataset.test_table`", "default_project"
+    )
+
+    assert project == "default_project"
+    assert dataset == "test_dataset"
+    assert table == "test_table"

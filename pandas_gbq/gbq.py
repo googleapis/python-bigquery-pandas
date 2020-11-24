@@ -604,6 +604,7 @@ class GbqConnector(object):
     def load_data(
         self,
         dataframe,
+        project_id,
         dataset_id,
         table_id,
         chunksize=None,
@@ -618,6 +619,7 @@ class GbqConnector(object):
             chunks = load.load_chunks(
                 self.client,
                 dataframe,
+                project_id,
                 dataset_id,
                 table_id,
                 chunksize=chunksize,
@@ -699,9 +701,19 @@ class GbqConnector(object):
         fields_local = pandas_gbq.schema._clean_schema_fields(schema["fields"])
         return fields_remote == fields_local
 
-    def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
+    def delete_and_recreate_table(
+        self,
+        table_project_id,
+        billing_project_id,
+        dataset_id,
+        table_id,
+        table_schema,
+    ):
         table = _Table(
-            self.project_id, dataset_id, credentials=self.credentials
+            table_project_id=table_project_id,
+            billing_project_id=billing_project_id,
+            dataset_id=dataset_id,
+            credentials=self.credentials,
         )
         table.delete(table_id)
         table.create(table_id, table_schema)
@@ -776,6 +788,17 @@ def _cast_empty_df_dtypes(schema_fields, df):
             df[column] = df[column].astype(dtype)
 
     return df
+
+
+def _process_table_id(destination_table, project_id):
+    """Clean any backticks from the input string, and split into 3 parts if a project is provided
+    or two and the default billing project if not."""
+    destination_table = destination_table.replace("`", "")
+    if destination_table.count(".") == 2:
+        return destination_table.rsplit(".", 2)
+    else:
+        dataset_id, table_id = destination_table.rsplit(".", 1)
+        return project_id, dataset_id, table_id
 
 
 def read_gbq(
@@ -1037,10 +1060,10 @@ def to_gbq(
     dataframe : pandas.DataFrame
         DataFrame to be written to a Google BigQuery table.
     destination_table : str
-        Name of table to be written, in the form ``dataset.tablename``.
+        Name of table to be written, in the form ``[project.]dataset.tablename``.
     project_id : str, optional
-        Google BigQuery Account project ID. Optional when available from
-        the environment.
+        Google BigQuery Account billing project ID. Optional when available from
+        the environment. The table will default to this project if no project_id is specified in the destination_table.
     chunksize : int, optional
         Number of rows to be inserted in each chunk from the dataframe.
         Set to ``None`` to load the whole dataframe at once.
@@ -1145,8 +1168,10 @@ def to_gbq(
         private_key=private_key,
     )
     bqclient = connector.client
-    dataset_id, table_id = destination_table.rsplit(".", 1)
 
+    table_project_id, dataset_id, table_id = _process_table_id(
+        destination_table, project_id
+    )
     default_schema = _generate_bq_schema(dataframe)
     if not table_schema:
         table_schema = default_schema
@@ -1160,8 +1185,9 @@ def to_gbq(
         table = bqclient.get_table(destination_table)
     except google_exceptions.NotFound:
         table_connector = _Table(
-            project_id,
-            dataset_id,
+            table_project_id=table_project_id,
+            billing_project_id=project_id,
+            dataset_id=dataset_id,
             location=location,
             credentials=connector.credentials,
         )
@@ -1178,7 +1204,11 @@ def to_gbq(
             )
         elif if_exists == "replace":
             connector.delete_and_recreate_table(
-                dataset_id, table_id, table_schema
+                table_project_id,
+                project_id,
+                dataset_id,
+                table_id,
+                table_schema,
             )
         elif if_exists == "append":
             if not pandas_gbq.schema.schema_is_subset(
@@ -1203,6 +1233,7 @@ def to_gbq(
 
     connector.load_data(
         dataframe,
+        table_project_id,
         dataset_id,
         table_id,
         chunksize=chunksize,
@@ -1249,7 +1280,8 @@ def _generate_bq_schema(df, default_type="STRING"):
 class _Table(GbqConnector):
     def __init__(
         self,
-        project_id,
+        table_project_id,
+        billing_project_id,
         dataset_id,
         reauth=False,
         location=None,
@@ -1257,8 +1289,9 @@ class _Table(GbqConnector):
         private_key=None,
     ):
         self.dataset_id = dataset_id
+        self.table_project_id = table_project_id
         super(_Table, self).__init__(
-            project_id,
+            billing_project_id,
             reauth,
             location=location,
             credentials=credentials,
@@ -1280,7 +1313,9 @@ class _Table(GbqConnector):
         """
         from google.api_core.exceptions import NotFound
 
-        table_ref = self.client.dataset(self.dataset_id).table(table_id)
+        table_ref = self.client.dataset(
+            self.dataset_id, project=self.table_project_id
+        ).table(table_id)
         try:
             self.client.get_table(table_ref)
             return True
@@ -1308,16 +1343,21 @@ class _Table(GbqConnector):
                 "Table {0} already " "exists".format(table_id)
             )
 
-        if not _Dataset(self.project_id, credentials=self.credentials).exists(
-            self.dataset_id
-        ):
+        if not _Dataset(
+            dataset_project_id=self.table_project_id,
+            billing_project_id=self.project_id,
+            credentials=self.credentials,
+        ).exists(self.dataset_id):
             _Dataset(
-                self.project_id,
+                dataset_project_id=self.table_project_id,
+                billing_project_id=self.project_id,
                 credentials=self.credentials,
                 location=self.location,
             ).create(self.dataset_id)
 
-        table_ref = self.client.dataset(self.dataset_id).table(table_id)
+        table_ref = self.client.dataset(
+            self.dataset_id, project=self.table_project_id
+        ).table(table_id)
         table = Table(table_ref)
 
         schema = pandas_gbq.schema.add_default_nullable_mode(schema)
@@ -1344,7 +1384,9 @@ class _Table(GbqConnector):
         if not self.exists(table_id):
             raise NotFoundException("Table does not exist")
 
-        table_ref = self.client.dataset(self.dataset_id).table(table_id)
+        table_ref = self.client.dataset(
+            self.dataset_id, project=self.project_id
+        ).table(table_id)
         try:
             self.client.delete_table(table_ref)
         except NotFound:
@@ -1357,14 +1399,16 @@ class _Table(GbqConnector):
 class _Dataset(GbqConnector):
     def __init__(
         self,
-        project_id,
+        dataset_project_id,
+        billing_project_id,
         reauth=False,
         location=None,
         credentials=None,
         private_key=None,
     ):
+        self.dataset_project_id = dataset_project_id
         super(_Dataset, self).__init__(
-            project_id,
+            billing_project_id,
             reauth,
             credentials=credentials,
             location=location,
@@ -1387,7 +1431,11 @@ class _Dataset(GbqConnector):
         from google.api_core.exceptions import NotFound
 
         try:
-            self.client.get_dataset(self.client.dataset(dataset_id))
+            self.client.get_dataset(
+                self.client.dataset(
+                    dataset_id, project=self.dataset_project_id
+                )
+            )
             return True
         except NotFound:
             return False
@@ -1409,7 +1457,9 @@ class _Dataset(GbqConnector):
                 "Dataset {0} already " "exists".format(dataset_id)
             )
 
-        dataset = Dataset(self.client.dataset(dataset_id))
+        dataset = Dataset(
+            self.client.dataset(dataset_id, project=self.dataset_project_id)
+        )
 
         if self.location is not None:
             dataset.location = self.location
