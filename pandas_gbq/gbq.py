@@ -604,6 +604,7 @@ class GbqConnector(object):
     def load_data(
         self,
         dataframe,
+        project_id,
         dataset_id,
         table_id,
         chunksize=None,
@@ -618,6 +619,7 @@ class GbqConnector(object):
             chunks = load.load_chunks(
                 self.client,
                 dataframe,
+                project_id,
                 dataset_id,
                 table_id,
                 chunksize=chunksize,
@@ -776,6 +778,17 @@ def _cast_empty_df_dtypes(schema_fields, df):
             df[column] = df[column].astype(dtype)
 
     return df
+
+
+def _process_table_id(destination_table, project_id):
+    """Clean any backticks from the input string, and split into 3 parts if a project is provided
+    or two and the default billing project if not."""
+    destination_table = destination_table.replace("`", "")
+    if destination_table.count(".") == 2:
+        return destination_table.rsplit(".", 2)
+    else:
+        dataset_id, table_id = destination_table.rsplit(".", 1)
+        return project_id, dataset_id, table_id
 
 
 def read_gbq(
@@ -1037,10 +1050,10 @@ def to_gbq(
     dataframe : pandas.DataFrame
         DataFrame to be written to a Google BigQuery table.
     destination_table : str
-        Name of table to be written, in the form ``dataset.tablename``.
+        Name of table to be written, in the form ``[project.]dataset.tablename``.
     project_id : str, optional
-        Google BigQuery Account project ID. Optional when available from
-        the environment.
+        Google BigQuery Account billing project ID. Optional when available from
+        the environment. The table will default to this project if no project_id is specified in the destination_table.
     chunksize : int, optional
         Number of rows to be inserted in each chunk from the dataframe.
         Set to ``None`` to load the whole dataframe at once.
@@ -1145,8 +1158,10 @@ def to_gbq(
         private_key=private_key,
     )
     bqclient = connector.client
-    dataset_id, table_id = destination_table.rsplit(".", 1)
 
+    table_project_id, dataset_id, table_id = _process_table_id(
+        destination_table, project_id
+    )
     default_schema = _generate_bq_schema(dataframe)
     if not table_schema:
         table_schema = default_schema
@@ -1203,6 +1218,7 @@ def to_gbq(
 
     connector.load_data(
         dataframe,
+        table_project_id,
         dataset_id,
         table_id,
         chunksize=chunksize,
