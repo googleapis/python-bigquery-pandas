@@ -920,7 +920,7 @@ class TestToGBQIntegration(object):
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
         # executed.
         self.table = gbq._Table(
-            project, random_dataset_id, credentials=credentials
+            project, project, random_dataset_id, credentials=credentials
         )
         self.destination_table = "{}.{}".format(random_dataset_id, TABLE_ID)
         self.credentials = credentials
