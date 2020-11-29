@@ -50,13 +50,16 @@ def encode_chunks(dataframe, chunksize=None):
 def load_chunks(
     client,
     dataframe,
+    project_id_table,
     dataset_id,
     table_id,
     chunksize=None,
     schema=None,
     location=None,
 ):
-    destination_table = client.dataset(dataset_id).table(table_id)
+    destination_table = (
+        client(project=project_id_table).dataset(dataset_id).table(table_id)
+    )
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = "WRITE_APPEND"
     job_config.source_format = "CSV"

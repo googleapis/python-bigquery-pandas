@@ -257,6 +257,22 @@ def test_to_gbq_w_empty_df(mock_bigquery_client):
     mock_bigquery_client.load_table_from_file.assert_not_called()
 
 
+def test_to_gbq_w_empty_df_and_project_table(mock_bigquery_client):
+    import google.api_core.exceptions
+
+    mock_bigquery_client.get_table.side_effect = (
+        google.api_core.exceptions.NotFound("my_table")
+    )
+    gbq.to_gbq(
+        DataFrame(),
+        "project_table.my_dataset.my_table",
+        project_id="project_client",
+    )
+    mock_bigquery_client.create_table.assert_called_with(mock.ANY)
+    mock_bigquery_client.load_table_from_dataframe.assert_not_called()
+    mock_bigquery_client.load_table_from_file.assert_not_called()
+
+
 def test_to_gbq_creates_dataset(mock_bigquery_client):
     import google.api_core.exceptions
 

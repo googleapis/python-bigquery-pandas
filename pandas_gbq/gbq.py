@@ -604,6 +604,7 @@ class GbqConnector(object):
     def load_data(
         self,
         dataframe,
+        project_id_table,
         dataset_id,
         table_id,
         chunksize=None,
@@ -618,6 +619,7 @@ class GbqConnector(object):
             chunks = load.load_chunks(
                 self.client,
                 dataframe,
+                project_id_table,
                 dataset_id,
                 table_id,
                 chunksize=chunksize,
@@ -1037,7 +1039,8 @@ def to_gbq(
     dataframe : pandas.DataFrame
         DataFrame to be written to a Google BigQuery table.
     destination_table : str
-        Name of table to be written, in the form ``dataset.tablename``.
+        Name of table to be written, in the form ``dataset.tablename`` or
+        ``project.dataset.tablename``.
     project_id : str, optional
         Google BigQuery Account project ID. Optional when available from
         the environment.
@@ -1133,7 +1136,8 @@ def to_gbq(
 
     if "." not in destination_table:
         raise NotFoundException(
-            "Invalid Table Name. Should be of the form 'datasetId.tableId' "
+            "Invalid Table Name. Should be of the form 'datasetId.tableId' or "
+            "'projectId.datasetId.tableId'"
         )
 
     connector = GbqConnector(
@@ -1145,7 +1149,14 @@ def to_gbq(
         private_key=private_key,
     )
     bqclient = connector.client
-    dataset_id, table_id = destination_table.rsplit(".", 1)
+
+    destination_table_ref = bigquery.table.TableReference.from_string(
+        destination_table, default_project=project_id
+    )
+
+    project_id_table = destination_table_ref.project
+    dataset_id = destination_table_ref.dataset_id
+    table_id = destination_table_ref.table_id
 
     default_schema = _generate_bq_schema(dataframe)
     if not table_schema:
@@ -1160,7 +1171,7 @@ def to_gbq(
         table = bqclient.get_table(destination_table)
     except google_exceptions.NotFound:
         table_connector = _Table(
-            project_id,
+            project_id_table,
             dataset_id,
             location=location,
             credentials=connector.credentials,
@@ -1203,6 +1214,7 @@ def to_gbq(
 
     connector.load_data(
         dataframe,
+        project_id_table,
         dataset_id,
         table_id,
         chunksize=chunksize,
