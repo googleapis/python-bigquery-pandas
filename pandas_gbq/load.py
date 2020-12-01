@@ -55,9 +55,6 @@ def load_chunks(
     schema=None,
     location=None,
 ):
-    destination_table = client.dataset(dataset_id, project_id_table).table(
-        table_id
-    )
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = "WRITE_APPEND"
     job_config.source_format = "CSV"
