@@ -50,9 +50,7 @@ def encode_chunks(dataframe, chunksize=None):
 def load_chunks(
     client,
     dataframe,
-    project_id_table,
-    dataset_id,
-    table_id,
+    destination_table,
     chunksize=None,
     schema=None,
     location=None,
