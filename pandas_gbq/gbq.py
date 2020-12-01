@@ -1212,9 +1212,7 @@ def to_gbq(
 
     connector.load_data(
         dataframe,
-        project_id_table,
-        dataset_id,
-        table_id,
+        destination_table_ref,
         chunksize=chunksize,
         schema=table_schema,
         progress_bar=progress_bar,
