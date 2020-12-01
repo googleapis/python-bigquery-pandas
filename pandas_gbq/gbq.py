@@ -604,9 +604,7 @@ class GbqConnector(object):
     def load_data(
         self,
         dataframe,
-        project_id_table,
-        dataset_id,
-        table_id,
+        destination_table,
         chunksize=None,
         schema=None,
         progress_bar=True,
