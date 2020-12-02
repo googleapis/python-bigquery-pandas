@@ -604,7 +604,7 @@ class GbqConnector(object):
     def load_data(
         self,
         dataframe,
-        destination_table,
+        destination_table_ref,
         chunksize=None,
         schema=None,
         progress_bar=True,
@@ -617,9 +617,7 @@ class GbqConnector(object):
             chunks = load.load_chunks(
                 self.client,
                 dataframe,
-                project_id_table,
-                dataset_id,
-                table_id,
+                destination_table_ref,
                 chunksize=chunksize,
                 schema=schema,
                 location=self.location,

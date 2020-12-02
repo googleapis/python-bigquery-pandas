@@ -50,7 +50,7 @@ def encode_chunks(dataframe, chunksize=None):
 def load_chunks(
     client,
     dataframe,
-    destination_table,
+    destination_table_ref,
     chunksize=None,
     schema=None,
     location=None,
@@ -75,7 +75,7 @@ def load_chunks(
             yield remaining_rows
             client.load_table_from_file(
                 chunk_buffer,
-                destination_table,
+                destination_table_ref,
                 job_config=job_config,
                 location=location,
             ).result()
