@@ -1147,7 +1147,7 @@ def to_gbq(
     bqclient = connector.client
 
     destination_table_ref = bigquery.table.TableReference.from_string(
-        destination_table, default_project=project_id
+        destination_table, default_project=connector.project_id
     )
 
     project_id_table = destination_table_ref.project
