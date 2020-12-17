@@ -6,11 +6,18 @@ Changelog
 0.15.0 / TBD
 ------------
 
+Features
+~~~~~~~~
+
+- Load DataFrame with ``to_gbq`` to a table in a project different from the API
+  client project. Specify the target table ID as ``project.dataset.table`` to
+  use this feature. (:issue:`321`, :issue:`347`)
+
 Dependencies
 ~~~~~~~~~~~~
 
-- Support Python 3.9. (:issue:`338`)
 - Drop support for Python 3.5 and 3.6. (:issue:`337`)
+
 
 .. _changelog-0.14.1:
 
