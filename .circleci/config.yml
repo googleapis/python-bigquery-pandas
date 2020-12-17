@@ -1,30 +1,5 @@
 version: 2
 jobs:
-  # Pip
-  "pip-3.7":
-    docker:
-      - image: thekevjames/nox
-    steps:
-      - checkout
-      - run: ci/config_auth.sh
-      - run: nox -s unit-3.7
-
-  "pip-3.8":
-    docker:
-      - image: thekevjames/nox
-    steps:
-      - checkout
-      - run: ci/config_auth.sh
-      - run: nox -s unit-3.8 system-3.8 cover
-
-  "pip-3.9":
-    docker:
-      - image: thekevjames/nox
-    steps:
-      - checkout
-      - run: ci/config_auth.sh
-      - run: nox -s unit-3.9 system-3.9 cover
-
   "lint":
     docker:
       - image: thekevjames/nox
@@ -35,6 +10,22 @@ jobs:
     steps:
       - checkout
       - run: nox -s lint
+
+  # Pip
+  "pip-3.7":
+    docker:
+      - image: thekevjames/nox
+    steps:
+      - checkout
+      - run: ci/config_auth.sh
+      - run: nox -s unit-3.7
+  "pip-3.8":
+    docker:
+      - image: thekevjames/nox
+    steps:
+      - checkout
+      - run: ci/config_auth.sh
+      - run: nox -s unit-3.8 system-3.8 cover
 
   # Conda
   "conda-3.7":
@@ -64,7 +55,6 @@ workflows:
     jobs:
       - "pip-3.7"
       - "pip-3.8"
-      - "pip-3.9"
       - lint
       - "conda-3.7"
       - "conda-3.9-NIGHTLY"
