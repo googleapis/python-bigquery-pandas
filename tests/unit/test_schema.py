@@ -70,6 +70,79 @@ def test_schema_is_subset_fails_if_not_subset(module_under_test):
 
 
 @pytest.mark.parametrize(
+    "original_fields,dataframe_fields,expected_difference",
+    [
+        (
+            [
+                {"name": "A", "type": "FLOAT"},
+                {"name": "B", "type": "FLOAT64"},
+                {"name": "C", "type": "STRING"},
+            ],
+            [
+                {"name": "A", "type": "FLOAT64"},
+                {"name": "B", "type": "FLOAT"},
+            ],
+            "Field 'C': no such field in the dataframe.",
+        ),
+        (
+            [
+                {"name": "A", "type": "FLOAT"},
+                {"name": "B", "type": "STRING"},
+            ],
+            [
+                {"name": "A", "type": "FLOAT64"},
+                {"name": "B", "type": "FLOAT"},
+            ],
+            "Field 'B' has different types: dataframe 'FLOAT', BigQuery 'STRING'.",
+        ),
+        (
+            [
+                {"name": "A", "type": "FLOAT"},
+                {"name": "B", "type": "STRING"},
+                {"name": "C", "type": "STRING"},
+            ],
+            [
+                {"name": "A", "type": "FLOAT64"},
+                {"name": "B", "type": "FLOAT"},
+            ],
+            (
+                "Field 'B' has different types: dataframe 'FLOAT', BigQuery 'STRING'.\n"
+                "Field 'C': no such field in the dataframe."
+            ),
+        ),
+        (
+            [
+                {"name": "A", "type": "FLOAT"},
+                {"name": "B", "type": "STRING"},
+                {"name": "C", "type": "STRING"},
+                {"name": "D", "type": "STRING"},
+                {"name": "E", "type": "STRING"},
+            ],
+            [
+                {"name": "A", "type": "FLOAT64"},
+                {"name": "B", "type": "FLOAT"},
+            ],
+            (
+                "Field 'B' has different types: dataframe 'FLOAT', BigQuery 'STRING'.\n"
+                "Field 'C': no such field in the dataframe.\n"
+                "Field 'D': no such field in the dataframe.\n"
+                "And 1 more left."
+            ),
+        ),
+    ],
+)
+def test_schema_difference(
+    module_under_test, original_fields, dataframe_fields, expected_difference
+):
+    table_schema = {"fields": original_fields}
+    tested_schema = {"fields": dataframe_fields}
+    schema_difference = module_under_test.schema_difference(
+        table_schema, tested_schema
+    )
+    assert expected_difference == schema_difference
+
+
+@pytest.mark.parametrize(
     "dataframe,expected_schema",
     [
         (

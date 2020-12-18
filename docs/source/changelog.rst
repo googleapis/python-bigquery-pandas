@@ -12,6 +12,8 @@ Features
 - Load DataFrame with ``to_gbq`` to a table in a project different from the API
   client project. Specify the target table ID as ``project.dataset.table`` to
   use this feature. (:issue:`321`, :issue:`347`)
+- In case of dataframe and BigQuery schemas difference in ``append`` mode (
+  missing field or wrong type field) - show it in the exception. (:issue:`349`)
 
 Dependencies
 ~~~~~~~~~~~~

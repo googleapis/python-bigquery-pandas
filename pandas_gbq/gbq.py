@@ -1191,11 +1191,15 @@ def to_gbq(
             if not pandas_gbq.schema.schema_is_subset(
                 original_schema, table_schema
             ):
-                raise InvalidSchema(
+                schema_difference = pandas_gbq.schema.schema_difference(
+                    original_schema, table_schema
+                )
+                exception_message = (
                     "Please verify that the structure and "
                     "data types in the DataFrame match the "
-                    "schema of the destination table."
+                    "schema of the destination table.\n" + schema_difference
                 )
+                raise InvalidSchema(exception_message)
 
             # Update the local `table_schema` so mode matches.
             # See: https://github.com/pydata/pandas-gbq/issues/315

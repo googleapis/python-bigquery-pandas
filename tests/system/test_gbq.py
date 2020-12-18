@@ -1048,7 +1048,7 @@ class TestToGBQIntegration(object):
         assert result["num_rows"][0] == test_size * 2
 
         # Try inserting with a different schema, confirm failure
-        with pytest.raises(gbq.InvalidSchema):
+        with pytest.raises(gbq.InvalidSchema) as excinfo:
             gbq.to_gbq(
                 df_different_schema,
                 self.destination_table + test_id,
@@ -1056,6 +1056,16 @@ class TestToGBQIntegration(object):
                 if_exists="append",
                 credentials=self.credentials,
             )
+        expected_message = (
+            "Please verify that the structure and "
+            "data types in the DataFrame match the "
+            "schema of the destination table.\n"
+            "Field 'bools': no such field in the dataframe.\n"
+            "Field 'flts': no such field in the dataframe.\n"
+            "Field 'ints': no such field in the dataframe.\n"
+            "And 2 more left."
+        )
+        assert expected_message == str(excinfo.value)
 
     def test_upload_subset_columns_if_table_exists_append(self, project_id):
         # Issue 24: Upload is succesful if dataframe has columns
