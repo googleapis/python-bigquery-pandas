@@ -988,8 +988,6 @@ class TestReadGBQIntegration(object):
 class TestToGBQIntegration(object):
     @pytest.fixture(autouse=True, scope="function")
     def setup(self, project, credentials, random_dataset_id):
-        from google.cloud import bigquery
-
         # - PER-TEST FIXTURES -
         # put here any instruction you want to be run *BEFORE* *EVERY* test is
         # executed.
