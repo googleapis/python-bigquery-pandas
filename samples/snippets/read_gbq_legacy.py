@@ -6,11 +6,11 @@
 
 import argparse
 
-import pandas_gbq
-
 
 def main(project_id):
     # [START bigquery_pandas_gbq_read_gbq_legacy]
+    import pandas_gbq
+
     sql = """
     SELECT country_name, alpha_2_code
     FROM [bigquery-public-data:utility_us.country_code_iso]
