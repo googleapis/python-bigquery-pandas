@@ -1,8 +1,0 @@
-pydata-google-auth
-google-cloud-bigquery
-google-cloud-bigquery-storage
-pytest
-pytest-cov
-codecov
-coverage
-flake8
