@@ -82,8 +82,7 @@ def get_schema(
 
     bqclient = gbq_connector.client
     table_ref = bigquery.TableReference(
-        bigquery.DatasetReference(bqclient.project, dataset_id),
-        table_id,
+        bigquery.DatasetReference(bqclient.project, dataset_id), table_id,
     )
 
     try:
@@ -330,9 +329,7 @@ class TestReadGBQIntegration(object):
     def test_should_properly_handle_date(self, project_id):
         query = "SELECT DATE(2003, 1, 4) AS date_col"
         df = gbq.read_gbq(
-            query,
-            project_id=project_id,
-            credentials=self.credentials,
+            query, project_id=project_id, credentials=self.credentials,
         )
         expected = DataFrame(
             {
@@ -346,9 +343,7 @@ class TestReadGBQIntegration(object):
     def test_should_properly_handle_time(self, project_id):
         query = "SELECT TIME_ADD(TIME(3, 14, 15), INTERVAL 926589 MICROSECOND) AS time_col"
         df = gbq.read_gbq(
-            query,
-            project_id=project_id,
-            credentials=self.credentials,
+            query, project_id=project_id, credentials=self.credentials,
         )
         expected = DataFrame(
             {

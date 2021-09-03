@@ -35,10 +35,7 @@ def module_under_test():
             [{"name": "A", "type": "INTEGER"}],
             [{"name": "A", "type": "INT64"}],
         ),
-        (
-            [{"name": "A", "type": "BOOL"}],
-            [{"name": "A", "type": "BOOLEAN"}],
-        ),
+        ([{"name": "A", "type": "BOOL"}], [{"name": "A", "type": "BOOLEAN"}],),
         (
             # TODO: include sub-fields when struct uploads are supported.
             [{"name": "A", "type": "STRUCT"}],

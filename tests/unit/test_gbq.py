@@ -218,8 +218,8 @@ def test_to_gbq_doesnt_run_query(mock_bigquery_client):
 def test_to_gbq_w_empty_df(mock_bigquery_client):
     import google.api_core.exceptions
 
-    mock_bigquery_client.get_table.side_effect = (
-        google.api_core.exceptions.NotFound("my_table")
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
     )
     gbq.to_gbq(DataFrame(), "my_dataset.my_table", project_id="1234")
     mock_bigquery_client.create_table.assert_called_with(mock.ANY)
@@ -234,8 +234,8 @@ def test_to_gbq_w_default_project(mock_bigquery_client):
     import google.api_core.exceptions
     from google.cloud.bigquery.table import TableReference
 
-    mock_bigquery_client.get_table.side_effect = (
-        google.api_core.exceptions.NotFound("my_table")
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
     )
     gbq.to_gbq(DataFrame(), "my_dataset.my_table")
 
@@ -254,8 +254,8 @@ def test_to_gbq_w_project_table(mock_bigquery_client):
     import google.api_core.exceptions
     from google.cloud.bigquery.table import TableReference
 
-    mock_bigquery_client.get_table.side_effect = (
-        google.api_core.exceptions.NotFound("my_table")
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
     )
     gbq.to_gbq(
         DataFrame(),
@@ -274,11 +274,11 @@ def test_to_gbq_w_project_table(mock_bigquery_client):
 def test_to_gbq_creates_dataset(mock_bigquery_client):
     import google.api_core.exceptions
 
-    mock_bigquery_client.get_table.side_effect = (
-        google.api_core.exceptions.NotFound("my_table")
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
     )
-    mock_bigquery_client.get_dataset.side_effect = (
-        google.api_core.exceptions.NotFound("my_dataset")
+    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
+        "my_dataset"
     )
     gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
     mock_bigquery_client.create_dataset.assert_called_with(mock.ANY)
@@ -370,8 +370,7 @@ def test_read_gbq_with_old_bq_raises_importerror(monkeypatch):
     monkeypatch.setattr(FEATURES, "_bigquery_installed_version", None)
     with pytest.raises(ImportError, match="google-cloud-bigquery"):
         gbq.read_gbq(
-            "SELECT 1",
-            project_id="my-project",
+            "SELECT 1", project_id="my-project",
         )
 
 
@@ -382,10 +381,7 @@ def test_read_gbq_with_verbose_old_pandas_no_warnings(monkeypatch, recwarn):
         mock.PropertyMock(return_value=False),
     )
     gbq.read_gbq(
-        "SELECT 1",
-        project_id="my-project",
-        dialect="standard",
-        verbose=True,
+        "SELECT 1", project_id="my-project", dialect="standard", verbose=True,
     )
     assert len(recwarn) == 0
 
