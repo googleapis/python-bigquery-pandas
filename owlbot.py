@@ -30,7 +30,7 @@ common = gcp.CommonTemplates()
 
 extras = ["tqdm"]
 templated_files = common.py_library(
-    unit_test_python_versions=["3.6", "3.7", "3.8", "3.9"],
+    unit_test_python_versions=["3.7", "3.8", "3.9"],
     system_test_python_versions=["3.8", "3.9"],
     cov_level=100,
     unit_test_extras=extras,
@@ -39,6 +39,9 @@ templated_files = common.py_library(
 s.move(templated_files, excludes=[
     # pandas-gbq was originally licensed BSD-3-Clause License
     "LICENSE",
+    # It's unclear that the text in multiprocessing.rst is relavent to
+    # our users, and it messes up the document tree.
+    "docs/multiprocessing.rst"
 ])
 
 # ----------------------------------------------------------------------------
@@ -49,6 +52,12 @@ s.replace(
     ["noxfile.py"],
     r"[\"']google[\"']",
     '"pandas_gbq"',
+)
+
+s.replace(
+    ["noxfile.py"],
+    r"[\"']alabaster[\"']",
+    '"alabaster", "ipython"',
 )
 
 # ----------------------------------------------------------------------------
