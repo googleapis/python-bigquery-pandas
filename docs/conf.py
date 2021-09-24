@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# google-cloud-bigquery-storage documentation build configuration file
+# pandas-gbq documentation build configuration file
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -80,7 +80,7 @@ source_suffix = [".rst", ".md"]
 root_doc = "index"
 
 # General information about the project.
-project = "google-cloud-bigquery-storage"
+project = "pandas-gbq"
 copyright = "2019, Google"
 author = "Google APIs"
 
@@ -154,9 +154,9 @@ html_theme = "alabaster"
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    "description": "Google Cloud Client Libraries for google-cloud-bigquery-storage",
+    "description": "Google Cloud Client Libraries for pandas-gbq",
     "github_user": "googleapis",
-    "github_repo": "python-bigquery-storage",
+    "github_repo": "python-bigquery-pandas",
     "github_banner": True,
     "font_family": "'Roboto', Georgia, sans",
     "head_font_family": "'Roboto', Georgia, serif",
@@ -248,7 +248,7 @@ html_static_path = ["_static"]
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "google-cloud-bigquery-storage-doc"
+htmlhelp_basename = "pandas-gbq-doc"
 
 # -- Options for warnings ------------------------------------------------------
 
@@ -279,13 +279,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (
-        root_doc,
-        "google-cloud-bigquery-storage.tex",
-        "google-cloud-bigquery-storage Documentation",
-        author,
-        "manual",
-    )
+    (root_doc, "pandas-gbq.tex", "pandas-gbq Documentation", author, "manual",)
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -313,15 +307,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [
-    (
-        root_doc,
-        "google-cloud-bigquery-storage",
-        "google-cloud-bigquery-storage Documentation",
-        [author],
-        1,
-    )
-]
+man_pages = [(root_doc, "pandas-gbq", "pandas-gbq Documentation", [author], 1,)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -335,11 +321,11 @@ man_pages = [
 texinfo_documents = [
     (
         root_doc,
-        "google-cloud-bigquery-storage",
-        "google-cloud-bigquery-storage Documentation",
+        "pandas-gbq",
+        "pandas-gbq Documentation",
         author,
-        "google-cloud-bigquery-storage",
-        "google-cloud-bigquery-storage Library",
+        "pandas-gbq",
+        "pandas-gbq Library",
         "APIs",
     )
 ]

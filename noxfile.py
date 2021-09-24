@@ -132,7 +132,7 @@ def system(session):
     session.run(
         "pytest",
         os.path.join(".", "tests", "system"),
-        os.path.join(".", "samples", "tests"),
+        os.path.join(".", "samples", "snippets"),
         "-v",
         *additional_args,
     )
