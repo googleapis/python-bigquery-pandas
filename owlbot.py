@@ -59,6 +59,10 @@ s.replace(
     ["noxfile.py"], "google/cloud", "pandas_gbq",
 )
 
+s.replace(
+    [".github/header-checker-lint.yml"], '"Google LLC"', '"pandas-gbq Authors"',
+)
+
 # ----------------------------------------------------------------------------
 # Samples templates
 # ----------------------------------------------------------------------------
