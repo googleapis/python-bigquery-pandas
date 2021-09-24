@@ -30,16 +30,34 @@ common = gcp.CommonTemplates()
 
 extras = ["tqdm"]
 templated_files = common.py_library(
-    unit_test_python_versions=["3.6", "3.7", "3.8", "3.9"],
+    unit_test_python_versions=["3.7", "3.8", "3.9"],
     system_test_python_versions=["3.8", "3.9"],
     cov_level=100,
     unit_test_extras=extras,
     system_test_extras=extras,
 )
-s.move(templated_files, excludes=[
-    # pandas-gbq was originally licensed BSD-3-Clause License
-    "LICENSE",
-])
+s.move(
+    templated_files,
+    excludes=[
+        # pandas-gbq was originally licensed BSD-3-Clause License
+        "LICENSE",
+        # Mulit-processing note isn't relevant, as pandas_gbq is responsible for
+        # creating clients, not the end user.
+        "docs/multiprocessing.rst",
+    ],
+)
+
+# ----------------------------------------------------------------------------
+# Fixup files
+# ----------------------------------------------------------------------------
+
+s.replace(
+    ["noxfile.py"], r"[\"']google[\"']", '"pandas_gbq"',
+)
+
+s.replace(
+    ["noxfile.py"], "google/cloud", "pandas_gbq",
+)
 
 # ----------------------------------------------------------------------------
 # Samples templates
