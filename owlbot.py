@@ -32,7 +32,7 @@ extras = ["tqdm"]
 templated_files = common.py_library(
     unit_test_python_versions=["3.7", "3.8", "3.9"],
     system_test_python_versions=["3.8", "3.9"],
-    cov_level=100,
+    cov_level=73,
     unit_test_extras=extras,
     system_test_extras=extras,
 )
