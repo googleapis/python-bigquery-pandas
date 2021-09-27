@@ -16,49 +16,6 @@ def mock_default_credentials(scopes=None, request=None):
     return (None, None)
 
 
-def _try_credentials(project_id, credentials):
-    from google.cloud import bigquery
-    import google.api_core.exceptions
-    import google.auth.exceptions
-
-    if not credentials:
-        return None
-    if not project_id:
-        return credentials
-
-    try:
-        client = bigquery.Client(project=project_id, credentials=credentials)
-        # Check if the application has rights to the BigQuery project
-        client.query("SELECT 1").result()
-        return credentials
-    except google.api_core.exceptions.GoogleAPIError:
-        return None
-    except google.auth.exceptions.RefreshError:
-        # Sometimes (such as on Travis) google-auth returns GCE credentials,
-        # but fetching the token for those credentials doesn't actually work.
-        # See:
-        # https://github.com/googleapis/google-auth-library-python/issues/287
-        return None
-
-
-def _check_if_can_get_correct_default_credentials():
-    # Checks if "Application Default Credentials" can be fetched
-    # from the environment the tests are running in.
-    # See https://github.com/pandas-dev/pandas/issues/13577
-
-    import google.auth
-    from google.auth.exceptions import DefaultCredentialsError
-    import pandas_gbq.auth
-    import pandas_gbq.gbq
-
-    try:
-        credentials, project = google.auth.default(scopes=pandas_gbq.auth.SCOPES)
-    except (DefaultCredentialsError, IOError):
-        return False
-
-    return _try_credentials(project, credentials) is not None
-
-
 def test_should_be_able_to_get_valid_credentials(project_id, private_key_path):
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = private_key_path
     credentials, _ = auth.get_credentials(project_id=project_id)
@@ -66,6 +23,9 @@ def test_should_be_able_to_get_valid_credentials(project_id, private_key_path):
 
 
 @pytest.mark.local_auth
+@pytest.mark.skipif(
+    "KOKORO_BUILD_ID" in os.environ, reason="end-user auth requires human intervention"
+)
 def test_get_credentials_bad_file_returns_user_credentials(project_id, monkeypatch):
     import google.auth
     from google.auth.credentials import Credentials
@@ -80,6 +40,9 @@ def test_get_credentials_bad_file_returns_user_credentials(project_id, monkeypat
 
 
 @pytest.mark.local_auth
+@pytest.mark.skipif(
+    "KOKORO_BUILD_ID" in os.environ, reason="end-user auth requires human intervention"
+)
 def test_get_credentials_user_credentials_with_reauth(project_id, monkeypatch):
     import google.auth
 
@@ -92,6 +55,9 @@ def test_get_credentials_user_credentials_with_reauth(project_id, monkeypatch):
 
 
 @pytest.mark.local_auth
+@pytest.mark.skipif(
+    "KOKORO_BUILD_ID" in os.environ, reason="end-user auth requires human intervention"
+)
 def test_get_credentials_user_credentials(project_id, monkeypatch):
     import google.auth
 
