@@ -35,6 +35,10 @@ templated_files = common.py_library(
     cov_level=73,
     unit_test_extras=extras,
     system_test_extras=extras,
+    intersphinx_dependencies={
+        "pandas": "http://pandas.pydata.org/pandas-docs/stable/",
+        "pydata-google-auth": "https://pydata-google-auth.readthedocs.io/en/latest/",
+    },
 )
 s.move(
     templated_files,
