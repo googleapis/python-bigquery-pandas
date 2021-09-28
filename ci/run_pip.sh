@@ -18,8 +18,8 @@ fi
 # Install test requirements
 pip install coverage pytest pytest-cov flake8 codecov
 
-REQ="ci/requirements-${PYTHON}-${PANDAS}"
-pip install -r "$REQ.pip"
+REQ="testing/constraints-${PYTHON}"
+pip install -r "$REQ.txt"
 pip install -e .
 
 $DIR/run_tests.sh
