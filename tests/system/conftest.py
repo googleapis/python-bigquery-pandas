@@ -2,12 +2,28 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+import os
+import pathlib
+
 from google.cloud import bigquery
 import pytest
 import test_utils.prefixer
 
 
 prefixer = test_utils.prefixer.Prefixer("python-bigquery-pandas", "tests/system")
+
+REPO_DIR = pathlib.Path(__file__).parent.parent.parent
+
+
+# TODO: remove when fully migrated off of Circle CI
+@pytest.fixture(autouse=True)
+def default_credentials():
+    """Setup application default credentials for use in code samples."""
+    # Written by the 'ci/config_auth.sh' script.
+    path = REPO_DIR / "ci" / "service_account.json"
+
+    if path.is_file() and "GOOGLE_APPLICATION_CREDENTIALS" not in os.environ:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = str(path)
 
 
 @pytest.fixture(scope="session", autouse=True)
