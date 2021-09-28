@@ -9,7 +9,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 # Install test requirements
 pip install coverage pytest pytest-cov flake8 codecov
 
-REQ="testing/constraints-${PYTHON}"
+REQ="testing/constraints-${PYTHON}.txt"
 pip install -e '.[tqdm]' -c "$REQ"
 
 $DIR/run_tests.sh

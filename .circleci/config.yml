@@ -39,7 +39,7 @@ jobs:
     steps:
       - checkout
       - run: ci/config_auth.sh
-      - run: ci/run_pip.sh
+      - run: PYTHON=3.8 ci/run_pip.sh
 
   # Conda
   "conda-3.7":
