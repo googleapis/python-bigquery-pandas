@@ -39,7 +39,7 @@ jobs:
     steps:
       - checkout
       - run: ci/config_auth.sh
-      - run: nox -s unit-3.8 system-3.8 cover
+      - run: ci/run_pip.sh
 
   # Conda
   "conda-3.7":
