@@ -16,7 +16,7 @@ REPO_DIR = pathlib.Path(__file__).parent.parent.parent
 
 
 # TODO: remove when fully migrated off of Circle CI
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def default_credentials():
     """Setup application default credentials for use in code samples."""
     # Written by the 'ci/config_auth.sh' script.
@@ -37,7 +37,8 @@ def cleanup_datasets(bigquery_client: bigquery.Client):
 
 @pytest.fixture(scope="session")
 def bigquery_client() -> bigquery.Client:
-    return bigquery.Client()
+    project_id = os.getenv("GOOGLE_CLOUD_PROJECT", os.getenv("GBQ_PROJECT_ID"))
+    return bigquery.Client(project=project_id)
 
 
 @pytest.fixture()
