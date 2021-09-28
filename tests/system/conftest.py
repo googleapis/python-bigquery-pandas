@@ -2,23 +2,19 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-import google.oauth2.service_account
 import pytest
 
+import pandas_gbq.auth
 
-@pytest.fixture(params=["env"])
-def project(request, project_id):
-    if request.param == "env":
-        return project_id
-    elif request.param == "none":
-        return None
+
+@pytest.fixture(scope="session")
+def project(project_id):
+    return project_id
 
 
 @pytest.fixture()
-def credentials(private_key_path):
-    return google.oauth2.service_account.Credentials.from_service_account_file(
-        private_key_path
-    )
+def credentials(project_id):
+    pandas_gbq.auth.get_credentials(project_id=project_id, auth_local_webserver=True)
 
 
 @pytest.fixture()

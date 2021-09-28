@@ -14,9 +14,7 @@ import pytest
 
 @pytest.fixture(scope="session")
 def project_id():
-    return os.environ.get("GBQ_PROJECT_ID") or os.environ.get(
-        "GOOGLE_CLOUD_PROJECT"
-    )  # noqa
+    return os.environ.get("GBQ_PROJECT_ID") or os.environ["GOOGLE_CLOUD_PROJECT"]
 
 
 @pytest.fixture(scope="session")
@@ -63,9 +61,7 @@ def random_dataset_id(bigquery_client):
     from google.cloud import bigquery
 
     dataset_id = "".join(["pandas_gbq_", str(uuid.uuid4()).replace("-", "_")])
-    dataset_ref = bigquery.DatasetReference(
-        bigquery_client.project, dataset_id
-    )
+    dataset_ref = bigquery.DatasetReference(bigquery_client.project, dataset_id)
     yield dataset_id
     try:
         bigquery_client.delete_dataset(dataset_ref, delete_contents=True)

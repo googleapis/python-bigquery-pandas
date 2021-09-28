@@ -12,6 +12,9 @@ import pytest
 from pandas_gbq import auth
 
 
+IS_RUNNING_ON_CI = "CIRCLE_BUILD_NUM" in os.environ or "KOKORO_BUILD_ID" in os.environ
+
+
 def mock_default_credentials(scopes=None, request=None):
     return (None, None)
 
@@ -22,9 +25,8 @@ def test_should_be_able_to_get_valid_credentials(project_id, private_key_path):
     assert credentials.valid
 
 
-@pytest.mark.local_auth
 @pytest.mark.skipif(
-    "KOKORO_BUILD_ID" in os.environ, reason="end-user auth requires human intervention"
+    IS_RUNNING_ON_CI, reason="end-user auth requires human intervention"
 )
 def test_get_credentials_bad_file_returns_user_credentials(project_id, monkeypatch):
     import google.auth
@@ -39,9 +41,8 @@ def test_get_credentials_bad_file_returns_user_credentials(project_id, monkeypat
     assert isinstance(credentials, Credentials)
 
 
-@pytest.mark.local_auth
 @pytest.mark.skipif(
-    "KOKORO_BUILD_ID" in os.environ, reason="end-user auth requires human intervention"
+    IS_RUNNING_ON_CI, reason="end-user auth requires human intervention"
 )
 def test_get_credentials_user_credentials_with_reauth(project_id, monkeypatch):
     import google.auth
@@ -54,9 +55,8 @@ def test_get_credentials_user_credentials_with_reauth(project_id, monkeypatch):
     assert credentials.valid
 
 
-@pytest.mark.local_auth
 @pytest.mark.skipif(
-    "KOKORO_BUILD_ID" in os.environ, reason="end-user auth requires human intervention"
+    IS_RUNNING_ON_CI, reason="end-user auth requires human intervention"
 )
 def test_get_credentials_user_credentials(project_id, monkeypatch):
     import google.auth
