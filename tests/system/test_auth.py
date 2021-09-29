@@ -19,8 +19,7 @@ def mock_default_credentials(scopes=None, request=None):
     return (None, None)
 
 
-def test_should_be_able_to_get_valid_credentials(project_id, private_key_path):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = private_key_path
+def test_should_be_able_to_get_valid_credentials(project_id):
     credentials, _ = auth.get_credentials(project_id=project_id)
     assert credentials.valid
 
