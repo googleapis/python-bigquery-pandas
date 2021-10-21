@@ -60,7 +60,7 @@ s.replace(
 )
 
 s.replace(
-    ["noxfile.py"], "google/cloud", "pandas_gbq",
+    ["noxfile.py"], "google", "pandas_gbq",
 )
 
 s.replace(
