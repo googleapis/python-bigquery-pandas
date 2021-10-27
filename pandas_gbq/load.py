@@ -5,7 +5,9 @@
 """Helper methods for loading data into BigQuery"""
 
 import io
+from typing import Any, Dict, Optional
 
+import pandas
 from google.cloud import bigquery
 
 from pandas_gbq.features import FEATURES
@@ -52,26 +54,40 @@ def split_dataframe(dataframe, chunksize=None):
         yield remaining_rows, chunk
 
 
-def load_chunks(
-    client,
-    dataframe,
-    destination_table_ref,
-    chunksize=None,
-    schema=None,
-    location=None,
+def load_parquet(
+    client: bigquery.Client,
+    dataframe: pandas.DataFrame,
+    destination_table_ref: bigquery.TableReference,
+    location: Optional[str],
+    schema: Optional[Dict[str, Any]],
+):
+    job_config = bigquery.LoadJobConfig()
+    job_config.write_disposition = "WRITE_APPEND"
+    job_config.source_format = "PARQUET"
+
+    if schema is not None:
+        schema = pandas_gbq.schema.remove_policy_tags(schema)
+        job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
+
+    client.load_table_from_dataframe(
+        dataframe, destination_table_ref, job_config=job_config, location=location,
+    ).result()
+
+
+def load_csv(
+    client: bigquery.Client,
+    dataframe: pandas.DataFrame,
+    destination_table_ref: bigquery.TableReference,
+    location: Optional[str],
+    chunksize: Optional[int],
+    schema: Optional[Dict[str, Any]],
 ):
     job_config = bigquery.LoadJobConfig()
     job_config.write_disposition = "WRITE_APPEND"
     job_config.source_format = "CSV"
     job_config.allow_quoted_newlines = True
 
-    # Explicit schema? Use that!
     if schema is not None:
-        schema = pandas_gbq.schema.remove_policy_tags(schema)
-        job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
-    # If not, let BigQuery determine schema unless we are encoding the CSV files ourselves.
-    elif not FEATURES.bigquery_has_from_dataframe_with_csv:
-        schema = pandas_gbq.schema.generate_bq_schema(dataframe)
         schema = pandas_gbq.schema.remove_policy_tags(schema)
         job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
 
@@ -79,18 +95,69 @@ def load_chunks(
     for remaining_rows, chunk in chunks:
         yield remaining_rows
 
-        if FEATURES.bigquery_has_from_dataframe_with_csv:
-            client.load_table_from_dataframe(
-                chunk, destination_table_ref, job_config=job_config, location=location,
+        client.load_table_from_dataframe(
+            chunk, destination_table_ref, job_config=job_config, location=location,
+        ).result()
+
+
+def load_csv_from_file(
+    client: bigquery.Client,
+    dataframe: pandas.DataFrame,
+    destination_table_ref: bigquery.TableReference,
+    location: Optional[str],
+    chunksize: Optional[int],
+    schema: Optional[Dict[str, Any]],
+):
+    job_config = bigquery.LoadJobConfig()
+    job_config.write_disposition = "WRITE_APPEND"
+    job_config.source_format = "CSV"
+    job_config.allow_quoted_newlines = True
+
+    if schema is None:
+        schema = pandas_gbq.schema.generate_bq_schema(dataframe)
+
+    schema = pandas_gbq.schema.remove_policy_tags(schema)
+    job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
+
+    chunks = split_dataframe(dataframe, chunksize=chunksize)
+    for remaining_rows, chunk in chunks:
+        yield remaining_rows
+
+        try:
+            chunk_buffer = encode_chunk(chunk)
+            client.load_table_from_file(
+                chunk_buffer,
+                destination_table_ref,
+                job_config=job_config,
+                location=location,
             ).result()
+        finally:
+            chunk_buffer.close()
+
+
+def load_chunks(
+    client,
+    dataframe,
+    destination_table_ref,
+    chunksize=None,
+    schema=None,
+    location=None,
+    api_method="load_parquet",
+):
+    if api_method == "load_parquet":
+        load_parquet(client, dataframe, destination_table_ref, location, schema)
+        # TODO: yield progress depending on result() with timeout
+        return [0]
+    elif api_method == "load_csv":
+        if FEATURES.bigquery_has_from_dataframe_with_csv:
+            return load_csv(
+                client, dataframe, destination_table_ref, location, chunksize, schema
+            )
         else:
-            try:
-                chunk_buffer = encode_chunk(chunk)
-                client.load_table_from_file(
-                    chunk_buffer,
-                    destination_table_ref,
-                    job_config=job_config,
-                    location=location,
-                ).result()
-            finally:
-                chunk_buffer.close()
+            return load_csv_from_file(
+                client, dataframe, destination_table_ref, location, chunksize, schema
+            )
+    else:
+        raise ValueError(
+            f"got unexpected api_method: {api_method!r}, expected one of 'load_parquet', 'load_csv'"
+        )

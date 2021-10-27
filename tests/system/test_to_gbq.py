@@ -51,6 +51,7 @@ def method_under_test(credentials, project_id):
                     # not NULL. See:
                     # https://github.com/googleapis/python-bigquery-pandas/issues/366
                     "",
+                    None,
                     # Ensure that unicode characters are encoded. See:
                     # https://github.com/googleapis/python-bigquery-pandas/issues/106
                     "信用卡",
@@ -62,7 +63,7 @@ def method_under_test(credentials, project_id):
         ),
     ],
 )
-def test_round_trip(
+def test_series_round_trip(
     method_under_test, random_dataset_id, bigquery_client, input_series
 ):
     table_id = f"{random_dataset_id}.round_trip_{random.randrange(1_000_000)}"
