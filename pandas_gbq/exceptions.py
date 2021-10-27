@@ -3,12 +3,27 @@
 # license that can be found in the LICENSE file.
 
 
+class GenericGBQException(ValueError):
+    """
+    Raised when an unrecognized Google API Error occurs.
+    """
+
+    pass
+
+
 class AccessDenied(ValueError):
     """
     Raised when invalid credentials are provided, or tokens have expired.
     """
 
     pass
+
+
+class ConversionError(GenericGBQException):
+    """
+    Raised when there is a problem converting the DataFrame to a format
+    required to upload it to BigQuery.
+    """
 
 
 class InvalidPrivateKeyFormat(ValueError):

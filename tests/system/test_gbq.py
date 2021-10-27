@@ -1383,6 +1383,9 @@ class TestToGBQIntegration(object):
             project_id,
             credentials=self.credentials,
             table_schema=test_schema,
+            # Loading string pandas series to FLOAT column not supported with
+            # Parquet.
+            api_method="load_csv",
         )
         dataset, table = destination_table.split(".")
         assert verify_schema(

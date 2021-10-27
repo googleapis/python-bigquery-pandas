@@ -8,8 +8,10 @@ import io
 from typing import Any, Dict, Optional
 
 import pandas
+import pyarrow.lib
 from google.cloud import bigquery
 
+from pandas_gbq import exceptions
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
 
@@ -69,9 +71,14 @@ def load_parquet(
         schema = pandas_gbq.schema.remove_policy_tags(schema)
         job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
 
-    client.load_table_from_dataframe(
-        dataframe, destination_table_ref, job_config=job_config, location=location,
-    ).result()
+    try:
+        client.load_table_from_dataframe(
+            dataframe, destination_table_ref, job_config=job_config, location=location,
+        ).result()
+    except pyarrow.lib.ArrowInvalid as exc:
+        raise exceptions.ConversionError(
+            "Could not convert DataFrame to Parquet."
+        ) from exc
 
 
 def load_csv(

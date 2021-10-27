@@ -18,8 +18,11 @@ except ImportError:  # pragma: NO COVER
     bigquery = None
     google_exceptions = None
 
-from pandas_gbq.exceptions import AccessDenied
-from pandas_gbq.exceptions import PerformanceWarning
+from pandas_gbq.exceptions import (
+    AccessDenied,
+    GenericGBQException,
+    PerformanceWarning,
+)
 from pandas_gbq import features
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
@@ -64,14 +67,6 @@ def _test_google_api_imports():
 class DatasetCreationError(ValueError):
     """
     Raised when the create dataset method fails
-    """
-
-    pass
-
-
-class GenericGBQException(ValueError):
-    """
-    Raised when an unrecognized Google API Error occurs.
     """
 
     pass
