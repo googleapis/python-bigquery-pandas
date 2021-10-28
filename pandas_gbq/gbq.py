@@ -873,7 +873,7 @@ def to_gbq(
     location=None,
     progress_bar=True,
     credentials=None,
-    api_method: str = "load_parquet",
+    api_method: str = "default",
     verbose=None,
     private_key=None,
 ):
@@ -964,7 +964,8 @@ def to_gbq(
         .. versionadded:: 0.8.0
     api_method : str, optional
         API method used to upload DataFrame to BigQuery. One of "load_parquet",
-        "load_csv". Default "load_parquet".
+        "load_csv". Default "load_parquet" if pandas is version 1.1.0+,
+        otherwise "load_csv".
 
         .. versionadded:: 0.16.0
     verbose : bool, deprecated
@@ -990,6 +991,14 @@ def to_gbq(
             FutureWarning,
             stacklevel=1,
         )
+
+    if api_method == "default":
+        # Avoid using parquet if pandas doesn't support lossless conversions to
+        # parquet timestamp. See: https://stackoverflow.com/a/69758676/101923
+        if FEATURES.pandas_has_parquet_with_lossless_timestamp:
+            api_method = "load_parquet"
+        else:
+            api_method = "load_csv"
 
     if chunksize is not None:
         if api_method == "load_parquet":
