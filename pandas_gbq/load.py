@@ -121,7 +121,7 @@ def load_csv_from_dataframe(
             chunk, destination_table_ref, job_config=job_config, location=location,
         ).result()
 
-    return load_csv(dataframe, chunksize, bq_schema, load_chunk,)
+    return load_csv(dataframe, chunksize, bq_schema, load_chunk)
 
 
 def load_csv_from_file(
