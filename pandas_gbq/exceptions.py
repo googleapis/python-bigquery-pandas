@@ -8,15 +8,11 @@ class GenericGBQException(ValueError):
     Raised when an unrecognized Google API Error occurs.
     """
 
-    pass
-
 
 class AccessDenied(ValueError):
     """
     Raised when invalid credentials are provided, or tokens have expired.
     """
-
-    pass
 
 
 class ConversionError(GenericGBQException):
@@ -30,8 +26,6 @@ class InvalidPrivateKeyFormat(ValueError):
     """
     Raised when provided private key has invalid format.
     """
-
-    pass
 
 
 class PerformanceWarning(RuntimeWarning):

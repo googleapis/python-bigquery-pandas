@@ -166,5 +166,5 @@ def load_chunks(
             )
     else:
         raise ValueError(
-            f"got unexpected api_method: {api_method!r}, expected one of 'load_parquet', 'load_csv'"
+            f"Got unexpected api_method: {api_method!r}, expected one of 'load_parquet', 'load_csv'."
         )
