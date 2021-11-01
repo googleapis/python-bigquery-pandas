@@ -5,7 +5,7 @@
 """Helper methods for loading data into BigQuery"""
 
 import io
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas
 import pyarrow.lib
@@ -82,6 +82,27 @@ def load_parquet(
 
 
 def load_csv(
+    dataframe: pandas.DataFrame,
+    chunksize: Optional[int],
+    bq_schema: Optional[List[bigquery.SchemaField]],
+    load_chunk: Callable,
+):
+    job_config = bigquery.LoadJobConfig()
+    job_config.write_disposition = "WRITE_APPEND"
+    job_config.source_format = "CSV"
+    job_config.allow_quoted_newlines = True
+
+    if bq_schema is not None:
+        job_config.schema = bq_schema
+
+    # TODO: Remove chunking feature for load jobs. Deprecated in 0.16.0.
+    chunks = split_dataframe(dataframe, chunksize=chunksize)
+    for remaining_rows, chunk in chunks:
+        yield remaining_rows
+        load_chunk(chunk, job_config)
+
+
+def load_csv_from_dataframe(
     client: bigquery.Client,
     dataframe: pandas.DataFrame,
     destination_table_ref: bigquery.TableReference,
@@ -89,22 +110,18 @@ def load_csv(
     chunksize: Optional[int],
     schema: Optional[Dict[str, Any]],
 ):
-    job_config = bigquery.LoadJobConfig()
-    job_config.write_disposition = "WRITE_APPEND"
-    job_config.source_format = "CSV"
-    job_config.allow_quoted_newlines = True
+    bq_schema = None
 
     if schema is not None:
         schema = pandas_gbq.schema.remove_policy_tags(schema)
-        job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
+        bq_schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
 
-    chunks = split_dataframe(dataframe, chunksize=chunksize)
-    for remaining_rows, chunk in chunks:
-        yield remaining_rows
-
+    def load_chunk(chunk, job_config):
         client.load_table_from_dataframe(
             chunk, destination_table_ref, job_config=job_config, location=location,
         ).result()
+
+    return load_csv(dataframe, chunksize, bq_schema, load_chunk,)
 
 
 def load_csv_from_file(
@@ -124,12 +141,9 @@ def load_csv_from_file(
         schema = pandas_gbq.schema.generate_bq_schema(dataframe)
 
     schema = pandas_gbq.schema.remove_policy_tags(schema)
-    job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
+    bq_schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
 
-    chunks = split_dataframe(dataframe, chunksize=chunksize)
-    for remaining_rows, chunk in chunks:
-        yield remaining_rows
-
+    def load_chunk(chunk, job_config):
         try:
             chunk_buffer = encode_chunk(chunk)
             client.load_table_from_file(
@@ -140,6 +154,8 @@ def load_csv_from_file(
             ).result()
         finally:
             chunk_buffer.close()
+
+    return load_csv(dataframe, chunksize, bq_schema, load_chunk,)
 
 
 def load_chunks(
@@ -157,7 +173,7 @@ def load_chunks(
         return [0]
     elif api_method == "load_csv":
         if FEATURES.bigquery_has_from_dataframe_with_csv:
-            return load_csv(
+            return load_csv_from_dataframe(
                 client, dataframe, destination_table_ref, location, chunksize, schema
             )
         else:

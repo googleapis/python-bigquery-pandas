@@ -135,5 +135,5 @@ def test_load_chunks_omits_policy_tags(
 
 
 def test_load_chunks_with_invalid_api_method():
-    with pytest.raises(ValueError, match="got unexpected api_method:"):
+    with pytest.raises(ValueError, match="Got unexpected api_method:"):
         load.load_chunks(None, None, None, api_method="not_a_thing")
