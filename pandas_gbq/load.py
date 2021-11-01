@@ -132,11 +132,6 @@ def load_csv_from_file(
     chunksize: Optional[int],
     schema: Optional[Dict[str, Any]],
 ):
-    job_config = bigquery.LoadJobConfig()
-    job_config.write_disposition = "WRITE_APPEND"
-    job_config.source_format = "CSV"
-    job_config.allow_quoted_newlines = True
-
     if schema is None:
         schema = pandas_gbq.schema.generate_bq_schema(dataframe)
 
