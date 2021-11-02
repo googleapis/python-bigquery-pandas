@@ -16,10 +16,10 @@ from pandas_gbq.features import FEATURES
 from pandas_gbq import load
 
 
-def load_method(bqclient):
-    if FEATURES.bigquery_has_from_dataframe_with_csv:
-        return bqclient.load_table_from_dataframe
-    return bqclient.load_table_from_file
+def load_method(bqclient, api_method):
+    if not FEATURES.bigquery_has_from_dataframe_with_csv and api_method == "load_csv":
+        return bqclient.load_table_from_file
+    return bqclient.load_table_from_dataframe
 
 
 def test_encode_chunk_with_unicode():
@@ -56,13 +56,9 @@ def test_encode_chunk_with_floats():
         StringIO(input_csv), header=None, float_precision="round_trip"
     )
     csv_buffer = load.encode_chunk(input_df)
-    round_trip = pandas.read_csv(
-        csv_buffer, header=None, float_precision="round_trip"
-    )
+    round_trip = pandas.read_csv(csv_buffer, header=None, float_precision="round_trip")
     pandas.testing.assert_frame_equal(
-        round_trip,
-        input_df,
-        check_exact=True,
+        round_trip, input_df, check_exact=True,
     )
 
 
@@ -96,10 +92,11 @@ def test_encode_chunks_with_chunksize_none():
 
 
 @pytest.mark.parametrize(
-    ["bigquery_has_from_dataframe_with_csv"], [(True,), (False,)]
+    ["bigquery_has_from_dataframe_with_csv", "api_method"],
+    [(True, "load_parquet"), (True, "load_csv"), (False, "load_csv")],
 )
 def test_load_chunks_omits_policy_tags(
-    monkeypatch, mock_bigquery_client, bigquery_has_from_dataframe_with_csv
+    monkeypatch, mock_bigquery_client, bigquery_has_from_dataframe_with_csv, api_method
 ):
     """Ensure that policyTags are omitted.
 
@@ -119,17 +116,24 @@ def test_load_chunks_omits_policy_tags(
     )
     schema = {
         "fields": [
-            {"name": "col1", "type": "INT64", "policyTags": ["tag1", "tag2"]}
+            {"name": "col1", "type": "INT64", "policyTags": {"names": ["tag1", "tag2"]}}
         ]
     }
 
     _ = list(
-        load.load_chunks(mock_bigquery_client, df, destination, schema=schema)
+        load.load_chunks(
+            mock_bigquery_client, df, destination, schema=schema, api_method=api_method
+        )
     )
 
-    mock_load = load_method(mock_bigquery_client)
+    mock_load = load_method(mock_bigquery_client, api_method=api_method)
     assert mock_load.called
     _, kwargs = mock_load.call_args
     assert "job_config" in kwargs
     sent_field = kwargs["job_config"].schema[0].to_api_repr()
     assert "policyTags" not in sent_field
+
+
+def test_load_chunks_with_invalid_api_method():
+    with pytest.raises(ValueError, match="Got unexpected api_method:"):
+        load.load_chunks(None, None, None, api_method="not_a_thing")

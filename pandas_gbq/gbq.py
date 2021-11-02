@@ -18,8 +18,11 @@ except ImportError:  # pragma: NO COVER
     bigquery = None
     google_exceptions = None
 
-from pandas_gbq.exceptions import AccessDenied
-from pandas_gbq.exceptions import PerformanceWarning
+from pandas_gbq.exceptions import (
+    AccessDenied,
+    GenericGBQException,
+    PerformanceWarning,
+)
 from pandas_gbq import features
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
@@ -64,14 +67,6 @@ def _test_google_api_imports():
 class DatasetCreationError(ValueError):
     """
     Raised when the create dataset method fails
-    """
-
-    pass
-
-
-class GenericGBQException(ValueError):
-    """
-    Raised when an unrecognized Google API Error occurs.
     """
 
     pass
@@ -309,9 +304,7 @@ class GbqConnector(object):
             self.project_id = default_project
 
         if self.project_id is None:
-            raise ValueError(
-                "Could not determine project ID and one was not supplied."
-            )
+            raise ValueError("Could not determine project ID and one was not supplied.")
 
         # Cache the credentials if they haven't been set yet.
         if context.credentials is None:
@@ -372,9 +365,7 @@ class GbqConnector(object):
                 client_info=client_info,
             )
 
-        return bigquery.Client(
-            project=self.project_id, credentials=self.credentials
-        )
+        return bigquery.Client(project=self.project_id, credentials=self.credentials)
 
     @staticmethod
     def process_http_error(ex):
@@ -383,9 +374,7 @@ class GbqConnector(object):
 
         raise GenericGBQException("Reason: {0}".format(ex))
 
-    def run_query(
-        self, query, max_results=None, progress_bar_type=None, **kwargs
-    ):
+    def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
 
@@ -423,9 +412,7 @@ class GbqConnector(object):
             logger.debug("Query running...")
         except (RefreshError, ValueError):
             if self.private_key:
-                raise AccessDenied(
-                    "The service account credentials are not valid"
-                )
+                raise AccessDenied("The service account credentials are not valid")
             else:
                 raise AccessDenied(
                     "The credentials have been revoked or expired, "
@@ -440,9 +427,9 @@ class GbqConnector(object):
         while query_reply.state != "DONE":
             self.log_elapsed_seconds("  Elapsed", "s. Waiting...")
 
-            timeout_ms = job_config.get("jobTimeoutMs") or job_config[
-                "query"
-            ].get("timeoutMs")
+            timeout_ms = job_config.get("jobTimeoutMs") or job_config["query"].get(
+                "timeoutMs"
+            )
             timeout_ms = int(timeout_ms) if timeout_ms else None
             if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
                 raise QueryTimeout("Query timeout: {} ms".format(timeout_ms))
@@ -467,8 +454,7 @@ class GbqConnector(object):
             bytes_billed = query_reply.total_bytes_billed or 0
             logger.debug(
                 "Query done.\nProcessed: {} Billed: {}".format(
-                    self.sizeof_fmt(bytes_processed),
-                    self.sizeof_fmt(bytes_billed),
+                    self.sizeof_fmt(bytes_processed), self.sizeof_fmt(bytes_billed),
                 )
             )
             logger.debug(
@@ -486,11 +472,7 @@ class GbqConnector(object):
         )
 
     def _download_results(
-        self,
-        query_job,
-        max_results=None,
-        progress_bar_type=None,
-        user_dtypes=None,
+        self, query_job, max_results=None, progress_bar_type=None, user_dtypes=None,
     ):
         # No results are desired, so don't bother downloading anything.
         if max_results == 0:
@@ -519,17 +501,13 @@ class GbqConnector(object):
 
         to_dataframe_kwargs = {}
         if FEATURES.bigquery_has_bqstorage:
-            to_dataframe_kwargs[
-                "create_bqstorage_client"
-            ] = create_bqstorage_client
+            to_dataframe_kwargs["create_bqstorage_client"] = create_bqstorage_client
 
         try:
             query_job.result()
             # Get the table schema, so that we can list rows.
             destination = self.client.get_table(query_job.destination)
-            rows_iter = self.client.list_rows(
-                destination, max_results=max_results
-            )
+            rows_iter = self.client.list_rows(destination, max_results=max_results)
 
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
             conversion_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
@@ -537,7 +515,7 @@ class GbqConnector(object):
             df = rows_iter.to_dataframe(
                 dtypes=conversion_dtypes,
                 progress_bar_type=progress_bar_type,
-                **to_dataframe_kwargs
+                **to_dataframe_kwargs,
             )
         except self.http_error as ex:
             self.process_http_error(ex)
@@ -558,6 +536,7 @@ class GbqConnector(object):
         chunksize=None,
         schema=None,
         progress_bar=True,
+        api_method: str = "load_parquet",
     ):
         from pandas_gbq import load
 
@@ -571,6 +550,7 @@ class GbqConnector(object):
                 chunksize=chunksize,
                 schema=schema,
                 location=self.location,
+                api_method=api_method,
             )
             if progress_bar and tqdm:
                 chunks = tqdm.tqdm(chunks)
@@ -584,9 +564,7 @@ class GbqConnector(object):
             self.process_http_error(ex)
 
     def delete_and_recreate_table(self, dataset_id, table_id, table_schema):
-        table = _Table(
-            self.project_id, dataset_id, credentials=self.credentials
-        )
+        table = _Table(self.project_id, dataset_id, credentials=self.credentials)
         table.delete(table_id)
         table.create(table_id, table_schema)
 
@@ -644,9 +622,7 @@ def _cast_empty_df_dtypes(schema_fields, df):
     ``object``.
     """
     if not df.empty:
-        raise ValueError(
-            "DataFrame must be empty in order to cast non-nullsafe dtypes"
-        )
+        raise ValueError("DataFrame must be empty in order to cast non-nullsafe dtypes")
 
     dtype_map = {"BOOLEAN": bool, "INTEGER": np.int64}
 
@@ -867,9 +843,7 @@ def read_gbq(
             final_df.set_index(index_col, inplace=True)
         else:
             raise InvalidIndexColumn(
-                'Index column "{0}" does not exist in DataFrame.'.format(
-                    index_col
-                )
+                'Index column "{0}" does not exist in DataFrame.'.format(index_col)
             )
 
     # Change the order of columns in the DataFrame based on provided list
@@ -877,9 +851,7 @@ def read_gbq(
         if sorted(col_order) == sorted(final_df.columns):
             final_df = final_df[col_order]
         else:
-            raise InvalidColumnOrder(
-                "Column order does not match this DataFrame."
-            )
+            raise InvalidColumnOrder("Column order does not match this DataFrame.")
 
     connector.log_elapsed_seconds(
         "Total time taken",
@@ -901,6 +873,7 @@ def to_gbq(
     location=None,
     progress_bar=True,
     credentials=None,
+    api_method: str = "default",
     verbose=None,
     private_key=None,
 ):
@@ -990,6 +963,12 @@ def to_gbq(
         :class:`google.oauth2.service_account.Credentials` directly.
 
         .. versionadded:: 0.8.0
+    api_method : str, optional
+        API method used to upload DataFrame to BigQuery. One of "load_parquet",
+        "load_csv". Default "load_parquet" if pandas is version 1.1.0+,
+        otherwise "load_csv".
+
+        .. versionadded:: 0.16.0
     verbose : bool, deprecated
         Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
         to adjust verbosity instead
@@ -1013,6 +992,28 @@ def to_gbq(
             FutureWarning,
             stacklevel=1,
         )
+
+    if api_method == "default":
+        # Avoid using parquet if pandas doesn't support lossless conversions to
+        # parquet timestamp. See: https://stackoverflow.com/a/69758676/101923
+        if FEATURES.pandas_has_parquet_with_lossless_timestamp:
+            api_method = "load_parquet"
+        else:
+            api_method = "load_csv"
+
+    if chunksize is not None:
+        if api_method == "load_parquet":
+            warnings.warn(
+                "chunksize is ignored when using api_method='load_parquet'",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        elif api_method == "load_csv":
+            warnings.warn(
+                "chunksize will be ignored when using api_method='load_csv' in a future version of pandas-gbq",
+                PendingDeprecationWarning,
+                stacklevel=2,
+            )
 
     if if_exists not in ("fail", "replace", "append"):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -1071,13 +1072,9 @@ def to_gbq(
                 "'append' or 'replace' data."
             )
         elif if_exists == "replace":
-            connector.delete_and_recreate_table(
-                dataset_id, table_id, table_schema
-            )
+            connector.delete_and_recreate_table(dataset_id, table_id, table_schema)
         elif if_exists == "append":
-            if not pandas_gbq.schema.schema_is_subset(
-                original_schema, table_schema
-            ):
+            if not pandas_gbq.schema.schema_is_subset(original_schema, table_schema):
                 raise InvalidSchema(
                     "Please verify that the structure and "
                     "data types in the DataFrame match the "
@@ -1101,6 +1098,7 @@ def to_gbq(
         chunksize=chunksize,
         schema=table_schema,
         progress_bar=progress_bar,
+        api_method=api_method,
     )
 
 
@@ -1117,8 +1115,7 @@ def generate_bq_schema(df, default_type="STRING"):
     """
     # deprecation TimeSeries, #11121
     warnings.warn(
-        "generate_bq_schema is deprecated and will be removed in "
-        "a future version",
+        "generate_bq_schema is deprecated and will be removed in " "a future version",
         FutureWarning,
         stacklevel=2,
     )
@@ -1207,17 +1204,13 @@ class _Table(GbqConnector):
         from google.cloud.bigquery import TableReference
 
         if self.exists(table_id):
-            raise TableCreationError(
-                "Table {0} already exists".format(table_id)
-            )
+            raise TableCreationError("Table {0} already exists".format(table_id))
 
         if not _Dataset(self.project_id, credentials=self.credentials).exists(
             self.dataset_id
         ):
             _Dataset(
-                self.project_id,
-                credentials=self.credentials,
-                location=self.location,
+                self.project_id, credentials=self.credentials, location=self.location,
             ).create(self.dataset_id)
 
         table_ref = TableReference(
