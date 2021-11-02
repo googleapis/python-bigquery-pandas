@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.0](https://www.github.com/googleapis/python-bigquery-pandas/compare/v0.16.0...v0.17.0) (2021-11-02)
+
+
+### Features
+
+* `to_gbq` uses Parquet by default, use `api_method="load_csv"` for old behavior ([#413](https://www.github.com/googleapis/python-bigquery-pandas/issues/413)) ([9a65383](https://www.github.com/googleapis/python-bigquery-pandas/commit/9a65383916697ff02358aba58df555c85b16350c))
+
 ## 0.15.0 / 2021-03-30
 
 ### Features
