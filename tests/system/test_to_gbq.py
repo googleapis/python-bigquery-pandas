@@ -28,7 +28,7 @@ def method_under_test(credentials, project_id):
 
 
 @pytest.mark.parametrize(
-    ["input_series"],
+    ["input_series", "skip_csv"],
     [
         # Ensure that 64-bit floating point numbers are unchanged.
         # See: https://github.com/pydata/pandas-gbq/issues/326
@@ -46,6 +46,7 @@ def method_under_test(credentials, project_id):
                 ],
                 name="test_col",
             ),
+            False,
         ),
         (
             pandas.Series(
@@ -60,6 +61,7 @@ def method_under_test(credentials, project_id):
                 ],
                 name="test_col",
             ),
+            False,
         ),
         (
             pandas.Series(
@@ -74,14 +76,20 @@ def method_under_test(credentials, project_id):
                 ],
                 name="empty_strings",
             ),
+            True,
         ),
     ],
 )
 def test_series_round_trip(
-    method_under_test, random_dataset_id, bigquery_client, input_series, api_method,
+    method_under_test,
+    random_dataset_id,
+    bigquery_client,
+    input_series,
+    api_method,
+    skip_csv,
 ):
-    if api_method == "load_csv" and input_series.name == "empty_strings":
-        pytest.skip("Loading empty string with CSV not supported.")
+    if api_method == "load_csv" and skip_csv:
+        pytest.skip("Loading with CSV not supported.")
     table_id = f"{random_dataset_id}.round_trip_{random.randrange(1_000_000)}"
     input_series = input_series.sort_values().reset_index(drop=True)
     df = pandas.DataFrame(
@@ -99,7 +107,7 @@ def test_series_round_trip(
 
 
 @pytest.mark.parametrize(
-    ["input_df", "table_schema"],
+    ["input_df", "table_schema", "skip_csv"],
     [
         # Ensure that a DATE column can be written with datetime64[ns] dtype
         # data. See:
@@ -114,8 +122,19 @@ def test_series_round_trip(
                 }
             ),
             [{"name": "date_col", "type": "DATE"}],
+            True,
         ),
-        # TODO: Test with dbdate dtype.
+        (
+            pandas.DataFrame(
+                {
+                    "date_col": pandas.Series(
+                        ["2021-04-17", "1999-12-31", "2038-01-19"], dtype="dbdate",
+                    ),
+                }
+            ),
+            [{"name": "date_col", "type": "DATE"}],
+            False,
+        ),
     ],
 )
 def test_dataframe_round_trip_with_table_schema(
@@ -125,7 +144,10 @@ def test_dataframe_round_trip_with_table_schema(
     input_df,
     table_schema,
     api_method,
+    skip_csv,
 ):
+    if api_method == "load_csv" and skip_csv:
+        pytest.skip("Loading with CSV not supported.")
     table_id = f"{random_dataset_id}.round_trip_w_schema_{random.randrange(1_000_000)}"
     method_under_test(
         input_df, table_id, table_schema=table_schema, api_method=api_method
