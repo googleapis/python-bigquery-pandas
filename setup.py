@@ -23,6 +23,7 @@ description = "Google BigQuery connector for pandas"
 release_status = "Development Status :: 4 - Beta"
 dependencies = [
     "setuptools",
+    "db-dtypes >=0.3.0, <2.0.0dev",
     "numpy>=1.16.6",
     "pandas>=0.23.2",
     "pyarrow >=3.0.0, <7.0dev",
