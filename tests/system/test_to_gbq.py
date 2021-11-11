@@ -7,14 +7,10 @@ import decimal
 import functools
 import random
 
+import db_dtypes
 import pandas
 import pandas.testing
 import pytest
-
-try:
-    import db_dtypes
-except ImportError:
-    db_dtypes = None
 
 
 pytest.importorskip("google.cloud.bigquery", minversion="1.24.0")
@@ -130,6 +126,22 @@ DATAFRAME_ROUND_TRIPS = [
         [{"name": "date_col", "type": "DATE"}],
         True,
     ),
+    (
+        (
+            pandas.DataFrame(
+                {
+                    "row_num": [0, 1, 2],
+                    "date_col": pandas.Series(
+                        ["2021-04-17", "1999-12-31", "2038-01-19"],
+                        dtype=db_dtypes.DateDtype(),
+                    ),
+                }
+            ),
+            None,
+            [{"name": "date_col", "type": "DATE"}],
+            False,
+        )
+    ),
     # Loading a DATE column should work for string objects. See:
     # https://github.com/googleapis/python-bigquery-pandas/issues/421
     (
@@ -161,23 +173,6 @@ DATAFRAME_ROUND_TRIPS = [
         False,
     ),
 ]
-
-if db_dtypes is not None:
-    DATAFRAME_ROUND_TRIPS.append(
-        (
-            pandas.DataFrame(
-                {
-                    "row_num": [0, 1, 2],
-                    "date_col": pandas.Series(
-                        ["2021-04-17", "1999-12-31", "2038-01-19"], dtype="dbdate",
-                    ),
-                }
-            ),
-            None,
-            [{"name": "date_col", "type": "DATE"}],
-            False,
-        )
-    )
 
 
 @pytest.mark.parametrize(
