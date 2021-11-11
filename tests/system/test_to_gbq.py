@@ -158,15 +158,13 @@ def test_dataframe_round_trip_with_table_schema(
     if api_method == "load_csv" and skip_csv:
         pytest.skip("Loading with CSV not supported.")
     table_id = f"{random_dataset_id}.round_trip_w_schema_{random.randrange(1_000_000)}"
+    input_df["row_num"] = input_df.index
+    input_df.sort_values("row_num", inplace=True)
     method_under_test(
         input_df, table_id, table_schema=table_schema, api_method=api_method
     )
     round_trip = bigquery_client.list_rows(table_id).to_dataframe(
         dtypes=dict(zip(input_df.columns, input_df.dtypes))
     )
-    # TODO: Need to sort by row number before comparing.
+    round_trip.sort_values("row_num", inplace=True)
     pandas.testing.assert_frame_equal(input_df, round_trip)
-    # round_trip_series = round_trip["test_col"].sort_values().reset_index(drop=True)
-    # pandas.testing.assert_series_equal(
-    #     round_trip_series, input_series, check_exact=True,
-    # )
