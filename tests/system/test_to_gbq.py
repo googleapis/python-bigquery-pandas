@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+import datetime
+import decimal
 import functools
 import random
 
@@ -118,25 +120,60 @@ DATAFRAME_ROUND_TRIPS = [
     (
         pandas.DataFrame(
             {
+                "row_num": [0, 1, 2],
                 "date_col": pandas.Series(
                     ["2021-04-17", "1999-12-31", "2038-01-19"], dtype="datetime64[ns]",
                 ),
             }
         ),
+        None,
         [{"name": "date_col", "type": "DATE"}],
         True,
     ),
+    # Loading a DATE column should work for string objects. See:
+    # https://github.com/googleapis/python-bigquery-pandas/issues/421
+    (
+        pandas.DataFrame(
+            {"row_num": [123], "date_col": ["2021-12-12"]},
+            columns=["row_num", "date_col"],
+        ),
+        pandas.DataFrame(
+            {"row_num": [123], "date_col": [datetime.date(2021, 12, 12)]},
+            columns=["row_num", "date_col"],
+        ),
+        [{"name": "row_num", "type": "INTEGER"}, {"name": "date_col", "type": "DATE"}],
+        False,
+    ),
+    # Loading a NUMERIC column should work for floating point objects. See:
+    # https://github.com/googleapis/python-bigquery-pandas/issues/421
+    (
+        pandas.DataFrame(
+            {"row_num": [123], "num_col": [1.25]}, columns=["row_num", "num_col"],
+        ),
+        pandas.DataFrame(
+            {"row_num": [123], "num_col": [decimal.Decimal("1.25")]},
+            columns=["row_num", "num_col"],
+        ),
+        [
+            {"name": "row_num", "type": "INTEGER"},
+            {"name": "num_col", "type": "NUMERIC"},
+        ],
+        False,
+    ),
 ]
+
 if db_dtypes is not None:
     DATAFRAME_ROUND_TRIPS.append(
         (
             pandas.DataFrame(
                 {
+                    "row_num": [0, 1, 2],
                     "date_col": pandas.Series(
                         ["2021-04-17", "1999-12-31", "2038-01-19"], dtype="dbdate",
                     ),
                 }
             ),
+            None,
             [{"name": "date_col", "type": "DATE"}],
             False,
         )
@@ -144,27 +181,28 @@ if db_dtypes is not None:
 
 
 @pytest.mark.parametrize(
-    ["input_df", "table_schema", "skip_csv"], DATAFRAME_ROUND_TRIPS
+    ["input_df", "expected_df", "table_schema", "skip_csv"], DATAFRAME_ROUND_TRIPS
 )
 def test_dataframe_round_trip_with_table_schema(
     method_under_test,
     random_dataset_id,
     bigquery_client,
     input_df,
+    expected_df,
     table_schema,
     api_method,
     skip_csv,
 ):
     if api_method == "load_csv" and skip_csv:
         pytest.skip("Loading with CSV not supported.")
+    if expected_df is None:
+        expected_df = input_df
     table_id = f"{random_dataset_id}.round_trip_w_schema_{random.randrange(1_000_000)}"
-    input_df["row_num"] = input_df.index
-    input_df.sort_values("row_num", inplace=True)
     method_under_test(
         input_df, table_id, table_schema=table_schema, api_method=api_method
     )
     round_trip = bigquery_client.list_rows(table_id).to_dataframe(
-        dtypes=dict(zip(input_df.columns, input_df.dtypes))
+        dtypes=dict(zip(expected_df.columns, expected_df.dtypes))
     )
     round_trip.sort_values("row_num", inplace=True)
-    pandas.testing.assert_frame_equal(input_df, round_trip)
+    pandas.testing.assert_frame_equal(expected_df, round_trip)
