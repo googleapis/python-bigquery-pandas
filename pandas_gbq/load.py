@@ -80,7 +80,8 @@ def cast_dataframe_for_parquet(
         column_type = column.get("type", "").upper()
         if (
             column_type == "DATE"
-            and dataframe[column_name].dtype != db_dtypes.DateDtype()
+            # Use extension dtype first so that it uses the correct equality operator.
+            and db_dtypes.DateDtype() != dataframe[column_name].dtype
         ):
             # Construct converted column manually, because I can't use
             # .astype() with DateDtype. With .astype(), I get the error:
