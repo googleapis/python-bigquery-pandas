@@ -9,6 +9,11 @@ import pandas
 import pandas.testing
 import pytest
 
+try:
+    import db_dtypes
+except ImportError:
+    db_dtypes = None
+
 
 pytest.importorskip("google.cloud.bigquery", minversion="1.24.0")
 
@@ -106,24 +111,24 @@ def test_series_round_trip(
     )
 
 
-@pytest.mark.parametrize(
-    ["input_df", "table_schema", "skip_csv"],
-    [
-        # Ensure that a DATE column can be written with datetime64[ns] dtype
-        # data. See:
-        # https://github.com/googleapis/python-bigquery-pandas/issues/362
-        (
-            pandas.DataFrame(
-                {
-                    "date_col": pandas.Series(
-                        ["2021-04-17", "1999-12-31", "2038-01-19"],
-                        dtype="datetime64[ns]",
-                    ),
-                }
-            ),
-            [{"name": "date_col", "type": "DATE"}],
-            True,
+DATAFRAME_ROUND_TRIPS = [
+    # Ensure that a DATE column can be written with datetime64[ns] dtype
+    # data. See:
+    # https://github.com/googleapis/python-bigquery-pandas/issues/362
+    (
+        pandas.DataFrame(
+            {
+                "date_col": pandas.Series(
+                    ["2021-04-17", "1999-12-31", "2038-01-19"], dtype="datetime64[ns]",
+                ),
+            }
         ),
+        [{"name": "date_col", "type": "DATE"}],
+        True,
+    ),
+]
+if db_dtypes is not None:
+    DATAFRAME_ROUND_TRIPS.append(
         (
             pandas.DataFrame(
                 {
@@ -134,8 +139,12 @@ def test_series_round_trip(
             ),
             [{"name": "date_col", "type": "DATE"}],
             False,
-        ),
-    ],
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ["input_df", "table_schema", "skip_csv"], DATAFRAME_ROUND_TRIPS
 )
 def test_dataframe_round_trip_with_table_schema(
     method_under_test,
