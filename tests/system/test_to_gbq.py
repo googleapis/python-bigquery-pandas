@@ -16,7 +16,7 @@ import pytest
 pytest.importorskip("google.cloud.bigquery", minversion="1.24.0")
 
 
-@pytest.fixture(params=["default", "load_parquet", "load_csv"])
+@pytest.fixture(params=["load_parquet", "load_csv"])
 def api_method(request):
     return request.param
 
