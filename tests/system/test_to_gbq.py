@@ -12,6 +12,11 @@ import pandas
 import pandas.testing
 import pytest
 
+try:
+    import db_dtypes
+except ImportError:
+    db_dtypes = None
+
 
 pytest.importorskip("google.cloud.bigquery", minversion="1.24.0")
 
