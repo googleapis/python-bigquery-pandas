@@ -247,3 +247,11 @@ def test_cast_dataframe_for_parquet_ignores_repeated_fields():
     schema = {"fields": [{"name": "repeated_col", "type": "DATE", "mode": "REPEATED"}]}
     result = load.cast_dataframe_for_parquet(dataframe, schema)
     pandas.testing.assert_frame_equal(result, expected)
+
+
+def test_cast_dataframe_for_parquet_w_null_fields():
+    dataframe = pandas.DataFrame({"int_col": [0, 1, 2], "str_col": ["a", "b", "c"]})
+    expected = dataframe.copy()
+    schema = {"fields": None}
+    result = load.cast_dataframe_for_parquet(dataframe, schema)
+    pandas.testing.assert_frame_equal(result, expected)

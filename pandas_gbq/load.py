@@ -65,7 +65,12 @@ def cast_dataframe_for_parquet(
 
     See: https://github.com/googleapis/python-bigquery-pandas/issues/421
     """
+
     columns = schema.get("fields", [])
+
+    # Protect against an explicit None in the dictionary.
+    columns = columns if columns is not None else []
+
     for column in columns:
         # Schema can be a superset of the columns in the dataframe, so ignore
         # columns that aren't present.
@@ -73,8 +78,10 @@ def cast_dataframe_for_parquet(
         if column_name not in dataframe.columns:
             continue
 
-        # Skip array columns.
-        if column.get("mode", "NULLABLE").upper() not in {"REQUIRED", "NULLABLE"}:
+        # Skip array columns for now. Potentially casting the elements of the
+        # array would be possible, but not worth the effort until there is
+        # demand for it.
+        if column.get("mode", "NULLABLE").upper() == "REPEATED":
             continue
 
         column_type = column.get("type", "").upper()
