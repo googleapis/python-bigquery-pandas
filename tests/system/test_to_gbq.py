@@ -4,6 +4,7 @@
 
 import datetime
 import decimal
+import collections
 import functools
 import random
 
@@ -11,11 +12,6 @@ import db_dtypes
 import pandas
 import pandas.testing
 import pytest
-
-try:
-    import db_dtypes
-except ImportError:
-    db_dtypes = None
 
 
 pytest.importorskip("google.cloud.bigquery", minversion="1.24.0")
@@ -35,13 +31,20 @@ def method_under_test(credentials, project_id):
     )
 
 
+SeriesRoundTripTestCase = collections.namedtuple(
+    "SeriesRoundTripTestCase",
+    ["input_series", "api_methods"],
+    defaults=[None, {"load_csv", "load_parquet"}],
+)
+
+
 @pytest.mark.parametrize(
-    ["input_series", "skip_csv"],
+    ["input_series", "api_methods"],
     [
         # Ensure that 64-bit floating point numbers are unchanged.
         # See: https://github.com/pydata/pandas-gbq/issues/326
-        (
-            pandas.Series(
+        SeriesRoundTripTestCase(
+            input_series=pandas.Series(
                 [
                     0.14285714285714285,
                     0.4406779661016949,
@@ -54,10 +57,9 @@ def method_under_test(credentials, project_id):
                 ],
                 name="test_col",
             ),
-            False,
         ),
-        (
-            pandas.Series(
+        SeriesRoundTripTestCase(
+            input_series=pandas.Series(
                 [
                     "abc",
                     "defg",
@@ -69,10 +71,9 @@ def method_under_test(credentials, project_id):
                 ],
                 name="test_col",
             ),
-            False,
         ),
-        (
-            pandas.Series(
+        SeriesRoundTripTestCase(
+            input_series=pandas.Series(
                 [
                     "abc",
                     "defg",
@@ -84,7 +85,13 @@ def method_under_test(credentials, project_id):
                 ],
                 name="empty_strings",
             ),
-            True,
+            # BigQuery CSV loader uses empty string as the "null marker" by
+            # default. Potentially one could choose a rarely used character or
+            # string as the null marker to disambiguate null from empty string,
+            # but then that string couldn't be loaded.
+            # TODO: Revist when custom load job configuration is supported.
+            #       https://github.com/googleapis/python-bigquery-pandas/issues/425
+            api_methods={"load_parquet"},
         ),
     ],
 )
@@ -94,10 +101,10 @@ def test_series_round_trip(
     bigquery_client,
     input_series,
     api_method,
-    skip_csv,
+    api_methods,
 ):
-    if api_method == "load_csv" and skip_csv:
-        pytest.skip("Loading with CSV not supported.")
+    if api_method not in api_methods:
+        pytest.skip(f"{api_method} not supported.")
     table_id = f"{random_dataset_id}.round_trip_{random.randrange(1_000_000)}"
     input_series = input_series.sort_values().reset_index(drop=True)
     df = pandas.DataFrame(
@@ -114,12 +121,18 @@ def test_series_round_trip(
     )
 
 
+DataFrameRoundTripTestCase = collections.namedtuple(
+    "DataFrameRoundTripTestCase",
+    ["input_df", "expected_df", "table_schema", "api_methods"],
+    defaults=[None, None, [], {"load_csv", "load_parquet"}],
+)
+
 DATAFRAME_ROUND_TRIPS = [
     # Ensure that a DATE column can be written with datetime64[ns] dtype
     # data. See:
     # https://github.com/googleapis/python-bigquery-pandas/issues/362
-    (
-        pandas.DataFrame(
+    DataFrameRoundTripTestCase(
+        input_df=pandas.DataFrame(
             {
                 "row_num": [0, 1, 2],
                 "date_col": pandas.Series(
@@ -127,61 +140,59 @@ DATAFRAME_ROUND_TRIPS = [
                 ),
             }
         ),
-        None,
-        [{"name": "date_col", "type": "DATE"}],
-        True,
+        table_schema=[{"name": "date_col", "type": "DATE"}],
+        # Skip CSV because the pandas CSV writer includes time when writing
+        # datetime64 values.
+        api_methods={"load_parquet"},
     ),
-    (
-        (
-            pandas.DataFrame(
-                {
-                    "row_num": [0, 1, 2],
-                    "date_col": pandas.Series(
-                        ["2021-04-17", "1999-12-31", "2038-01-19"],
-                        dtype=db_dtypes.DateDtype(),
-                    ),
-                }
-            ),
-            None,
-            [{"name": "date_col", "type": "DATE"}],
-            False,
-        )
+    DataFrameRoundTripTestCase(
+        input_df=pandas.DataFrame(
+            {
+                "row_num": [0, 1, 2],
+                "date_col": pandas.Series(
+                    ["2021-04-17", "1999-12-31", "2038-01-19"],
+                    dtype=db_dtypes.DateDtype(),
+                ),
+            }
+        ),
+        table_schema=[{"name": "date_col", "type": "DATE"}],
     ),
     # Loading a DATE column should work for string objects. See:
     # https://github.com/googleapis/python-bigquery-pandas/issues/421
-    (
-        pandas.DataFrame(
+    DataFrameRoundTripTestCase(
+        input_df=pandas.DataFrame(
             {"row_num": [123], "date_col": ["2021-12-12"]},
             columns=["row_num", "date_col"],
         ),
-        pandas.DataFrame(
+        expected_df=pandas.DataFrame(
             {"row_num": [123], "date_col": [datetime.date(2021, 12, 12)]},
             columns=["row_num", "date_col"],
         ),
-        [{"name": "row_num", "type": "INTEGER"}, {"name": "date_col", "type": "DATE"}],
-        False,
+        table_schema=[
+            {"name": "row_num", "type": "INTEGER"},
+            {"name": "date_col", "type": "DATE"},
+        ],
     ),
     # Loading a NUMERIC column should work for floating point objects. See:
     # https://github.com/googleapis/python-bigquery-pandas/issues/421
-    (
-        pandas.DataFrame(
+    DataFrameRoundTripTestCase(
+        input_df=pandas.DataFrame(
             {"row_num": [123], "num_col": [1.25]}, columns=["row_num", "num_col"],
         ),
-        pandas.DataFrame(
+        expected_df=pandas.DataFrame(
             {"row_num": [123], "num_col": [decimal.Decimal("1.25")]},
             columns=["row_num", "num_col"],
         ),
-        [
+        table_schema=[
             {"name": "row_num", "type": "INTEGER"},
             {"name": "num_col", "type": "NUMERIC"},
         ],
-        False,
     ),
 ]
 
 
 @pytest.mark.parametrize(
-    ["input_df", "expected_df", "table_schema", "skip_csv"], DATAFRAME_ROUND_TRIPS
+    ["input_df", "expected_df", "table_schema", "api_methods"], DATAFRAME_ROUND_TRIPS
 )
 def test_dataframe_round_trip_with_table_schema(
     method_under_test,
@@ -191,10 +202,10 @@ def test_dataframe_round_trip_with_table_schema(
     expected_df,
     table_schema,
     api_method,
-    skip_csv,
+    api_methods,
 ):
-    if api_method == "load_csv" and skip_csv:
-        pytest.skip("Loading with CSV not supported.")
+    if api_method not in api_methods:
+        pytest.skip(f"{api_method} not supported.")
     if expected_df is None:
         expected_df = input_df
     table_id = f"{random_dataset_id}.round_trip_w_schema_{random.randrange(1_000_000)}"
