@@ -68,7 +68,7 @@ s.replace(
     [".github/header-checker-lint.yml"], '"Google LLC"', '"pandas-gbq Authors"',
 )
 
-s.replaces(
+s.replace(
     ["noxfile.py"],
     r'os.path.join\("docs", "_build", "html", ""\),\S+\)',
     r"""
