@@ -71,8 +71,7 @@ s.replace(
 s.replace(
     ["noxfile.py"],
     r'os.path.join\("docs", "_build", "html", ""\),\s+\)',
-    r"""
-       os.path.join("docs", "_build", "html", ""),
+    r"""os.path.join("docs", "_build", "html", ""),
     )
 
 
