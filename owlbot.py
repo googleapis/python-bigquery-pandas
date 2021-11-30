@@ -73,7 +73,7 @@ s.replace(
 
 s.replace(
     ["noxfile.py"],
-    r"@nox.session\(python=DEFAULT_PYTHON_VERSION\)\s+def cover\(session\):\s+",
+    r"@nox.session\(python=DEFAULT_PYTHON_VERSION\)\s+def cover\(session\):",
     r"""@nox.session(python=DEFAULT_PYTHON_VERSION)
 def prerelease(session):
     session.install(
@@ -158,8 +158,7 @@ def prerelease(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
-def cover(session):
-""",
+def cover(session):""",
     re.MULTILINE,
 )
 
