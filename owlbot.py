@@ -57,25 +57,24 @@ s.move(
 # ----------------------------------------------------------------------------
 
 s.replace(
+    ["noxfile.py"],
+    r"import pathlib\s+import shutil",
+    "import pathlib\nimport re\nimport shutil",
+)
+
+s.replace(
     ["noxfile.py"], r"[\"']google[\"']", '"pandas_gbq"',
 )
+
 
 s.replace(
     ["noxfile.py"], "--cov=google", "--cov=pandas_gbq",
 )
 
 s.replace(
-    [".github/header-checker-lint.yml"], '"Google LLC"', '"pandas-gbq Authors"',
-)
-
-s.replace(
     ["noxfile.py"],
-    r'os.path.join\("docs", "_build", "html", ""\),\s+\)',
-    r"""os.path.join("docs", "_build", "html", ""),
-    )
-
-
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+    r"@nox.session\(python=DEFAULT_PYTHON_VERSION\)\s+def cover(session):\s+"
+    r"""@nox.session(python=DEFAULT_PYTHON_VERSION)
 def prerelease(session):
     session.install(
         "--extra-index-url",
@@ -156,8 +155,16 @@ def prerelease(session):
         f"--junitxml=prerelease_system_{session.python}_sponge_log.xml",
         os.path.join("tests", "system"),
     )
+
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+def cover(session):
 """,
     re.MULTILINE,
+)
+
+s.replace(
+    [".github/header-checker-lint.yml"], '"Google LLC"', '"pandas-gbq Authors"',
 )
 
 # ----------------------------------------------------------------------------
