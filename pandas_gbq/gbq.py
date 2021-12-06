@@ -506,13 +506,18 @@ class GbqConnector(object):
             to_dataframe_kwargs["create_bqstorage_client"] = create_bqstorage_client
 
         try:
+            # TODO: This is the only difference between table ID and query job.
+            # But should I refactor for
+            # https://github.com/googleapis/python-bigquery-pandas/issues/339
+            # now?
             query_job.result()
             # Get the table schema, so that we can list rows.
             destination = self.client.get_table(query_job.destination)
             rows_iter = self.client.list_rows(destination, max_results=max_results)
-
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
             conversion_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
+            # ENDTODO: This is the only difference between table ID and
+
             conversion_dtypes.update(user_dtypes)
             df = rows_iter.to_dataframe(
                 dtypes=conversion_dtypes,
