@@ -201,29 +201,29 @@ DATAFRAME_ROUND_TRIPS = [
                         datetime.date(1970, 1, 1),
                         datetime.date(9999, 12, 31),
                     ],
-                    # DATETIME values outside of the range for pandas timestamp
-                    # require `date_as_object` parameter in
+                    # TODO: DATETIME/TIMESTAMP values outside of the range for
+                    # pandas timestamp require `date_as_object` parameter in
                     # google-cloud-bigquery versions 1.x and 2.x.
                     # https://github.com/googleapis/python-bigquery-pandas/issues/365
-                    "datetime_col": [
-                        datetime.datetime(1, 1, 1),
-                        datetime.datetime(1970, 1, 1),
-                        datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
-                    ],
-                    "timestamp_col": [
-                        datetime.datetime(1, 1, 1, tzinfo=datetime.timezone.utc),
-                        datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc),
-                        datetime.datetime(
-                            9999,
-                            12,
-                            31,
-                            23,
-                            59,
-                            59,
-                            999999,
-                            tzinfo=datetime.timezone.utc,
-                        ),
-                    ],
+                    # "datetime_col": [
+                    #     datetime.datetime(1, 1, 1),
+                    #     datetime.datetime(1970, 1, 1),
+                    #     datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
+                    # ],
+                    # "timestamp_col": [
+                    #     datetime.datetime(1, 1, 1, tzinfo=datetime.timezone.utc),
+                    #     datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc),
+                    #     datetime.datetime(
+                    #         9999,
+                    #         12,
+                    #         31,
+                    #         23,
+                    #         59,
+                    #         59,
+                    #         999999,
+                    #         tzinfo=datetime.timezone.utc,
+                    #     ),
+                    # ],
                 },
                 columns=["row_num", "date_col", "datetime_col", "timestamp_col"],
             ),
