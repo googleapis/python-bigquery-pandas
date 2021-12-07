@@ -90,10 +90,6 @@ def cast_dataframe_for_parquet(
             # Use extension dtype first so that it uses the correct equality operator.
             and db_dtypes.DateDtype() != dataframe[column_name].dtype
         ):
-            # Construct converted column manually, because I can't use
-            # .astype() with DateDtype. With .astype(), I get the error:
-            #
-            # TypeError: Cannot interpret '<db_dtypes.DateDtype ...>' as a data type
             cast_column = dataframe[column_name].astype(
                 dtype=db_dtypes.DateDtype(),
                 # Return the original column if there was an error converting
