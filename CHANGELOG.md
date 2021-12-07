@@ -1,5 +1,18 @@
 # Changelog
 
+### [0.16.1](https://www.github.com/googleapis/python-bigquery-pandas/compare/v0.16.0...v0.16.1) (2021-12-07)
+
+
+### Bug Fixes
+
+* `to_gbq` allows strings for DATE and floats for NUMERIC with `api_method="load_parquet"` ([#423](https://www.github.com/googleapis/python-bigquery-pandas/issues/423)) ([2180836](https://www.github.com/googleapis/python-bigquery-pandas/commit/21808367d02b5b7fcf35b3c7520224c819879aec))
+* allow extreme DATE values such as `datetime.date(1, 1, 1)` in `load_gbq` ([#442](https://www.github.com/googleapis/python-bigquery-pandas/issues/442)) ([e13abaf](https://www.github.com/googleapis/python-bigquery-pandas/commit/e13abaf015cd1ea9da3ad5063680bf89e18f0fac))
+
+
+### Dependencies
+
+* require pandas 0.24+ and db-dtypes for TIME/DATE extension dtypes ([#423](https://www.github.com/googleapis/python-bigquery-pandas/issues/423)) ([2180836](https://www.github.com/googleapis/python-bigquery-pandas/commit/21808367d02b5b7fcf35b3c7520224c819879aec))
+
 ## [0.16.0](https://www.github.com/googleapis/python-bigquery-pandas/compare/v0.16.0...v0.16.0) (2021-11-08)
 
 
