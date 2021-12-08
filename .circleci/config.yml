@@ -15,12 +15,12 @@ jobs:
       - checkout
       - run: ci/config_auth.sh
       - run: ci/run_conda.sh
-  "conda-3.9-NIGHTLY":
+  "conda-3.10":
     docker:
       - image: continuumio/miniconda3
     environment:
-      PYTHON: "3.9"
-      PANDAS: "NIGHTLY"
+      PYTHON: "3.10"
+      PANDAS: "1.3.4"
     steps:
       - checkout
       - run: ci/config_auth.sh
@@ -31,4 +31,4 @@ workflows:
   build:
     jobs:
       - "conda-3.7"
-      - "conda-3.9-NIGHTLY"
+      - "conda-3.10"
