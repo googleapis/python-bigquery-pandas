@@ -8,6 +8,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 micromamba shell init -s bash -p ~/micromamba
 source ~/.bashrc
+micromamba activate
 
 # Install dependencies using (micro)mamba
 # https://github.com/mamba-org/micromamba-docker
