@@ -8,15 +8,12 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 # Install dependencies using Conda
 
-conda config --set always_yes yes --set changeps1 no
-conda config --add channels conda-forge
-conda update -q conda
-conda info -a
-conda create -q -n test-environment python=$PYTHON
 source activate test-environment
 REQ="ci/requirements-${PYTHON}-${PANDAS}"
-mamba install -q --file "$REQ.conda";
-mamba install -q pandas=$PANDAS;
+micromamba install -q --file "$REQ.conda";
+micromamba install -q pandas=$PANDAS;
+micromamba list
+micromamba info
 
 python setup.py develop --no-deps
 
