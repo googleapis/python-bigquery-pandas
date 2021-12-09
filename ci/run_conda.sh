@@ -15,6 +15,8 @@ conda info -a
 conda create -q -n test-environment python=$PYTHON
 source activate test-environment
 REQ="ci/requirements-${PYTHON}-${PANDAS}"
+
+# TODO: Migrate the mamba with https://github.com/mamba-org/micromamba-docker
 conda install -q --file "$REQ.conda";
 conda install -q pandas=$PANDAS;
 
