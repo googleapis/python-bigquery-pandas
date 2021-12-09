@@ -579,7 +579,7 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     #missing-data-casting-rules-and-indexing
     """
     # If you update this mapping, also update the table at
-    # `docs/source/reading.rst`.
+    # `docs/reading.rst`.
     dtype_map = {
         "DATE": "datetime64[ns]",
         "DATETIME": "datetime64[ns]",
