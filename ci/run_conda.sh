@@ -14,6 +14,7 @@ micromamba install -q --file "$REQ.conda" -n base -c conda-forge;
 micromamba list
 micromamba info
 
+micromamba activate base
 python setup.py develop --no-deps
 
 # Run the tests
