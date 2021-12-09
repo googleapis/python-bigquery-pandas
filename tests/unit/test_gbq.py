@@ -292,9 +292,10 @@ def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
         gbq.read_gbq("SELECT 1", dialect="standard")
 
 
-def test_read_gbq_with_inferred_project_id(monkeypatch):
+def test_read_gbq_with_inferred_project_id(mock_bigquery_client):
     df = gbq.read_gbq("SELECT 1", dialect="standard")
     assert df is not None
+    mock_bigquery_client.query.assert_called_once()
 
 
 def test_read_gbq_with_inferred_project_id_from_service_account_credentials(
@@ -505,3 +506,19 @@ def test_read_gbq_calls_tqdm(mock_bigquery_client, mock_service_account_credenti
 
     _, to_dataframe_kwargs = mock_list_rows.to_dataframe.call_args
     assert to_dataframe_kwargs["progress_bar_type"] == "foobar"
+
+
+def test_read_gbq_bypasses_query_with_table_id(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    df = gbq.read_gbq(
+        "my-project.my_dataset.read_gbq_table",
+        credentials=mock_service_account_credentials,
+    )
+    assert df is not None
+
+    mock_bigquery_client.query.assert_not_called()
+    mock_bigquery_client.list_rows.assert_called_with(
+        "my-project.my_dataset.read_gbq_table"
+    )
