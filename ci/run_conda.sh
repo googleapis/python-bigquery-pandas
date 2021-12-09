@@ -6,15 +6,14 @@
 set -e -x
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-micromamba shell init -s bash -p ~/micromamba
-source ~/.bashrc
+eval "$(micromamba shell hook --shell=bash)"
 micromamba activate
 
 # Install dependencies using (micro)mamba
 # https://github.com/mamba-org/micromamba-docker
 REQ="ci/requirements-${PYTHON}-${PANDAS}"
-micromamba install -q pandas=$PANDAS python=${PYTHON} -n base -c conda-forge;
-micromamba install -q --file "$REQ.conda" -n base -c conda-forge;
+micromamba install -q pandas=$PANDAS python=${PYTHON} -c conda-forge;
+micromamba install -q --file "$REQ.conda" -c conda-forge;
 micromamba list
 micromamba info
 
