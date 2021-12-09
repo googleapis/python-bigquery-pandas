@@ -6,12 +6,11 @@
 set -e -x
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
-# Install dependencies using Conda
-
-source activate test-environment
+# Install dependencies using (micro)mamba
+# https://github.com/mamba-org/micromamba-docker
 REQ="ci/requirements-${PYTHON}-${PANDAS}"
-micromamba install -q --file "$REQ.conda";
-micromamba install -q pandas=$PANDAS;
+micromamba install -q pandas=$PANDAS python=${PYTHON} -n base -c conda-forge;
+micromamba install -q --file "$REQ.conda" -n base -c conda-forge;
 micromamba list
 micromamba info
 
