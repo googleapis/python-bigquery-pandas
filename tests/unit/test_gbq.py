@@ -82,6 +82,19 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
         assert result == {"x": expected}
 
 
+@pytest.mark.parametrize(
+    ["query_or_table", "expected"],
+    [
+        ("SELECT 1", True),
+        ("dataset.table", False),
+        ("project-id.dataset.table", False),
+    ],
+)
+def test__is_query(query_or_table, expected):
+    result = gbq._is_query(query_or_table)
+    assert result == expected
+
+
 def test_GbqConnector_get_client_w_old_bq(monkeypatch, mock_bigquery_client):
     gbq._test_google_api_imports()
     connector = _make_connector()

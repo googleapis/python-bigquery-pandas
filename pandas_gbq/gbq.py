@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import logging
+import re
 import time
 import warnings
 from datetime import datetime
@@ -62,6 +63,10 @@ def _test_google_api_imports():
         from google.cloud import bigquery  # noqa
     except ImportError as ex:
         raise ImportError("pandas-gbq requires google-cloud-bigquery") from ex
+
+
+def _is_query(query_or_table: str) -> bool:
+    return re.search(r"\s", query_or_table.strip(), re.MULTILINE) is not None
 
 
 class DatasetCreationError(ValueError):
