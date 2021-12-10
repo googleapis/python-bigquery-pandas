@@ -534,8 +534,6 @@ class GbqConnector(object):
         try:
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
             conversion_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
-            # ENDTODO: This is the only difference between table ID and
-
             conversion_dtypes.update(user_dtypes)
             df = rows_iter.to_dataframe(
                 dtypes=conversion_dtypes,
