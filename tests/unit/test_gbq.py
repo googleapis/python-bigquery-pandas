@@ -487,7 +487,7 @@ def test_read_gbq_passes_dtypes(mock_bigquery_client, mock_service_account_crede
 def test_read_gbq_use_bqstorage_api(
     mock_bigquery_client, mock_service_account_credentials
 ):
-    if not FEATURES.bigquery_has_bqstorage:
+    if not FEATURES.bigquery_has_bqstorage:  # pragma: NO COVER
         pytest.skip("requires BigQuery Storage API")
 
     mock_service_account_credentials.project_id = "service_account_project_id"
