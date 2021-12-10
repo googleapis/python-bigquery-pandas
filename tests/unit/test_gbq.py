@@ -8,6 +8,7 @@ import copy
 import datetime
 from unittest import mock
 
+from google.cloud import bigquery
 import numpy
 import pandas
 from pandas import DataFrame
@@ -534,7 +535,7 @@ def test_read_gbq_with_full_table_id(
 
     mock_bigquery_client.query.assert_not_called()
     mock_bigquery_client.list_rows.assert_called_with(
-        "my-project.my_dataset.read_gbq_table"
+        bigquery.Table("my-project.my_dataset.read_gbq_table"), max_results=None,
     )
 
 
@@ -551,7 +552,7 @@ def test_read_gbq_with_partial_table_id(
 
     mock_bigquery_client.query.assert_not_called()
     mock_bigquery_client.list_rows.assert_called_with(
-        "param-project.my_dataset.read_gbq_table"
+        bigquery.Table("param-project.my_dataset.read_gbq_table"), max_results=None,
     )
 
 
@@ -568,5 +569,5 @@ def test_read_gbq_bypasses_query_with_table_id_and_max_results(
 
     mock_bigquery_client.query.assert_not_called()
     mock_bigquery_client.list_rows.assert_called_with(
-        "my-project.my_dataset.read_gbq_table", max_results=11
+        bigquery.Table("my-project.my_dataset.read_gbq_table"), max_results=11
     )

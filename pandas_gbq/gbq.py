@@ -386,7 +386,10 @@ class GbqConnector(object):
 
         try:
             # Get the table schema, so that we can list rows.
-            destination = self.client.get_table(table_id)
+            table_ref = bigquery.TableReference.from_string(
+                table_id, default_project=self.project_id
+            )
+            destination = self.client.get_table(table_ref)
             rows_iter = self.client.list_rows(destination, max_results=max_results)
         except self.http_error as ex:
             self.process_http_error(ex)
