@@ -8,7 +8,6 @@ import copy
 import datetime
 from unittest import mock
 
-from google.cloud import bigquery
 import numpy
 import pandas
 from pandas import DataFrame
@@ -534,9 +533,10 @@ def test_read_gbq_with_full_table_id(
     assert df is not None
 
     mock_bigquery_client.query.assert_not_called()
-    mock_bigquery_client.list_rows.assert_called_with(
-        bigquery.Table("my-project.my_dataset.read_gbq_table"), max_results=None,
-    )
+    sent_table = mock_bigquery_client.list_rows.call_args[0][0]
+    assert sent_table.project == "my-project"
+    assert sent_table.dataset_id == "my_dataset"
+    assert sent_table.table_id == "read_gbq_table"
 
 
 def test_read_gbq_with_partial_table_id(
@@ -551,9 +551,10 @@ def test_read_gbq_with_partial_table_id(
     assert df is not None
 
     mock_bigquery_client.query.assert_not_called()
-    mock_bigquery_client.list_rows.assert_called_with(
-        bigquery.Table("param-project.my_dataset.read_gbq_table"), max_results=None,
-    )
+    sent_table = mock_bigquery_client.list_rows.call_args[0][0]
+    assert sent_table.project == "param-project"
+    assert sent_table.dataset_id == "my_dataset"
+    assert sent_table.table_id == "read_gbq_table"
 
 
 def test_read_gbq_bypasses_query_with_table_id_and_max_results(
@@ -568,6 +569,9 @@ def test_read_gbq_bypasses_query_with_table_id_and_max_results(
     assert df is not None
 
     mock_bigquery_client.query.assert_not_called()
-    mock_bigquery_client.list_rows.assert_called_with(
-        bigquery.Table("my-project.my_dataset.read_gbq_table"), max_results=11
-    )
+    sent_table = mock_bigquery_client.list_rows.call_args[0][0]
+    assert sent_table.project == "my-project"
+    assert sent_table.dataset_id == "my_dataset"
+    assert sent_table.table_id == "read_gbq_table"
+    sent_max_results = mock_bigquery_client.list_rows.call_args[1]["max_results"]
+    assert sent_max_results == 11
