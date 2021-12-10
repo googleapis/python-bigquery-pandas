@@ -8,6 +8,7 @@ import copy
 import datetime
 from unittest import mock
 
+import google.api_core.exceptions
 import numpy
 import pandas
 from pandas import DataFrame
@@ -64,8 +65,8 @@ def no_auth(monkeypatch):
 @pytest.mark.parametrize(
     ("type_", "expected"),
     [
-        ("INTEGER", None),  # Can't handle NULL
-        ("BOOLEAN", None),  # Can't handle NULL
+        ("SOME_NEW_UNKNOWN_TYPE", None),
+        ("INTEGER", "Int64"),
         ("FLOAT", numpy.dtype(float)),
         # TIMESTAMP will be localized after DataFrame construction.
         ("TIMESTAMP", "datetime64[ns]"),
@@ -80,6 +81,19 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
         assert result == {}
     else:
         assert result == {"x": expected}
+
+
+@pytest.mark.parametrize(
+    ["query_or_table", "expected"],
+    [
+        ("SELECT 1", True),
+        ("dataset.table", False),
+        ("project-id.dataset.table", False),
+    ],
+)
+def test__is_query(query_or_table, expected):
+    result = gbq._is_query(query_or_table)
+    assert result == expected
 
 
 def test_GbqConnector_get_client_w_old_bq(monkeypatch, mock_bigquery_client):
@@ -292,9 +306,10 @@ def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
         gbq.read_gbq("SELECT 1", dialect="standard")
 
 
-def test_read_gbq_with_inferred_project_id(monkeypatch):
+def test_read_gbq_with_inferred_project_id(mock_bigquery_client):
     df = gbq.read_gbq("SELECT 1", dialect="standard")
     assert df is not None
+    mock_bigquery_client.query.assert_called_once()
 
 
 def test_read_gbq_with_inferred_project_id_from_service_account_credentials(
@@ -473,7 +488,7 @@ def test_read_gbq_passes_dtypes(mock_bigquery_client, mock_service_account_crede
 def test_read_gbq_use_bqstorage_api(
     mock_bigquery_client, mock_service_account_credentials
 ):
-    if not FEATURES.bigquery_has_bqstorage:
+    if not FEATURES.bigquery_has_bqstorage:  # pragma: NO COVER
         pytest.skip("requires BigQuery Storage API")
 
     mock_service_account_credentials.project_id = "service_account_project_id"
@@ -505,3 +520,73 @@ def test_read_gbq_calls_tqdm(mock_bigquery_client, mock_service_account_credenti
 
     _, to_dataframe_kwargs = mock_list_rows.to_dataframe.call_args
     assert to_dataframe_kwargs["progress_bar_type"] == "foobar"
+
+
+def test_read_gbq_with_full_table_id(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    df = gbq.read_gbq(
+        "my-project.my_dataset.read_gbq_table",
+        credentials=mock_service_account_credentials,
+        project_id="param-project",
+    )
+    assert df is not None
+
+    mock_bigquery_client.query.assert_not_called()
+    sent_table = mock_bigquery_client.list_rows.call_args[0][0]
+    assert sent_table.project == "my-project"
+    assert sent_table.dataset_id == "my_dataset"
+    assert sent_table.table_id == "read_gbq_table"
+
+
+def test_read_gbq_with_partial_table_id(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    df = gbq.read_gbq(
+        "my_dataset.read_gbq_table",
+        credentials=mock_service_account_credentials,
+        project_id="param-project",
+    )
+    assert df is not None
+
+    mock_bigquery_client.query.assert_not_called()
+    sent_table = mock_bigquery_client.list_rows.call_args[0][0]
+    assert sent_table.project == "param-project"
+    assert sent_table.dataset_id == "my_dataset"
+    assert sent_table.table_id == "read_gbq_table"
+
+
+def test_read_gbq_bypasses_query_with_table_id_and_max_results(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    df = gbq.read_gbq(
+        "my-project.my_dataset.read_gbq_table",
+        credentials=mock_service_account_credentials,
+        max_results=11,
+    )
+    assert df is not None
+
+    mock_bigquery_client.query.assert_not_called()
+    sent_table = mock_bigquery_client.list_rows.call_args[0][0]
+    assert sent_table.project == "my-project"
+    assert sent_table.dataset_id == "my_dataset"
+    assert sent_table.table_id == "read_gbq_table"
+    sent_max_results = mock_bigquery_client.list_rows.call_args[1]["max_results"]
+    assert sent_max_results == 11
+
+
+def test_read_gbq_with_list_rows_error_translates_exception(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_bigquery_client.list_rows.side_effect = (
+        google.api_core.exceptions.NotFound("table not found"),
+    )
+
+    with pytest.raises(gbq.GenericGBQException, match="table not found"):
+        gbq.read_gbq(
+            "my-project.my_dataset.read_gbq_table",
+            credentials=mock_service_account_credentials,
+        )
