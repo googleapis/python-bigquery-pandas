@@ -712,14 +712,14 @@ def read_gbq(
     reauth : boolean, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-    auth_local_webserver : boolean, default False
-        Use the `local webserver flow`_ instead of the `console flow`_
-        when getting user credentials.
-
-        .. _local webserver flow:
-            https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-        .. _console flow:
-            https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+    auth_local_webserver : bool, default False
+        Use the `local webserver flow
+        <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server>`_
+        instead of the `console flow
+        <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console>`_
+        when getting user credentials. Your code must run on the same machine
+        as your web browser and your web browser can access your application
+        via ``localhost:808X``.
 
         .. versionadded:: 0.2.0
     dialect : str, default 'standard'
@@ -954,13 +954,13 @@ def to_gbq(
         ``'append'``
             If table exists, insert data. Create if does not exist.
     auth_local_webserver : bool, default False
-        Use the `local webserver flow`_ instead of the `console flow`_
-        when getting user credentials.
-
-        .. _local webserver flow:
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-        .. _console flow:
-            http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+        Use the `local webserver flow
+        <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server>`_
+        instead of the `console flow
+        <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console>`_
+        when getting user credentials. Your code must run on the same machine
+        as your web browser and your web browser can access your application
+        via ``localhost:808X``.
 
         .. versionadded:: 0.2.0
     table_schema : list of dicts, optional
