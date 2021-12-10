@@ -379,9 +379,26 @@ class GbqConnector(object):
 
         raise GenericGBQException("Reason: {0}".format(ex))
 
-    def run_query(
-        self, query_or_table, max_results=None, progress_bar_type=None, **kwargs
+    def download_table(
+        self, table_id, max_results=None, progress_bar_type=None, dtypes=None
     ):
+        self._start_timer()
+
+        try:
+            # Get the table schema, so that we can list rows.
+            destination = self.client.get_table(table_id)
+            rows_iter = self.client.list_rows(destination, max_results=max_results)
+        except self.http_error as ex:
+            self.process_http_error(ex)
+
+        return self._download_results(
+            rows_iter,
+            max_results=max_results,
+            progress_bar_type=progress_bar_type,
+            user_dtypes=dtypes,
+        )
+
+    def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
 
@@ -397,21 +414,12 @@ class GbqConnector(object):
         if config is not None:
             job_config.update(config)
 
-            if "query" in config and "query" in config["query"]:
-                if query_or_table is not None:
-                    raise ValueError(
-                        "Query statement can't be specified "
-                        "inside config while it is specified "
-                        "as parameter"
-                    )
-                query_or_table = config["query"].pop("query")
-
         self._start_timer()
 
         try:
             logger.debug("Requesting query... ")
             query_reply = self.client.query(
-                query_or_table,
+                query,
                 job_config=bigquery.QueryJobConfig.from_api_repr(job_config),
                 location=self.location,
                 project=self.project_id,
@@ -471,15 +479,25 @@ class GbqConnector(object):
             )
 
         dtypes = kwargs.get("dtypes")
+
+        # Ensure destination is populated.
+        try:
+            query_reply.result()
+        except self.http_error as ex:
+            self.process_http_error(ex)
+
+        # Get the table schema, so that we can list rows.
+        destination = self.client.get_table(query_reply.destination)
+        rows_iter = self.client.list_rows(destination, max_results=max_results)
         return self._download_results(
-            query_reply,
+            rows_iter,
             max_results=max_results,
             progress_bar_type=progress_bar_type,
             user_dtypes=dtypes,
         )
 
     def _download_results(
-        self, query_job, max_results=None, progress_bar_type=None, user_dtypes=None,
+        self, rows_iter, max_results=None, progress_bar_type=None, user_dtypes=None,
     ):
         # No results are desired, so don't bother downloading anything.
         if max_results == 0:
@@ -511,14 +529,6 @@ class GbqConnector(object):
             to_dataframe_kwargs["create_bqstorage_client"] = create_bqstorage_client
 
         try:
-            # TODO: This is the only difference between table ID and query job.
-            # But should I refactor for
-            # https://github.com/googleapis/python-bigquery-pandas/issues/339
-            # now?
-            query_job.result()
-            # Get the table schema, so that we can list rows.
-            destination = self.client.get_table(query_job.destination)
-            rows_iter = self.client.list_rows(destination, max_results=max_results)
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
             conversion_dtypes = _bqschema_to_nullsafe_dtypes(schema_fields)
             # ENDTODO: This is the only difference between table ID and
@@ -829,6 +839,15 @@ def read_gbq(
     if dialect not in ("legacy", "standard"):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
 
+    if configuration and "query" in configuration and "query" in configuration["query"]:
+        if query_or_table is not None:
+            raise ValueError(
+                "Query statement can't be specified "
+                "inside config while it is specified "
+                "as parameter"
+            )
+        query_or_table = configuration["query"].pop("query")
+
     connector = GbqConnector(
         project_id,
         reauth=reauth,
@@ -840,13 +859,21 @@ def read_gbq(
         use_bqstorage_api=use_bqstorage_api,
     )
 
-    final_df = connector.run_query(
-        query_or_table,
-        configuration=configuration,
-        max_results=max_results,
-        progress_bar_type=progress_bar_type,
-        dtypes=dtypes,
-    )
+    if _is_query(query_or_table):
+        final_df = connector.run_query(
+            query_or_table,
+            configuration=configuration,
+            max_results=max_results,
+            progress_bar_type=progress_bar_type,
+            dtypes=dtypes,
+        )
+    else:
+        final_df = connector.download_table(
+            query_or_table,
+            max_results=max_results,
+            progress_bar_type=progress_bar_type,
+            dtypes=dtypes,
+        )
 
     # Reindex the DataFrame on the provided column
     if index_col is not None:

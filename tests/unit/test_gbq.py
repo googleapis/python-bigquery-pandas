@@ -521,17 +521,52 @@ def test_read_gbq_calls_tqdm(mock_bigquery_client, mock_service_account_credenti
     assert to_dataframe_kwargs["progress_bar_type"] == "foobar"
 
 
-def test_read_gbq_bypasses_query_with_table_id(
+def test_read_gbq_with_full_table_id(
     mock_bigquery_client, mock_service_account_credentials
 ):
     mock_service_account_credentials.project_id = "service_account_project_id"
     df = gbq.read_gbq(
         "my-project.my_dataset.read_gbq_table",
         credentials=mock_service_account_credentials,
+        project_id="param-project",
     )
     assert df is not None
 
     mock_bigquery_client.query.assert_not_called()
     mock_bigquery_client.list_rows.assert_called_with(
         "my-project.my_dataset.read_gbq_table"
+    )
+
+
+def test_read_gbq_with_partial_table_id(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    df = gbq.read_gbq(
+        "my_dataset.read_gbq_table",
+        credentials=mock_service_account_credentials,
+        project_id="param-project",
+    )
+    assert df is not None
+
+    mock_bigquery_client.query.assert_not_called()
+    mock_bigquery_client.list_rows.assert_called_with(
+        "param-project.my_dataset.read_gbq_table"
+    )
+
+
+def test_read_gbq_bypasses_query_with_table_id_and_max_results(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    df = gbq.read_gbq(
+        "my-project.my_dataset.read_gbq_table",
+        credentials=mock_service_account_credentials,
+        max_results=11,
+    )
+    assert df is not None
+
+    mock_bigquery_client.query.assert_not_called()
+    mock_bigquery_client.list_rows.assert_called_with(
+        "my-project.my_dataset.read_gbq_table", max_results=11
     )

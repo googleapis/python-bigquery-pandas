@@ -43,12 +43,18 @@ def mock_bigquery_client(monkeypatch):
 
     # Mock out SELECT 1 query results.
     def generate_schema():
-        query = mock_client.query.call_args[0][0]
+        query = mock_client.query.call_args[0][0] if mock_client.query.call_args else ""
         if query == "SELECT 1 AS int_col":
             return [google.cloud.bigquery.SchemaField("int_col", "INTEGER")]
         else:
             return [google.cloud.bigquery.SchemaField("_f0", "INTEGER")]
 
     type(mock_rows).schema = mock.PropertyMock(side_effect=generate_schema)
+
+    # Mock out get_table.
+    def get_table(table_ref_or_id, **kwargs):
+        return google.cloud.bigquery.Table(table_ref_or_id)
+
+    mock_client.get_table.side_effect = get_table
 
     return mock_client
