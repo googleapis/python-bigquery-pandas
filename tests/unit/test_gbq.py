@@ -8,6 +8,7 @@ import copy
 import datetime
 from unittest import mock
 
+import google.api_core.exceptions
 import numpy
 import pandas
 from pandas import DataFrame
@@ -575,3 +576,17 @@ def test_read_gbq_bypasses_query_with_table_id_and_max_results(
     assert sent_table.table_id == "read_gbq_table"
     sent_max_results = mock_bigquery_client.list_rows.call_args[1]["max_results"]
     assert sent_max_results == 11
+
+
+def test_read_gbq_with_list_rows_error_translates_exception(
+    mock_bigquery_client, mock_service_account_credentials
+):
+    mock_bigquery_client.list_rows.side_effect = (
+        google.api_core.exceptions.NotFound("table not found"),
+    )
+
+    with pytest.raises(gbq.GenericGBQException, match="table not found"):
+        gbq.read_gbq(
+            "my-project.my_dataset.read_gbq_table",
+            credentials=mock_service_account_credentials,
+        )
