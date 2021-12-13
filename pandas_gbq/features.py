@@ -9,6 +9,7 @@ BIGQUERY_MINIMUM_VERSION = "1.11.1"
 BIGQUERY_CLIENT_INFO_VERSION = "1.12.0"
 BIGQUERY_BQSTORAGE_VERSION = "1.24.0"
 BIGQUERY_FROM_DATAFRAME_CSV_VERSION = "2.6.0"
+BIGQUERY_NO_DATE_AS_OBJECT_VERSION = "3.0.0dev"
 PANDAS_VERBOSITY_DEPRECATION_VERSION = "0.23.0"
 PANDAS_BOOLEAN_DTYPE_VERSION = "1.0.0"
 PANDAS_PARQUET_LOSSLESS_TIMESTAMP_VERSION = "1.1.0"
@@ -68,6 +69,13 @@ class Features:
             BIGQUERY_FROM_DATAFRAME_CSV_VERSION
         )
         return self.bigquery_installed_version >= bigquery_from_dataframe_version
+
+    @property
+    def bigquery_needs_date_as_object(self):
+        import pkg_resources
+
+        max_version = pkg_resources.parse_version(BIGQUERY_NO_DATE_AS_OBJECT_VERSION)
+        return self.bigquery_installed_version < max_version
 
     @property
     def pandas_installed_version(self):

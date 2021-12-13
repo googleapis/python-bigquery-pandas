@@ -256,7 +256,12 @@ def test_dataframe_round_trip_with_table_schema(
         input_df, table_id, table_schema=table_schema, api_method=api_method
     )
     round_trip = read_gbq(
-        table_id, dtypes=dict(zip(expected_df.columns, expected_df.dtypes)),
+        table_id,
+        dtypes=dict(zip(expected_df.columns, expected_df.dtypes)),
+        # BigQuery Storage API is required to avoid out-of-bound due to extra
+        # day from rounding error which was fixed in google-cloud-bigquery
+        # 2.6.0. https://github.com/googleapis/python-bigquery/pull/402
+        use_bqstorage_api=True,
     )
     round_trip.sort_values("row_num", inplace=True)
     pandas.testing.assert_frame_equal(expected_df, round_trip)

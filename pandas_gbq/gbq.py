@@ -528,6 +528,8 @@ class GbqConnector(object):
         to_dataframe_kwargs = {}
         if FEATURES.bigquery_has_bqstorage:
             to_dataframe_kwargs["create_bqstorage_client"] = create_bqstorage_client
+        if FEATURES.bigquery_needs_date_as_object:
+            to_dataframe_kwargs["date_as_object"] = True
 
         try:
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
@@ -543,6 +545,8 @@ class GbqConnector(object):
 
         if df.empty:
             df = _cast_empty_df_dtypes(schema_fields, df)
+
+        # TODO: DATETIME/DATE column casts
 
         # Ensure any TIMESTAMP columns are tz-aware.
         df = pandas_gbq.timestamp.localize_df(df, schema_fields)
@@ -602,8 +606,6 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     # If you update this mapping, also update the table at
     # `docs/reading.rst`.
     dtype_map = {
-        "DATE": "datetime64[ns]",
-        "DATETIME": "datetime64[ns]",
         "FLOAT": np.dtype(float),
         "GEOMETRY": "object",
         "INTEGER": "Int64",
