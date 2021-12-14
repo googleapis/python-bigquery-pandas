@@ -4,11 +4,12 @@
 
 import datetime
 
+import db_dtypes
 import pandas
 import pandas.testing
 import pytest
 
-# from pandas_gbq.features import FEATURES
+from pandas_gbq.features import FEATURES
 
 
 @pytest.mark.parametrize(["use_bqstorage_api"], [(True,), (False,)])
@@ -17,25 +18,55 @@ import pytest
     [
         pytest.param(
             """
-            SELECT
-                date_col
-            FROM
-                UNNEST([
-                    STRUCT(DATE(1998, 9, 4) AS date_col),
-                    STRUCT(DATE(2011, 10, 1) AS date_col),
-                    STRUCT(DATE(2018, 4, 11) AS date_col)
-                ])
+SELECT
+  bools.row_num AS row_num,
+  bool_col,
+  bytes_col,
+  date_col
+FROM
+  UNNEST([
+      STRUCT(1 AS row_num, TRUE AS bool_col),
+      STRUCT(2 AS row_num, FALSE AS bool_col),
+      STRUCT(3 AS row_num, TRUE AS bool_col) ]) AS `bools`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('C00010FF' AS BYTES FORMAT 'HEX') AS bytes_col),
+      STRUCT(2 AS row_num, CAST('F1AC' AS BYTES FORMAT 'HEX') AS bytes_col),
+      STRUCT(3 AS row_num, CAST('FFBADD11' AS BYTES FORMAT 'HEX') AS bytes_co) ]) AS `bytes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, DATE(1998, 9, 4) AS date_col),
+      STRUCT(2 AS row_num, DATE(2011, 10, 1) AS date_col),
+      STRUCT(3 AS row_num, DATE(2018, 4, 11) AS date_col) ]) AS `dates`
+WHERE
+  `bools`.row_num = `dates`.row_num
+  AND `bools`.row_num = `bytes`.row_num
             """,
             pandas.DataFrame(
                 {
-                    "date_col": [
-                        datetime.date(1998, 9, 4),
-                        datetime.date(2011, 10, 1),
-                        datetime.date(2018, 4, 11),
-                    ]
+                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                    "bool_col": pandas.Series(
+                        [True, False, True],
+                        dtype="boolean"
+                        if FEATURES.pandas_has_boolean_dtype
+                        else "bool",
+                    ),
+                    "bytes_col": [
+                        bytes.fromhex("C00010FF"),
+                        bytes.fromhex("F1AC"),
+                        bytes.fromhex("FFBADD11"),
+                    ],
+                    "date_col": pandas.Series(
+                        [
+                            datetime.date(1998, 9, 4),
+                            datetime.date(2011, 10, 1),
+                            datetime.date(2018, 4, 11),
+                        ],
+                        dtype=db_dtypes.DateDtype(),
+                    ),
                 }
             ),
-            id="alltypes-nonnull-normal-range",
+            id="scalar-types-nonnull-normal-range",
         )
     ],
 )
