@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import datetime
+import decimal
 
 import db_dtypes
 import pandas
@@ -22,7 +23,9 @@ SELECT
   bools.row_num AS row_num,
   bool_col,
   bytes_col,
-  date_col
+  date_col,
+  datetime_col,
+  numeric_col
 FROM
   UNNEST([
       STRUCT(1 AS row_num, TRUE AS bool_col),
@@ -38,9 +41,21 @@ INNER JOIN
       STRUCT(1 AS row_num, DATE(1998, 9, 4) AS date_col),
       STRUCT(2 AS row_num, DATE(2011, 10, 1) AS date_col),
       STRUCT(3 AS row_num, DATE(2018, 4, 11) AS date_col) ]) AS `dates`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, DATETIME('1998-09-04 12:34:56.789101') AS datetime_col),
+      STRUCT(2 AS row_num, DATETIME('2011-10-01 00:01:02.345678') AS datetime_col),
+      STRUCT(3 AS row_num, DATETIME('2018-04-11 23:59:59.999999') AS datetime_col) ]) AS `datetimes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('123.456789' AS NUMERIC) AS numeric_col),
+      STRUCT(2 AS row_num, CAST('-123.456789' AS NUMERIC) AS numeric_col),
+      STRUCT(3 AS row_num, CAST('999.999999' AS NUMERIC) AS numeric_col) ]) AS `numerics`
 WHERE
   `bools`.row_num = `dates`.row_num
   AND `bools`.row_num = `bytes`.row_num
+  AND `bools`.row_num = `datetimes`.row_num
+  AND `bools`.row_num = `numerics`.row_num
             """,
             pandas.DataFrame(
                 {
@@ -64,6 +79,19 @@ WHERE
                         ],
                         dtype=db_dtypes.DateDtype(),
                     ),
+                    "datetime_col": pandas.Series(
+                        [
+                            "1998-09-04 12:34:56.789101",
+                            "2011-10-01 00:01:02.345678",
+                            "2018-04-11 23:59:59.999999",
+                        ],
+                        dtype="datetime64[ns]",
+                    ),
+                    "numeric_col": [
+                        decimal.Decimal("123.456789"),
+                        decimal.Decimal("-123.456789"),
+                        decimal.Decimal("999.999999"),
+                    ],
                 }
             ),
             id="scalar-types-nonnull-normal-range",
@@ -81,8 +109,6 @@ def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
 #             ("current_date()", pandas.api.types.is_datetime64_ns_dtype),
 #             ("current_timestamp()", pandas.api.types.is_datetime64tz_dtype),
 #             ("current_datetime()", pandas.api.types.is_datetime64_ns_dtype),
-#             ("TRUE", pandas.api.types.is_bool_dtype),
-#             ("FALSE", pandas.api.types.is_bool_dtype),
 #         ],
 #     )
 #    def test_return_correct_types(self, project_id, expression, is_expected_dtype):
