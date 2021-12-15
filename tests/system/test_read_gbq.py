@@ -169,12 +169,12 @@ INNER JOIN
       STRUCT(3 AS row_num, CAST('' AS BYTES FORMAT 'HEX') AS bytes_co) ]) AS `bytes`
 INNER JOIN
   UNNEST([
-      STRUCT(1 AS row_num, DATE(1998, 9, 4) AS date_col),
+      STRUCT(1 AS row_num, DATE(1970, 1, 1) AS date_col),
       STRUCT(2 AS row_num, NULL AS date_col),
       STRUCT(3 AS row_num, DATE(2018, 4, 11) AS date_col) ]) AS `dates`
 INNER JOIN
   UNNEST([
-      STRUCT(1 AS row_num, DATETIME('1998-09-04 12:34:56.789101') AS datetime_col),
+      STRUCT(1 AS row_num, DATETIME('1970-01-01 00:00:00.000000') AS datetime_col),
       STRUCT(2 AS row_num, DATETIME('2011-10-01 00:01:02.345678') AS datetime_col),
       STRUCT(3 AS row_num, NULL AS datetime_col) ]) AS `datetimes`
 INNER JOIN
@@ -204,7 +204,7 @@ INNER JOIN
       STRUCT(3 AS row_num, CAST('23:59:59.999999' AS TIME) AS time_col) ]) AS `times`
 INNER JOIN
   UNNEST([
-      STRUCT(1 AS row_num, TIMESTAMP('1998-09-04 12:34:56.789101') AS timestamp_col),
+      STRUCT(1 AS row_num, TIMESTAMP('1970-01-01 00:00:00.000000') AS timestamp_col),
       STRUCT(2 AS row_num, NULL AS timestamp_col),
       STRUCT(3 AS row_num, TIMESTAMP('2018-04-11 23:59:59.999999') AS timestamp_col) ]) AS `timestamps`
 WHERE
@@ -228,14 +228,14 @@ ORDER BY row_num ASC
                         if FEATURES.pandas_has_boolean_dtype
                         else "object",
                     ),
-                    "bytes_col": [None, b"", bytes.fromhex("FFBADD11")],
+                    "bytes_col": [None, bytes.fromhex("F1AC"), b""],
                     "date_col": pandas.Series(
-                        [datetime.date(1998, 9, 4), None, datetime.date(2018, 4, 11)],
+                        [datetime.date(1970, 1, 1), None, datetime.date(2018, 4, 11)],
                         dtype=db_dtypes.DateDtype(),
                     ),
                     "datetime_col": pandas.Series(
                         [
-                            "1998-09-04 12:34:56.789101",
+                            "1970-01-01 00:00:00.000000",
                             "2011-10-01 00:01:02.345678",
                             None,
                         ],
@@ -255,7 +255,7 @@ ORDER BY row_num ASC
                     ),
                     "timestamp_col": pandas.Series(
                         [
-                            "1998-09-04 12:34:56.789101",
+                            "1970-01-01 00:00:00.000000",
                             None,
                             "2018-04-11 23:59:59.999999",
                         ],
