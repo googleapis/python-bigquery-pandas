@@ -146,26 +146,251 @@ ORDER BY row_num ASC
         pytest.param(
             """
 SELECT
-  row_num,
-  bignumeric_col
+  bools.row_num AS row_num,
+  bool_col,
+  bytes_col,
+  date_col,
+  datetime_col,
+  float_col,
+  int64_col,
+  numeric_col,
+  string_col,
+  time_col,
+  timestamp_col
 FROM
   UNNEST([
-      STRUCT(1 AS row_num, CAST('123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
-      STRUCT(2 AS row_num, CAST('-123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
-      STRUCT(3 AS row_num, CAST('987654321.987654321' AS BIGNUMERIC) AS bignumeric_col) ]) AS `bignumerics`
+      STRUCT(1 AS row_num, TRUE AS bool_col),
+      STRUCT(2 AS row_num, FALSE AS bool_col),
+      STRUCT(3 AS row_num, NULL AS bool_col) ]) AS `bools`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, NULL AS bytes_col),
+      STRUCT(2 AS row_num, CAST('F1AC' AS BYTES FORMAT 'HEX') AS bytes_col),
+      STRUCT(3 AS row_num, CAST('' AS BYTES FORMAT 'HEX') AS bytes_co) ]) AS `bytes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, DATE(1998, 9, 4) AS date_col),
+      STRUCT(2 AS row_num, NULL AS date_col),
+      STRUCT(3 AS row_num, DATE(2018, 4, 11) AS date_col) ]) AS `dates`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, DATETIME('1998-09-04 12:34:56.789101') AS datetime_col),
+      STRUCT(2 AS row_num, DATETIME('2011-10-01 00:01:02.345678') AS datetime_col),
+      STRUCT(3 AS row_num, NULL AS datetime_col) ]) AS `datetimes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, NULL AS float_col),
+      STRUCT(2 AS row_num, -2.375 AS float_col),
+      STRUCT(3 AS row_num, 0.0 AS float_col) ]) AS `floats`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, -1 AS int64_col),
+      STRUCT(2 AS row_num, NULL AS int64_col),
+      STRUCT(3 AS row_num, 0 AS int64_col) ]) AS `int64s`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('123.456789' AS NUMERIC) AS numeric_col),
+      STRUCT(2 AS row_num, NULL AS numeric_col),
+      STRUCT(3 AS row_num, CAST('999.999999' AS NUMERIC) AS numeric_col) ]) AS `numerics`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, '' AS string_col),
+      STRUCT(2 AS row_num, 'こんにちは' AS string_col),
+      STRUCT(3 AS row_num, NULL AS string_col) ]) AS `strings`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, NULL AS time_col),
+      STRUCT(2 AS row_num, CAST('00:00:00.000000' AS TIME) AS time_col),
+      STRUCT(3 AS row_num, CAST('23:59:59.999999' AS TIME) AS time_col) ]) AS `times`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, TIMESTAMP('1998-09-04 12:34:56.789101') AS timestamp_col),
+      STRUCT(2 AS row_num, NULL AS timestamp_col),
+      STRUCT(3 AS row_num, TIMESTAMP('2018-04-11 23:59:59.999999') AS timestamp_col) ]) AS `timestamps`
+WHERE
+  `bools`.row_num = `dates`.row_num
+  AND `bools`.row_num = `bytes`.row_num
+  AND `bools`.row_num = `datetimes`.row_num
+  AND `bools`.row_num = `floats`.row_num
+  AND `bools`.row_num = `int64s`.row_num
+  AND `bools`.row_num = `numerics`.row_num
+  AND `bools`.row_num = `strings`.row_num
+  AND `bools`.row_num = `times`.row_num
+  AND `bools`.row_num = `timestamps`.row_num
 ORDER BY row_num ASC
             """,
             pandas.DataFrame(
                 {
                     "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                    "bool_col": pandas.Series(
+                        [True, False, None],
+                        dtype="boolean"
+                        if FEATURES.pandas_has_boolean_dtype
+                        else "object",
+                    ),
+                    "bytes_col": [None, b"", bytes.fromhex("FFBADD11")],
+                    "date_col": pandas.Series(
+                        [datetime.date(1998, 9, 4), None, datetime.date(2018, 4, 11)],
+                        dtype=db_dtypes.DateDtype(),
+                    ),
+                    "datetime_col": pandas.Series(
+                        [
+                            "1998-09-04 12:34:56.789101",
+                            "2011-10-01 00:01:02.345678",
+                            None,
+                        ],
+                        dtype="datetime64[ns]",
+                    ),
+                    "float_col": [None, -2.375, 0.0],
+                    "int64_col": pandas.Series([-1, None, 0], dtype="Int64"),
+                    "numeric_col": [
+                        decimal.Decimal("123.456789"),
+                        None,
+                        decimal.Decimal("999.999999"),
+                    ],
+                    "string_col": ["", "こんにちは", None],
+                    "time_col": pandas.Series(
+                        [None, "00:00:00", "23:59:59.999999"],
+                        dtype=db_dtypes.TimeDtype(),
+                    ),
+                    "timestamp_col": pandas.Series(
+                        [
+                            "1998-09-04 12:34:56.789101",
+                            None,
+                            "2018-04-11 23:59:59.999999",
+                        ],
+                        dtype="datetime64[ns]",
+                    ).dt.tz_localize(datetime.timezone.utc),
+                }
+            ),
+            id="scalar-types-nullable-normal-range",
+        ),
+        pytest.param(
+            """
+SELECT
+  bools.row_num AS row_num,
+  bool_col,
+  bytes_col,
+  date_col,
+  datetime_col,
+  float_col,
+  int64_col,
+  numeric_col,
+  string_col,
+  time_col,
+  timestamp_col
+FROM
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS BOOL) AS bool_col) ]) AS `bools`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS BYTES) AS bytes_col) ]) AS `bytes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS DATE) AS date_col) ]) AS `dates`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS DATETIME) AS datetime_col) ]) AS `datetimes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS FLOAT64) AS float_col) ]) AS `floats`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS INT64) AS int64_col) ]) AS `int64s`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS NUMERIC) AS numeric_col) ]) AS `numerics`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS STRING) AS string_col) ]) AS `strings`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS TIME) AS time_col) ]) AS `times`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS TIMESTAMP) AS timestamp_col) ]) AS `timestamps`
+WHERE
+  `bools`.row_num = `dates`.row_num
+  AND `bools`.row_num = `bytes`.row_num
+  AND `bools`.row_num = `datetimes`.row_num
+  AND `bools`.row_num = `floats`.row_num
+  AND `bools`.row_num = `int64s`.row_num
+  AND `bools`.row_num = `numerics`.row_num
+  AND `bools`.row_num = `strings`.row_num
+  AND `bools`.row_num = `times`.row_num
+  AND `bools`.row_num = `timestamps`.row_num
+ORDER BY row_num ASC
+            """,
+            pandas.DataFrame(
+                {
+                    "row_num": pandas.Series([1], dtype="Int64"),
+                    "bool_col": pandas.Series(
+                        [None],
+                        dtype="boolean"
+                        if FEATURES.pandas_has_boolean_dtype
+                        else "object",
+                    ),
+                    "bytes_col": [None],
+                    "date_col": pandas.Series([None], dtype=db_dtypes.DateDtype(),),
+                    "datetime_col": pandas.Series([None], dtype="datetime64[ns]",),
+                    "float_col": pandas.Series([None], dtype="float64"),
+                    "int64_col": pandas.Series([None], dtype="Int64"),
+                    "numeric_col": [None],
+                    "string_col": [None],
+                    "time_col": pandas.Series([None], dtype=db_dtypes.TimeDtype(),),
+                    "timestamp_col": pandas.Series(
+                        [None], dtype="datetime64[ns]",
+                    ).dt.tz_localize(datetime.timezone.utc),
+                }
+            ),
+            id="scalar-types-null",
+        ),
+        pytest.param(
+            """
+SELECT
+  bignumerics.row_num AS row_num,
+  bignumeric_col,
+  nullable_col,
+  null_col
+FROM
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
+      STRUCT(2 AS row_num, CAST('-123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
+      STRUCT(3 AS row_num, CAST('987654321.987654321' AS BIGNUMERIC) AS bignumeric_col) ]) AS `bignumerics`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('123456789.123456789' AS BIGNUMERIC) AS nullable_col),
+      STRUCT(2 AS row_num, NULL AS nullable_col),
+      STRUCT(3 AS row_num, CAST('987654321.987654321' AS BIGNUMERIC) AS nullable_col) ]) AS `nullables`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST(NULL AS BIGNUMERIC) AS null_col),
+      STRUCT(2 AS row_num, CAST(NULL AS BIGNUMERIC) AS null_col),
+      STRUCT(3 AS row_num, CAST(NULL AS BIGNUMERIC) AS null_col) ]) AS `nulls`
+WHERE
+  `bignumerics`.row_num = `nullables`.row_num
+  AND `bignumerics`.row_num = `nulls`.row_num
+ORDER BY row_num ASC
+            """,
+            pandas.DataFrame(
+                {
+                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                    # TODO: Support a special (nullable) dtype for decimal data.
+                    # https://github.com/googleapis/python-db-dtypes-pandas/issues/49
                     "bignumeric_col": [
                         decimal.Decimal("123456789.123456789"),
                         decimal.Decimal("-123456789.123456789"),
                         decimal.Decimal("987654321.987654321"),
                     ],
+                    "nullable_col": [
+                        decimal.Decimal("123456789.123456789"),
+                        None,
+                        decimal.Decimal("987654321.987654321"),
+                    ],
+                    "null_col": [None, None, None],
                 }
             ),
-            id="bignumeric-nonnull-normal-range",
+            id="bignumeric-normal-range",
             marks=pytest.mark.skipif(
                 not FEATURES.bigquery_has_bignumeric,
                 reason="BIGNUMERIC not supported in this version of google-cloud-bigquery",
@@ -178,29 +403,6 @@ def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
     pandas.testing.assert_frame_equal(result, expected)
 
 
-#     @pytest.mark.parametrize(
-#         "expression, is_expected_dtype",
-#         [
-#             ("current_timestamp()", pandas.api.types.is_datetime64tz_dtype),
-#         ],
-#     )
-#    def test_return_correct_types(self, project_id, expression, is_expected_dtype):
-#        """
-#        All type checks can be added to this function using additional
-#        parameters, rather than creating additional functions.
-#        We can consolidate the existing functions here in time
-#
-#        TODO: time doesn't currently parse
-#        ("time(12,30,00)", "<M8[ns]"),
-#        """
-#        query = "SELECT {} AS _".format(expression)
-#        df = gbq.read_gbq(
-#            query,
-#            project_id=project_id,
-#            credentials=self.credentials,
-#            dialect="standard",
-#        )
-#        assert is_expected_dtype(df["_"].dtype)
 #
 #    def test_should_properly_handle_empty_strings(self, project_id):
 #        query = 'SELECT "" AS empty_string'
