@@ -25,7 +25,10 @@ SELECT
   bytes_col,
   date_col,
   datetime_col,
-  numeric_col
+  float_col,
+  numeric_col,
+  string_col,
+  time_col
 FROM
   UNNEST([
       STRUCT(1 AS row_num, TRUE AS bool_col),
@@ -48,14 +51,33 @@ INNER JOIN
       STRUCT(3 AS row_num, DATETIME('2018-04-11 23:59:59.999999') AS datetime_col) ]) AS `datetimes`
 INNER JOIN
   UNNEST([
+      STRUCT(1 AS row_num, 1.125 AS float_col),
+      STRUCT(2 AS row_num, -2.375 AS float_col),
+      STRUCT(3 AS row_num, 0.0 AS float_col) ]) AS `floats`
+INNER JOIN
+  UNNEST([
       STRUCT(1 AS row_num, CAST('123.456789' AS NUMERIC) AS numeric_col),
       STRUCT(2 AS row_num, CAST('-123.456789' AS NUMERIC) AS numeric_col),
       STRUCT(3 AS row_num, CAST('999.999999' AS NUMERIC) AS numeric_col) ]) AS `numerics`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, 'abcdefghijklmnopqrstuvwxyz' AS string_col),
+      STRUCT(2 AS row_num, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' AS string_col),
+      STRUCT(3 AS row_num, 'こんにちは' AS string_col) ]) AS `strings`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('00:00:00.000000' AS TIME) AS time_col),
+      STRUCT(2 AS row_num, CAST('09:08:07.654321' AS TIME) AS time_col),
+      STRUCT(3 AS row_num, CAST('23:59:59.999999' AS TIME) AS time_col) ]) AS `times`
 WHERE
   `bools`.row_num = `dates`.row_num
   AND `bools`.row_num = `bytes`.row_num
   AND `bools`.row_num = `datetimes`.row_num
+  AND `bools`.row_num = `floats`.row_num
   AND `bools`.row_num = `numerics`.row_num
+  AND `bools`.row_num = `strings`.row_num
+  AND `bools`.row_num = `times`.row_num
+ORDER BY row_num ASC
             """,
             pandas.DataFrame(
                 {
@@ -87,15 +109,48 @@ WHERE
                         ],
                         dtype="datetime64[ns]",
                     ),
+                    "float_col": [1.125, -2.375, 0.0],
                     "numeric_col": [
                         decimal.Decimal("123.456789"),
                         decimal.Decimal("-123.456789"),
                         decimal.Decimal("999.999999"),
                     ],
+                    "string_col": [
+                        "abcdefghijklmnopqrstuvwxyz",
+                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                        "こんにちは",
+                    ],
+                    "time_col": pandas.Series(
+                        ["00:00:00.000000", "09:08:07.654321", "23:59:59.999999"],
+                        dtype=db_dtypes.TimeDtype(),
+                    ),
                 }
             ),
             id="scalar-types-nonnull-normal-range",
-        )
+        ),
+        pytest.param(
+            """
+SELECT
+  row_num,
+  time_col
+FROM
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('00:00:00.000000' AS TIME) AS time_col),
+      STRUCT(2 AS row_num, CAST('09:08:07.654321' AS TIME) AS time_col),
+      STRUCT(3 AS row_num, CAST('23:59:59.999999' AS TIME) AS time_col) ]) AS `times`
+ORDER BY row_num ASC
+            """,
+            pandas.DataFrame(
+                {
+                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                    "time_col": pandas.Series(
+                        ["00:00:00.000000", "09:08:07.654321", "23:59:59.999999"],
+                        dtype=db_dtypes.TimeDtype(),
+                    ),
+                }
+            ),
+            id="times-nonnull-normal-range",
+        ),
     ],
 )
 def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
@@ -103,12 +158,24 @@ def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
     pandas.testing.assert_frame_equal(result, expected)
 
 
+# TODO: skip BIGNUMERIC on versions of google-cloud-bigquery that don't support it
+# pytest.param(..., marks=skipif...)
+#   UNNEST([
+#       STRUCT(1 AS row_num, CAST('123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
+#       STRUCT(2 AS row_num, CAST('-123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
+#       STRUCT(3 AS row_num, CAST('987654321.987654321' AS BIGNUMERIC) AS bignumeric_col) ]) AS `bignumerics`
+# INNER JOIN
+#                    "bignumeric_col": [
+#                        decimal.Decimal("123456789.123456789"),
+#                        decimal.Decimal("-123456789.123456789"),
+#                        decimal.Decimal("987654321.987654321"),
+#                    ],
+
+
 #     @pytest.mark.parametrize(
 #         "expression, is_expected_dtype",
 #         [
-#             ("current_date()", pandas.api.types.is_datetime64_ns_dtype),
 #             ("current_timestamp()", pandas.api.types.is_datetime64tz_dtype),
-#             ("current_datetime()", pandas.api.types.is_datetime64_ns_dtype),
 #         ],
 #     )
 #    def test_return_correct_types(self, project_id, expression, is_expected_dtype):
@@ -148,16 +215,6 @@ def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
 #            dialect="legacy",
 #        )
 #        tm.assert_frame_equal(df, DataFrame({"null_string": [None]}))
-#
-#    def test_should_properly_handle_valid_integers(self, project_id):
-#        query = "SELECT CAST(3 AS INT64) AS valid_integer"
-#        df = gbq.read_gbq(
-#            query,
-#            project_id=project_id,
-#            credentials=self.credentials,
-#            dialect="standard",
-#        )
-#        tm.assert_frame_equal(df, DataFrame({"valid_integer": [3]}, dtype="Int64"))
 #
 #    def test_should_properly_handle_nullable_integers(self, project_id):
 #        query = """SELECT * FROM
