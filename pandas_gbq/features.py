@@ -9,6 +9,7 @@ BIGQUERY_MINIMUM_VERSION = "1.11.1"
 BIGQUERY_CLIENT_INFO_VERSION = "1.12.0"
 BIGQUERY_BQSTORAGE_VERSION = "1.24.0"
 BIGQUERY_FROM_DATAFRAME_CSV_VERSION = "2.6.0"
+BIGQUERY_SUPPORTS_BIGNUMERIC_VERSION = "2.10.0"
 BIGQUERY_NO_DATE_AS_OBJECT_VERSION = "3.0.0dev"
 PANDAS_VERBOSITY_DEPRECATION_VERSION = "0.23.0"
 PANDAS_BOOLEAN_DTYPE_VERSION = "1.0.0"
@@ -51,6 +52,13 @@ class Features:
             BIGQUERY_CLIENT_INFO_VERSION
         )
         return self.bigquery_installed_version >= bigquery_client_info_version
+
+    @property
+    def bigquery_has_bignumeric(self):
+        import pkg_resources
+
+        min_version = pkg_resources.parse_version(BIGQUERY_SUPPORTS_BIGNUMERIC_VERSION)
+        return self.bigquery_installed_version >= min_version
 
     @property
     def bigquery_has_bqstorage(self):

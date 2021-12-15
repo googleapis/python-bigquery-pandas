@@ -28,7 +28,8 @@ SELECT
   float_col,
   numeric_col,
   string_col,
-  time_col
+  time_col,
+  timestamp_col
 FROM
   UNNEST([
       STRUCT(1 AS row_num, TRUE AS bool_col),
@@ -69,6 +70,11 @@ INNER JOIN
       STRUCT(1 AS row_num, CAST('00:00:00.000000' AS TIME) AS time_col),
       STRUCT(2 AS row_num, CAST('09:08:07.654321' AS TIME) AS time_col),
       STRUCT(3 AS row_num, CAST('23:59:59.999999' AS TIME) AS time_col) ]) AS `times`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, TIMESTAMP('1998-09-04 12:34:56.789101') AS timestamp_col),
+      STRUCT(2 AS row_num, TIMESTAMP('2011-10-01 00:01:02.345678') AS timestamp_col),
+      STRUCT(3 AS row_num, TIMESTAMP('2018-04-11 23:59:59.999999') AS timestamp_col) ]) AS `timestamps`
 WHERE
   `bools`.row_num = `dates`.row_num
   AND `bools`.row_num = `bytes`.row_num
@@ -77,6 +83,7 @@ WHERE
   AND `bools`.row_num = `numerics`.row_num
   AND `bools`.row_num = `strings`.row_num
   AND `bools`.row_num = `times`.row_num
+  AND `bools`.row_num = `timestamps`.row_num
 ORDER BY row_num ASC
             """,
             pandas.DataFrame(
@@ -124,6 +131,14 @@ ORDER BY row_num ASC
                         ["00:00:00.000000", "09:08:07.654321", "23:59:59.999999"],
                         dtype=db_dtypes.TimeDtype(),
                     ),
+                    "timestamp_col": pandas.Series(
+                        [
+                            "1998-09-04 12:34:56.789101",
+                            "2011-10-01 00:01:02.345678",
+                            "2018-04-11 23:59:59.999999",
+                        ],
+                        dtype="datetime64[ns]",
+                    ).dt.tz_localize(datetime.timezone.utc),
                 }
             ),
             id="scalar-types-nonnull-normal-range",
@@ -132,44 +147,35 @@ ORDER BY row_num ASC
             """
 SELECT
   row_num,
-  time_col
+  bignumeric_col
 FROM
   UNNEST([
-      STRUCT(1 AS row_num, CAST('00:00:00.000000' AS TIME) AS time_col),
-      STRUCT(2 AS row_num, CAST('09:08:07.654321' AS TIME) AS time_col),
-      STRUCT(3 AS row_num, CAST('23:59:59.999999' AS TIME) AS time_col) ]) AS `times`
+      STRUCT(1 AS row_num, CAST('123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
+      STRUCT(2 AS row_num, CAST('-123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
+      STRUCT(3 AS row_num, CAST('987654321.987654321' AS BIGNUMERIC) AS bignumeric_col) ]) AS `bignumerics`
 ORDER BY row_num ASC
             """,
             pandas.DataFrame(
                 {
                     "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
-                    "time_col": pandas.Series(
-                        ["00:00:00.000000", "09:08:07.654321", "23:59:59.999999"],
-                        dtype=db_dtypes.TimeDtype(),
-                    ),
+                    "bignumeric_col": [
+                        decimal.Decimal("123456789.123456789"),
+                        decimal.Decimal("-123456789.123456789"),
+                        decimal.Decimal("987654321.987654321"),
+                    ],
                 }
             ),
-            id="times-nonnull-normal-range",
+            id="bignumeric-nonnull-normal-range",
+            marks=pytest.mark.skipif(
+                not FEATURES.bigquery_has_bignumeric,
+                reason="BIGNUMERIC not supported in this version of google-cloud-bigquery",
+            ),
         ),
     ],
 )
 def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
     result = read_gbq(query, use_bqstorage_api=use_bqstorage_api)
     pandas.testing.assert_frame_equal(result, expected)
-
-
-# TODO: skip BIGNUMERIC on versions of google-cloud-bigquery that don't support it
-# pytest.param(..., marks=skipif...)
-#   UNNEST([
-#       STRUCT(1 AS row_num, CAST('123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
-#       STRUCT(2 AS row_num, CAST('-123456789.123456789' AS BIGNUMERIC) AS bignumeric_col),
-#       STRUCT(3 AS row_num, CAST('987654321.987654321' AS BIGNUMERIC) AS bignumeric_col) ]) AS `bignumerics`
-# INNER JOIN
-#                    "bignumeric_col": [
-#                        decimal.Decimal("123456789.123456789"),
-#                        decimal.Decimal("-123456789.123456789"),
-#                        decimal.Decimal("987654321.987654321"),
-#                    ],
 
 
 #     @pytest.mark.parametrize(

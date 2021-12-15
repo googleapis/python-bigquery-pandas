@@ -607,17 +607,7 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     # `docs/reading.rst`.
     dtype_map = {
         "FLOAT": np.dtype(float),
-        "GEOMETRY": "object",
         "INTEGER": "Int64",
-        "RECORD": "object",
-        "STRING": "object",
-        # datetime.time objects cannot be case to datetime64.
-        # https://github.com/pydata/pandas-gbq/issues/328
-        "TIME": "object",
-        # pandas doesn't support timezone-aware dtype in DataFrame/Series
-        # constructors. It's more idiomatic to localize after construction.
-        # https://github.com/pandas-dev/pandas/issues/25843
-        "TIMESTAMP": "datetime64[ns]",
     }
 
     # Amend dtype_map with newer extension types if pandas version allows.
