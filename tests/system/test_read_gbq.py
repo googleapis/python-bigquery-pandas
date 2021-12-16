@@ -396,6 +396,7 @@ ORDER BY row_num ASC
                 reason="BIGNUMERIC not supported in this version of google-cloud-bigquery",
             ),
         ),
+        # TODO: test with extreme DATE/DATETIME/TIMESTAMPS
     ],
 )
 def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
