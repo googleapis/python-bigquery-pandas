@@ -87,8 +87,14 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
     ["query_or_table", "expected"],
     [
         ("SELECT 1", True),
+        ("SELECT\n1", True),
+        ("SELECT\t1", True),
         ("dataset.table", False),
+        (" dataset.table ", False),
+        ("\r\ndataset.table\r\n", False),
         ("project-id.dataset.table", False),
+        (" project-id.dataset.table ", False),
+        ("\r\nproject-id.dataset.table\r\n", False),
     ],
 )
 def test__is_query(query_or_table, expected):
