@@ -7,8 +7,16 @@ import re
 import time
 import warnings
 from datetime import datetime
+import typing
+from typing import Dict, Optional, Union
 
 import numpy as np
+
+# Only import at module-level at type checking time to avoid circular
+# dependencies in the pandas package, which has an optional dependency on
+# pandas-gbq.
+if typing.TYPE_CHECKING:
+    import pandas
 
 # Required dependencies, but treat as optional so that _test_google_api_imports
 # can provide a better error message.
@@ -380,8 +388,14 @@ class GbqConnector(object):
         raise GenericGBQException("Reason: {0}".format(ex))
 
     def download_table(
-        self, table_id, max_results=None, progress_bar_type=None, dtypes=None
-    ):
+        self,
+        table_id: str,
+        max_results: Optional[int] = None,
+        progress_bar_type: Optional[str] = None,
+        dtypes: Dict[
+            str, Union[str, "pandas.api.extensions.ExtensionDtype", np.dtype]
+        ] = None,
+    ) -> "pandas.DataFrame":
         self._start_timer()
 
         try:
