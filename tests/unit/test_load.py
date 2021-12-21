@@ -16,6 +16,7 @@ import pandas
 import pandas.testing
 import pytest
 
+from pandas_gbq import exceptions
 from pandas_gbq.features import FEATURES
 from pandas_gbq import load
 
@@ -93,6 +94,27 @@ def test_encode_chunks_with_chunksize_none():
     remaining, chunk = chunks[0]
     assert remaining == 0
     assert len(chunk.index) == 6
+
+
+def test_load_csv_from_dataframe_allows_client_to_generate_schema(mock_bigquery_client):
+    import google.cloud.bigquery
+
+    df = pandas.DataFrame({"int_col": [1, 2, 3]})
+    destination = google.cloud.bigquery.TableReference.from_string(
+        "my-project.my_dataset.my_table"
+    )
+
+    _ = list(
+        load.load_csv_from_dataframe(
+            mock_bigquery_client, df, destination, None, None, None
+        )
+    )
+
+    mock_load = mock_bigquery_client.load_table_from_dataframe
+    assert mock_load.called
+    _, kwargs = mock_load.call_args
+    assert "job_config" in kwargs
+    assert kwargs["job_config"].schema is None
 
 
 def test_load_csv_from_file_generates_schema(mock_bigquery_client):
@@ -197,6 +219,39 @@ def test_load_chunks_omits_policy_tags(
 def test_load_chunks_with_invalid_api_method():
     with pytest.raises(ValueError, match="Got unexpected api_method:"):
         load.load_chunks(None, None, None, api_method="not_a_thing")
+
+
+def test_load_parquet_allows_client_to_generate_schema(mock_bigquery_client):
+    import google.cloud.bigquery
+
+    df = pandas.DataFrame({"int_col": [1, 2, 3]})
+    destination = google.cloud.bigquery.TableReference.from_string(
+        "my-project.my_dataset.my_table"
+    )
+
+    load.load_parquet(mock_bigquery_client, df, destination, None, None)
+
+    mock_load = mock_bigquery_client.load_table_from_dataframe
+    assert mock_load.called
+    _, kwargs = mock_load.call_args
+    assert "job_config" in kwargs
+    assert kwargs["job_config"].schema is None
+
+
+def test_load_parquet_with_bad_conversion(mock_bigquery_client):
+    import google.cloud.bigquery
+    import pyarrow
+
+    mock_bigquery_client.load_table_from_dataframe.side_effect = (
+        pyarrow.lib.ArrowInvalid()
+    )
+    df = pandas.DataFrame({"int_col": [1, 2, 3]})
+    destination = google.cloud.bigquery.TableReference.from_string(
+        "my-project.my_dataset.my_table"
+    )
+
+    with pytest.raises(exceptions.ConversionError):
+        load.load_parquet(mock_bigquery_client, df, destination, None, None)
 
 
 @pytest.mark.parametrize(
