@@ -290,7 +290,7 @@ def test_to_gbq_w_project_table(mock_bigquery_client):
     assert table.project == "project_table"
 
 
-def test_to_gbq_creates_dataset(mock_bigquery_client):
+def test_to_gbq_create_dataset(mock_bigquery_client):
     import google.api_core.exceptions
 
     mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
@@ -301,6 +301,23 @@ def test_to_gbq_creates_dataset(mock_bigquery_client):
     )
     gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
     mock_bigquery_client.create_dataset.assert_called_with(mock.ANY)
+
+
+def test_to_gbq_create_dataset_translates_exception(mock_bigquery_client):
+    import google.api_core.exceptions
+
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
+    )
+    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
+        "my_dataset"
+    )
+    mock_bigquery_client.create_dataset.side_effect = google.api_core.exceptions.InternalServerError(
+        "something went wrong"
+    )
+
+    with pytest.raises(gbq.GenericGBQException):
+        gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
 
 
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
