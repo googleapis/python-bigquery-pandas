@@ -95,6 +95,62 @@ def test_encode_chunks_with_chunksize_none():
     assert len(chunk.index) == 6
 
 
+def test_load_csv_from_file_generates_schema(mock_bigquery_client):
+    import google.cloud.bigquery
+
+    df = pandas.DataFrame(
+        {
+            "int_col": [1, 2, 3],
+            "bool_col": [True, False, True],
+            "float_col": [0.0, 1.25, -2.75],
+            "string_col": ["a", "b", "c"],
+            "datetime_col": pandas.Series(
+                [
+                    "2021-12-21 13:28:40.123789",
+                    "2000-01-01 11:10:09",
+                    "2040-10-31 23:59:59.999999",
+                ],
+                dtype="datetime64[ns]",
+            ),
+            "timestamp_col": pandas.Series(
+                [
+                    "2021-12-21 13:28:40.123789",
+                    "2000-01-01 11:10:09",
+                    "2040-10-31 23:59:59.999999",
+                ],
+                dtype="datetime64[ns]",
+            ).dt.tz_localize(datetime.timezone.utc),
+        }
+    )
+    destination = google.cloud.bigquery.TableReference.from_string(
+        "my-project.my_dataset.my_table"
+    )
+
+    _ = list(
+        load.load_csv_from_file(mock_bigquery_client, df, destination, None, None, None)
+    )
+
+    mock_load = mock_bigquery_client.load_table_from_file
+    assert mock_load.called
+    _, kwargs = mock_load.call_args
+    assert "job_config" in kwargs
+    sent_schema = kwargs["job_config"].schema
+    assert sent_schema[0].name == "int_col"
+    assert sent_schema[0].field_type == "INTEGER"
+    assert sent_schema[1].name == "bool_col"
+    assert sent_schema[1].field_type == "BOOLEAN"
+    assert sent_schema[2].name == "float_col"
+    assert sent_schema[2].field_type == "FLOAT"
+    assert sent_schema[3].name == "string_col"
+    assert sent_schema[3].field_type == "STRING"
+    # TODO: Disambiguate TIMESTAMP from DATETIME based on if column is
+    #       localized.
+    assert sent_schema[4].name == "datetime_col"
+    assert sent_schema[4].field_type == "TIMESTAMP"
+    assert sent_schema[5].name == "timestamp_col"
+    assert sent_schema[5].field_type == "TIMESTAMP"
+
+
 @pytest.mark.parametrize(
     ["bigquery_has_from_dataframe_with_csv", "api_method"],
     [(True, "load_parquet"), (True, "load_csv"), (False, "load_csv")],
