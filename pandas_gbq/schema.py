@@ -113,8 +113,6 @@ def generate_bq_schema(dataframe, default_type="STRING"):
         "S": "STRING",
         "U": "STRING",
         "M": "TIMESTAMP",
-        # TODO: Disambiguate TIMESTAMP from DATETIME based on if column is
-        #       localized.
     }
 
     fields = []
