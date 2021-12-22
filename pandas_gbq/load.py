@@ -185,11 +185,6 @@ def load_csv_from_file(
     chunksize: Optional[int],
     schema: Optional[Dict[str, Any]],
 ):
-    """Manually encode a DataFrame to CSV and use the buffer in a load job.
-
-    This method is needed for writing with google-cloud-bigquery versions that
-    don't implment load_table_from_dataframe with the CSV serialization format.
-    """
     if schema is None:
         schema = pandas_gbq.schema.generate_bq_schema(dataframe)
 
@@ -208,7 +203,7 @@ def load_csv_from_file(
         finally:
             chunk_buffer.close()
 
-    return load_csv(dataframe, chunksize, bq_schema, load_chunk)
+    return load_csv(dataframe, chunksize, bq_schema, load_chunk,)
 
 
 def load_chunks(
