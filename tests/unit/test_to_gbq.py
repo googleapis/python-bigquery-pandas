@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-import copy
-import datetime
 from unittest import mock
 
 from pandas import DataFrame
@@ -180,19 +178,6 @@ def test_to_gbq_w_project_table(mock_bigquery_client):
     assert table.project == "project_table"
 
 
-def test_to_gbq_create_dataset(mock_bigquery_client):
-    import google.api_core.exceptions
-
-    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
-        "my_table"
-    )
-    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
-        "my_dataset"
-    )
-    gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
-    mock_bigquery_client.create_dataset.assert_called_with(mock.ANY)
-
-
 def test_to_gbq_create_dataset_with_location(mock_bigquery_client):
     import google.api_core.exceptions
 
@@ -226,49 +211,3 @@ def test_to_gbq_create_dataset_translates_exception(mock_bigquery_client):
 
     with pytest.raises(gbq.GenericGBQException):
         gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
-
-
-def test_to_gbq_does_not_modify_schema_arg(mock_bigquery_client):
-    """Test of Issue # 277."""
-    from google.api_core.exceptions import NotFound
-
-    # Create table with new schema.
-    mock_bigquery_client.get_table.side_effect = NotFound("nope")
-    df = DataFrame(
-        {
-            "field1": ["a", "b"],
-            "field2": [1, 2],
-            "field3": [datetime.date(2019, 1, 1), datetime.date(2019, 5, 1)],
-        }
-    )
-    original_schema = [
-        {"name": "field1", "type": "STRING", "mode": "REQUIRED"},
-        {"name": "field2", "type": "INTEGER"},
-        {"name": "field3", "type": "DATE"},
-    ]
-    original_schema_cp = copy.deepcopy(original_schema)
-    gbq.to_gbq(
-        df,
-        "dataset.schematest",
-        project_id="my-project",
-        table_schema=original_schema,
-        if_exists="fail",
-    )
-    assert original_schema == original_schema_cp
-
-    # Test again now that table exists - behavior will differ internally
-    # branch at if table.exists(table_id)
-    original_schema = [
-        {"name": "field1", "type": "STRING", "mode": "REQUIRED"},
-        {"name": "field2", "type": "INTEGER"},
-        {"name": "field3", "type": "DATE"},
-    ]
-    original_schema_cp = copy.deepcopy(original_schema)
-    gbq.to_gbq(
-        df,
-        "dataset.schematest",
-        project_id="my-project",
-        table_schema=original_schema,
-        if_exists="append",
-    )
-    assert original_schema == original_schema_cp

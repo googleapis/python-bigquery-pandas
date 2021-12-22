@@ -28,23 +28,24 @@ def test_get_credentials_default_credentials(monkeypatch):
     import google.auth
     import google.auth.credentials
     import google.cloud.bigquery
+    import pydata_google_auth
 
-    def mock_default_credentials(scopes=None, request=None):
-        return (
-            mock.create_autospec(google.auth.credentials.Credentials),
-            "default-project",
-        )
+    mock_user_credentials = mock.create_autospec(google.auth.credentials.Credentials)
 
-    monkeypatch.setattr(google.auth, "default", mock_default_credentials)
+    def mock_default_credentials(scopes, **kwargs):
+        return (mock_user_credentials, "test-project")
+
+    monkeypatch.setattr(pydata_google_auth, "default", mock_default_credentials)
 
     credentials, project = auth.get_credentials()
-    assert project == "default-project"
+    assert project == "test-project"
     assert credentials is not None
 
 
 def test_get_credentials_load_user_no_default(monkeypatch):
     import google.auth
     import google.auth.credentials
+    import pydata_google_auth
     import pydata_google_auth.cache
 
     mock_user_credentials = mock.create_autospec(google.auth.credentials.Credentials)

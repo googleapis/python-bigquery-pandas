@@ -1355,7 +1355,9 @@ class _Dataset(GbqConnector):
         from google.cloud.bigquery import Dataset
 
         if self.exists(dataset_id):
-            raise DatasetCreationError("Dataset {0} already exists".format(dataset_id))
+            raise DatasetCreationError(
+                "Dataset {0} already " "exists".format(dataset_id)
+            )
 
         dataset = Dataset(self._dataset_ref(dataset_id))
 
