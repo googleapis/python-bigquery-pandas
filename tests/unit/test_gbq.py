@@ -273,6 +273,40 @@ def test_to_gbq_create_dataset(mock_bigquery_client):
     mock_bigquery_client.create_dataset.assert_called_with(mock.ANY)
 
 
+def test_dataset_create_already_exists_translates_exception(mock_bigquery_client):
+    dataset_connector = gbq._Dataset("my-project")
+    dataset_connector.client = mock_bigquery_client
+    mock_bigquery_client.get_dataset.return_value = object()
+    with pytest.raises(gbq.DatasetCreationError):
+        dataset_connector.create("already_exists")
+
+
+def test_dataset_exists_false(mock_bigquery_client):
+    dataset_connector = gbq._Dataset("my-project")
+    dataset_connector.client = mock_bigquery_client
+    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
+        "nope"
+    )
+    assert not dataset_connector.exists("not_exists")
+
+
+def test_dataset_exists_true(mock_bigquery_client):
+    dataset_connector = gbq._Dataset("my-project")
+    dataset_connector.client = mock_bigquery_client
+    mock_bigquery_client.get_dataset.return_value = object()
+    assert dataset_connector.exists("yes_exists")
+
+
+def test_dataset_exists_translates_exception(mock_bigquery_client):
+    dataset_connector = gbq._Dataset("my-project")
+    dataset_connector.client = mock_bigquery_client
+    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.InternalServerError(
+        "something went wrong"
+    )
+    with pytest.raises(gbq.GenericGBQException):
+        dataset_connector.exists("not_gonna_work")
+
+
 def test_read_gbq_with_no_project_id_given_should_fail(monkeypatch):
     import pydata_google_auth
 
