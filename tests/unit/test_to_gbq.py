@@ -8,6 +8,14 @@ from pandas import DataFrame
 import pytest
 
 from pandas_gbq import gbq
+from pandas_gbq.features import FEATURES
+
+
+@pytest.fixture
+def expected_load_method(mock_bigquery_client):
+    if FEATURES.pandas_has_parquet_with_lossless_timestamp:
+        return mock_bigquery_client.load_table_from_dataframe
+    return mock_bigquery_client.load_table_from_file
 
 
 def test_to_gbq_create_dataset_with_location(mock_bigquery_client):
@@ -26,7 +34,9 @@ def test_to_gbq_create_dataset_with_location(mock_bigquery_client):
     assert sent_dataset.location == "us-west1"
 
 
-def test_to_gbq_create_dataset_with_if_exists_append(mock_bigquery_client):
+def test_to_gbq_create_dataset_with_if_exists_append(
+    mock_bigquery_client, expected_load_method
+):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
@@ -42,7 +52,7 @@ def test_to_gbq_create_dataset_with_if_exists_append(mock_bigquery_client):
         project_id="myproj",
         if_exists="append",
     )
-    mock_bigquery_client.load_table_from_dataframe.assert_called_once()
+    expected_load_method.assert_called_once()
 
 
 def test_to_gbq_create_dataset_with_if_exists_append_mismatch(mock_bigquery_client):

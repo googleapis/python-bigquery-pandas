@@ -1135,7 +1135,7 @@ def to_gbq(
             )
         elif if_exists == "replace":
             connector.delete_and_recreate_table(dataset_id, table_id, table_schema)
-        elif if_exists == "append":
+        else:
             if not pandas_gbq.schema.schema_is_subset(original_schema, table_schema):
                 raise InvalidSchema(
                     "Please verify that the structure and "

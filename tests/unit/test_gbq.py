@@ -34,7 +34,6 @@ def mock_get_credentials_no_project(*args, **kwargs):
 
 @pytest.fixture(autouse=True)
 def default_bigquery_client(mock_bigquery_client):
-
     mock_query = mock.create_autospec(google.cloud.bigquery.QueryJob)
     mock_query.job_id = "some-random-id"
     mock_query.state = "DONE"
