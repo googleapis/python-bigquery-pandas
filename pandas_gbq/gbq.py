@@ -121,7 +121,20 @@ class InvalidSchema(ValueError):
     table in BigQuery.
     """
 
-    pass
+    def __init__(
+        self, message: str, local_schema: Dict[str, Any], remote_schema: Dict[str, Any]
+    ):
+        super().__init__(message)
+        self._local_schema = local_schema
+        self._remote_schema = remote_schema
+
+    @property
+    def local_schema(self) -> Dict[str, Any]:
+        return self._local_schema
+
+    @property
+    def remote_schema(self) -> Dict[str, Any]:
+        return self._remote_schema
 
 
 class NotFoundException(ValueError):
@@ -1127,7 +1140,9 @@ def to_gbq(
                 raise InvalidSchema(
                     "Please verify that the structure and "
                     "data types in the DataFrame match the "
-                    "schema of the destination table."
+                    "schema of the destination table.",
+                    table_schema,
+                    original_schema,
                 )
 
             # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
@@ -1282,9 +1297,6 @@ class _Table(GbqConnector):
             Name of table to be deleted
         """
         from google.api_core.exceptions import NotFound
-
-        if not self.exists(table_id):
-            raise NotFoundException("Table does not exist")
 
         table_ref = self._table_ref(table_id)
         try:
