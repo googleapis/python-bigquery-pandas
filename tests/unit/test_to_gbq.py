@@ -34,9 +34,22 @@ def test_to_gbq_create_dataset_with_location(mock_bigquery_client):
     assert sent_dataset.location == "us-west1"
 
 
-def test_to_gbq_create_dataset_with_if_exists_append(
-    mock_bigquery_client, expected_load_method
-):
+def test_to_gbq_create_dataset_translates_exception(mock_bigquery_client):
+    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
+        "my_table"
+    )
+    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
+        "my_dataset"
+    )
+    mock_bigquery_client.create_dataset.side_effect = google.api_core.exceptions.InternalServerError(
+        "something went wrong"
+    )
+
+    with pytest.raises(gbq.GenericGBQException):
+        gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
+
+
+def test_to_gbq_with_if_exists_append(mock_bigquery_client, expected_load_method):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
@@ -55,7 +68,7 @@ def test_to_gbq_create_dataset_with_if_exists_append(
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_create_dataset_with_if_exists_append_mismatch(mock_bigquery_client):
+def test_to_gbq_with_if_exists_append_mismatch(mock_bigquery_client):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
@@ -80,7 +93,7 @@ def test_to_gbq_create_dataset_with_if_exists_append_mismatch(mock_bigquery_clie
     assert exc.local_schema == {"fields": [{"name": "col_a", "type": "FLOAT"}]}
 
 
-def test_to_gbq_create_dataset_with_if_exists_replace(mock_bigquery_client):
+def test_to_gbq_with_if_exists_replace(mock_bigquery_client):
     mock_bigquery_client.get_table.side_effect = (
         # Initial check
         google.cloud.bigquery.Table("myproj.my_dataset.my_table"),
@@ -99,16 +112,11 @@ def test_to_gbq_create_dataset_with_if_exists_replace(mock_bigquery_client):
     assert mock_bigquery_client.create_table.called
 
 
-def test_to_gbq_create_dataset_translates_exception(mock_bigquery_client):
-    mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
-        "my_table"
-    )
-    mock_bigquery_client.get_dataset.side_effect = google.api_core.exceptions.NotFound(
-        "my_dataset"
-    )
-    mock_bigquery_client.create_dataset.side_effect = google.api_core.exceptions.InternalServerError(
-        "something went wrong"
-    )
-
-    with pytest.raises(gbq.GenericGBQException):
-        gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
+def test_to_gbq_with_if_exists_unknown():
+    with pytest.raises(ValueError):
+        gbq.to_gbq(
+            DataFrame([[1]]),
+            "my_dataset.my_table",
+            project_id="myproj",
+            if_exists="unknown",
+        )
