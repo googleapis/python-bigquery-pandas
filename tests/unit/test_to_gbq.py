@@ -62,13 +62,22 @@ def test_to_gbq_create_dataset_with_if_exists_append_mismatch(mock_bigquery_clie
         "myproj.my_dataset.my_table",
         schema=(SchemaField("col_a", "INTEGER"), SchemaField("col_b", "STRING")),
     )
-    with pytest.raises(gbq.InvalidSchema):
+    with pytest.raises(gbq.InvalidSchema) as exception_block:
         gbq.to_gbq(
             DataFrame({"col_a": [0.25, 1.5, -1.0]}),
             "my_dataset.my_table",
             project_id="myproj",
             if_exists="append",
         )
+
+    exc = exception_block.value
+    assert exc.remote_schema == {
+        "fields": [
+            {"name": "col_a", "type": "INTEGER", "mode": "NULLABLE"},
+            {"name": "col_b", "type": "STRING", "mode": "NULLABLE"},
+        ]
+    }
+    assert exc.local_schema == {"fields": [{"name": "col_a", "type": "FLOAT"}]}
 
 
 def test_to_gbq_create_dataset_with_if_exists_replace(mock_bigquery_client):
