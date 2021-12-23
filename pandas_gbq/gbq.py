@@ -367,19 +367,12 @@ class GbqConnector(object):
         return fmt % (num, "Y", suffix)
 
     def get_client(self):
+        import google.api_core.client_info
         import pandas
 
-        try:
-            # This module was added in google-api-core 1.11.0.
-            # We don't have a hard requirement on that version, so only
-            # populate the client_info if available.
-            import google.api_core.client_info
-
-            client_info = google.api_core.client_info.ClientInfo(
-                user_agent="pandas-{}".format(pandas.__version__)
-            )
-        except ImportError:
-            client_info = None
+        client_info = google.api_core.client_info.ClientInfo(
+            user_agent="pandas-{}".format(pandas.__version__)
+        )
 
         # In addition to new enough version of google-api-core, a new enough
         # version of google-cloud-bigquery is required to populate the
@@ -1070,7 +1063,7 @@ def to_gbq(
                 DeprecationWarning,
                 stacklevel=2,
             )
-        elif api_method == "load_csv":
+        else:
             warnings.warn(
                 "chunksize will be ignored when using api_method='load_csv' in a future version of pandas-gbq",
                 PendingDeprecationWarning,
