@@ -157,6 +157,7 @@ def test_load_csv_from_file_generates_schema(mock_bigquery_client):
     _, kwargs = mock_load.call_args
     assert "job_config" in kwargs
     sent_schema = kwargs["job_config"].schema
+    assert len(sent_schema) == len(df.columns)
     assert sent_schema[0].name == "int_col"
     assert sent_schema[0].field_type == "INTEGER"
     assert sent_schema[1].name == "bool_col"
