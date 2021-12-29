@@ -660,6 +660,7 @@ def _finalize_dtypes(
     https://github.com/googleapis/python-bigquery-pandas/issues/365
     """
     import db_dtypes  # TODO: add to _test_..._imports ?
+    import pandas.api.types
 
     # If you update this mapping, also update the table at
     # `docs/reading.rst`.
@@ -676,14 +677,10 @@ def _finalize_dtypes(
 
         name = str(field["name"])
         dtype = dtype_map.get(field["type"].upper())
-        if dtype:
-            # TODO: don't cast TIMESTAMP if already the right type
-            # tests/system/test_read_gbq.py::test_default_dtypes[scalar-types-nullable-normal-range-False]
-            # /Users/swast/src/github.com/googleapis/python-bigquery-pandas/pandas_gbq/gbq.py:668:
-            # FutureWarning: Using .astype to convert from timezone-aware dtype
-            # to timezone-naive dtype is deprecated and will raise in a future
-            # version.  Use obj.tz_localize(None) or
-            # obj.tz_convert('UTC').tz_localize(None) instead
+
+        # Avoid deprecated conversion to timezone-naive dtype deprecation by
+        # only casting object dtypes.
+        if dtype and pandas.api.types.is_object_dtype(df[name]):
             df[name] = df[name].astype(dtype, errors="ignore")
 
     # Ensure any TIMESTAMP columns are tz-aware.
