@@ -684,7 +684,7 @@ def _finalize_dtypes(
             # to timezone-naive dtype is deprecated and will raise in a future
             # version.  Use obj.tz_localize(None) or
             # obj.tz_convert('UTC').tz_localize(None) instead
-            df[name] = df[name].astype(dtype, errors="raise")  # TODO: errors="ignore"
+            df[name] = df[name].astype(dtype, errors="ignore")
 
     # Ensure any TIMESTAMP columns are tz-aware.
     df = pandas_gbq.timestamp.localize_df(df, schema_fields)
