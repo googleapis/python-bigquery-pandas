@@ -18,6 +18,24 @@ def fresh_bigquery_version(monkeypatch):
     [
         ("1.11.1", False),
         ("1.26.0", False),
+        ("2.5.4", False),
+        ("2.6.0", True),
+        ("2.6.1", True),
+        ("2.12.0", True),
+    ],
+)
+def test_bigquery_has_accurate_timestamp(monkeypatch, bigquery_version, expected):
+    import google.cloud.bigquery
+
+    monkeypatch.setattr(google.cloud.bigquery, "__version__", bigquery_version)
+    assert FEATURES.bigquery_has_accurate_timestamp == expected
+
+
+@pytest.mark.parametrize(
+    ["bigquery_version", "expected"],
+    [
+        ("1.11.1", False),
+        ("1.26.0", False),
         ("2.9.999", False),
         ("2.10.0", True),
         ("2.12.0", True),

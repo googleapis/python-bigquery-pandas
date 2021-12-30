@@ -8,6 +8,7 @@
 BIGQUERY_MINIMUM_VERSION = "1.11.1"
 BIGQUERY_CLIENT_INFO_VERSION = "1.12.0"
 BIGQUERY_BQSTORAGE_VERSION = "1.24.0"
+BIGQUERY_ACCURATE_TIMESTAMP_VERSION = "2.6.0"
 BIGQUERY_FROM_DATAFRAME_CSV_VERSION = "2.6.0"
 BIGQUERY_SUPPORTS_BIGNUMERIC_VERSION = "2.10.0"
 BIGQUERY_NO_DATE_AS_OBJECT_VERSION = "3.0.0dev"
@@ -43,6 +44,13 @@ class Features:
             )
 
         return self._bigquery_installed_version
+
+    @property
+    def bigquery_has_accurate_timestamp(self):
+        import pkg_resources
+
+        min_version = pkg_resources.parse_version(BIGQUERY_ACCURATE_TIMESTAMP_VERSION)
+        return self.bigquery_installed_version >= min_version
 
     @property
     def bigquery_has_client_info(self):

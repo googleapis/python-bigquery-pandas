@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+import collections
 import datetime
 import decimal
 
@@ -13,12 +14,20 @@ import pytest
 from pandas_gbq.features import FEATURES
 
 
+QueryTestCase = collections.namedtuple(
+    "QueryTestCase",
+    ["query", "expected", "use_bqstorage_apis"],
+    defaults=[None, None, {True, False}],
+)
+
+
 @pytest.mark.parametrize(["use_bqstorage_api"], [(True,), (False,)])
 @pytest.mark.parametrize(
-    ["query", "expected"],
+    ["query", "expected", "use_bqstorage_apis"],
     [
         pytest.param(
-            """
+            *QueryTestCase(
+                query="""
 SELECT
   bools.row_num AS row_num,
   bool_col,
@@ -94,69 +103,71 @@ WHERE
   AND `bools`.row_num = `times`.row_num
   AND `bools`.row_num = `timestamps`.row_num
 ORDER BY row_num ASC
-            """,
-            pandas.DataFrame(
-                {
-                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
-                    "bool_col": pandas.Series(
-                        [True, False, True],
-                        dtype="boolean"
-                        if FEATURES.pandas_has_boolean_dtype
-                        else "bool",
-                    ),
-                    "bytes_col": [
-                        bytes.fromhex("C00010FF"),
-                        bytes.fromhex("F1AC"),
-                        bytes.fromhex("FFBADD11"),
-                    ],
-                    "date_col": pandas.Series(
-                        [
-                            datetime.date(1998, 9, 4),
-                            datetime.date(2011, 10, 1),
-                            datetime.date(2018, 4, 11),
+                """,
+                expected=pandas.DataFrame(
+                    {
+                        "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                        "bool_col": pandas.Series(
+                            [True, False, True],
+                            dtype="boolean"
+                            if FEATURES.pandas_has_boolean_dtype
+                            else "bool",
+                        ),
+                        "bytes_col": [
+                            bytes.fromhex("C00010FF"),
+                            bytes.fromhex("F1AC"),
+                            bytes.fromhex("FFBADD11"),
                         ],
-                        dtype=db_dtypes.DateDtype(),
-                    ),
-                    "datetime_col": pandas.Series(
-                        [
-                            "1998-09-04 12:34:56.789101",
-                            "2011-10-01 00:01:02.345678",
-                            "2018-04-11 23:59:59.999999",
+                        "date_col": pandas.Series(
+                            [
+                                datetime.date(1998, 9, 4),
+                                datetime.date(2011, 10, 1),
+                                datetime.date(2018, 4, 11),
+                            ],
+                            dtype=db_dtypes.DateDtype(),
+                        ),
+                        "datetime_col": pandas.Series(
+                            [
+                                "1998-09-04 12:34:56.789101",
+                                "2011-10-01 00:01:02.345678",
+                                "2018-04-11 23:59:59.999999",
+                            ],
+                            dtype="datetime64[ns]",
+                        ),
+                        "float_col": [1.125, -2.375, 0.0],
+                        "int64_col": pandas.Series(
+                            [(2 ** 63) - 1, -1, -(2 ** 63)], dtype="Int64"
+                        ),
+                        "numeric_col": [
+                            decimal.Decimal("123.456789"),
+                            decimal.Decimal("-123.456789"),
+                            decimal.Decimal("999.999999"),
                         ],
-                        dtype="datetime64[ns]",
-                    ),
-                    "float_col": [1.125, -2.375, 0.0],
-                    "int64_col": pandas.Series(
-                        [(2 ** 63) - 1, -1, -(2 ** 63)], dtype="Int64"
-                    ),
-                    "numeric_col": [
-                        decimal.Decimal("123.456789"),
-                        decimal.Decimal("-123.456789"),
-                        decimal.Decimal("999.999999"),
-                    ],
-                    "string_col": [
-                        "abcdefghijklmnopqrstuvwxyz",
-                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-                        "こんにちは",
-                    ],
-                    "time_col": pandas.Series(
-                        ["00:00:00.000000", "09:08:07.654321", "23:59:59.999999"],
-                        dtype=db_dtypes.TimeDtype(),
-                    ),
-                    "timestamp_col": pandas.Series(
-                        [
-                            "1998-09-04 12:34:56.789101",
-                            "2011-10-01 00:01:02.345678",
-                            "2018-04-11 23:59:59.999999",
+                        "string_col": [
+                            "abcdefghijklmnopqrstuvwxyz",
+                            "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+                            "こんにちは",
                         ],
-                        dtype="datetime64[ns]",
-                    ).dt.tz_localize(datetime.timezone.utc),
-                }
+                        "time_col": pandas.Series(
+                            ["00:00:00.000000", "09:08:07.654321", "23:59:59.999999"],
+                            dtype=db_dtypes.TimeDtype(),
+                        ),
+                        "timestamp_col": pandas.Series(
+                            [
+                                "1998-09-04 12:34:56.789101",
+                                "2011-10-01 00:01:02.345678",
+                                "2018-04-11 23:59:59.999999",
+                            ],
+                            dtype="datetime64[ns]",
+                        ).dt.tz_localize(datetime.timezone.utc),
+                    }
+                ),
             ),
             id="scalar-types-nonnull-normal-range",
         ),
         pytest.param(
-            """
+            *QueryTestCase(
+                query="""
 SELECT
   bools.row_num AS row_num,
   bool_col,
@@ -231,54 +242,60 @@ WHERE
   AND `bools`.row_num = `timestamps`.row_num
 ORDER BY row_num ASC
             """,
-            pandas.DataFrame(
-                {
-                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
-                    "bool_col": pandas.Series(
-                        [True, False, None],
-                        dtype="boolean"
-                        if FEATURES.pandas_has_boolean_dtype
-                        else "object",
-                    ),
-                    "bytes_col": [None, bytes.fromhex("F1AC"), b""],
-                    "date_col": pandas.Series(
-                        [datetime.date(1970, 1, 1), None, datetime.date(2018, 4, 11)],
-                        dtype=db_dtypes.DateDtype(),
-                    ),
-                    "datetime_col": pandas.Series(
-                        [
-                            "1970-01-01 00:00:00.000000",
-                            "2011-10-01 00:01:02.345678",
+                expected=pandas.DataFrame(
+                    {
+                        "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                        "bool_col": pandas.Series(
+                            [True, False, None],
+                            dtype="boolean"
+                            if FEATURES.pandas_has_boolean_dtype
+                            else "object",
+                        ),
+                        "bytes_col": [None, bytes.fromhex("F1AC"), b""],
+                        "date_col": pandas.Series(
+                            [
+                                datetime.date(1970, 1, 1),
+                                None,
+                                datetime.date(2018, 4, 11),
+                            ],
+                            dtype=db_dtypes.DateDtype(),
+                        ),
+                        "datetime_col": pandas.Series(
+                            [
+                                "1970-01-01 00:00:00.000000",
+                                "2011-10-01 00:01:02.345678",
+                                None,
+                            ],
+                            dtype="datetime64[ns]",
+                        ),
+                        "float_col": [None, -2.375, 0.0],
+                        "int64_col": pandas.Series([-1, None, 0], dtype="Int64"),
+                        "numeric_col": [
+                            decimal.Decimal("123.456789"),
                             None,
+                            decimal.Decimal("999.999999"),
                         ],
-                        dtype="datetime64[ns]",
-                    ),
-                    "float_col": [None, -2.375, 0.0],
-                    "int64_col": pandas.Series([-1, None, 0], dtype="Int64"),
-                    "numeric_col": [
-                        decimal.Decimal("123.456789"),
-                        None,
-                        decimal.Decimal("999.999999"),
-                    ],
-                    "string_col": ["", "こんにちは", None],
-                    "time_col": pandas.Series(
-                        [None, "00:00:00", "23:59:59.999999"],
-                        dtype=db_dtypes.TimeDtype(),
-                    ),
-                    "timestamp_col": pandas.Series(
-                        [
-                            "1970-01-01 00:00:00.000000",
-                            None,
-                            "2018-04-11 23:59:59.999999",
-                        ],
-                        dtype="datetime64[ns]",
-                    ).dt.tz_localize(datetime.timezone.utc),
-                }
+                        "string_col": ["", "こんにちは", None],
+                        "time_col": pandas.Series(
+                            [None, "00:00:00", "23:59:59.999999"],
+                            dtype=db_dtypes.TimeDtype(),
+                        ),
+                        "timestamp_col": pandas.Series(
+                            [
+                                "1970-01-01 00:00:00.000000",
+                                None,
+                                "2018-04-11 23:59:59.999999",
+                            ],
+                            dtype="datetime64[ns]",
+                        ).dt.tz_localize(datetime.timezone.utc),
+                    }
+                ),
             ),
             id="scalar-types-nullable-normal-range",
         ),
         pytest.param(
-            """
+            *QueryTestCase(
+                query="""
 SELECT
   bools.row_num AS row_num,
   bool_col,
@@ -333,32 +350,34 @@ WHERE
   AND `bools`.row_num = `timestamps`.row_num
 ORDER BY row_num ASC
             """,
-            pandas.DataFrame(
-                {
-                    "row_num": pandas.Series([1], dtype="Int64"),
-                    "bool_col": pandas.Series(
-                        [None],
-                        dtype="boolean"
-                        if FEATURES.pandas_has_boolean_dtype
-                        else "object",
-                    ),
-                    "bytes_col": [None],
-                    "date_col": pandas.Series([None], dtype=db_dtypes.DateDtype(),),
-                    "datetime_col": pandas.Series([None], dtype="datetime64[ns]",),
-                    "float_col": pandas.Series([None], dtype="float64"),
-                    "int64_col": pandas.Series([None], dtype="Int64"),
-                    "numeric_col": [None],
-                    "string_col": [None],
-                    "time_col": pandas.Series([None], dtype=db_dtypes.TimeDtype(),),
-                    "timestamp_col": pandas.Series(
-                        [None], dtype="datetime64[ns]",
-                    ).dt.tz_localize(datetime.timezone.utc),
-                }
+                expected=pandas.DataFrame(
+                    {
+                        "row_num": pandas.Series([1], dtype="Int64"),
+                        "bool_col": pandas.Series(
+                            [None],
+                            dtype="boolean"
+                            if FEATURES.pandas_has_boolean_dtype
+                            else "object",
+                        ),
+                        "bytes_col": [None],
+                        "date_col": pandas.Series([None], dtype=db_dtypes.DateDtype(),),
+                        "datetime_col": pandas.Series([None], dtype="datetime64[ns]",),
+                        "float_col": pandas.Series([None], dtype="float64"),
+                        "int64_col": pandas.Series([None], dtype="Int64"),
+                        "numeric_col": [None],
+                        "string_col": [None],
+                        "time_col": pandas.Series([None], dtype=db_dtypes.TimeDtype(),),
+                        "timestamp_col": pandas.Series(
+                            [None], dtype="datetime64[ns]",
+                        ).dt.tz_localize(datetime.timezone.utc),
+                    }
+                ),
             ),
             id="scalar-types-null",
         ),
         pytest.param(
-            """
+            *QueryTestCase(
+                query="""
 SELECT
   bools.row_num AS row_num,
   bool_col,
@@ -414,32 +433,34 @@ WHERE
   AND `bools`.row_num = -1
 ORDER BY row_num ASC
             """,
-            pandas.DataFrame(
-                {
-                    "row_num": pandas.Series([], dtype="Int64"),
-                    "bool_col": pandas.Series(
-                        [],
-                        dtype="boolean"
-                        if FEATURES.pandas_has_boolean_dtype
-                        else "object",
-                    ),
-                    "bytes_col": pandas.Series([], dtype="object"),
-                    "date_col": pandas.Series([], dtype=db_dtypes.DateDtype(),),
-                    "datetime_col": pandas.Series([], dtype="datetime64[ns]",),
-                    "float_col": pandas.Series([], dtype="float64"),
-                    "int64_col": pandas.Series([], dtype="Int64"),
-                    "numeric_col": pandas.Series([], dtype="object"),
-                    "string_col": pandas.Series([], dtype="object"),
-                    "time_col": pandas.Series([], dtype=db_dtypes.TimeDtype(),),
-                    "timestamp_col": pandas.Series(
-                        [], dtype="datetime64[ns]",
-                    ).dt.tz_localize(datetime.timezone.utc),
-                }
+                expected=pandas.DataFrame(
+                    {
+                        "row_num": pandas.Series([], dtype="Int64"),
+                        "bool_col": pandas.Series(
+                            [],
+                            dtype="boolean"
+                            if FEATURES.pandas_has_boolean_dtype
+                            else "bool",
+                        ),
+                        "bytes_col": pandas.Series([], dtype="object"),
+                        "date_col": pandas.Series([], dtype=db_dtypes.DateDtype(),),
+                        "datetime_col": pandas.Series([], dtype="datetime64[ns]",),
+                        "float_col": pandas.Series([], dtype="float64"),
+                        "int64_col": pandas.Series([], dtype="Int64"),
+                        "numeric_col": pandas.Series([], dtype="object"),
+                        "string_col": pandas.Series([], dtype="object"),
+                        "time_col": pandas.Series([], dtype=db_dtypes.TimeDtype(),),
+                        "timestamp_col": pandas.Series(
+                            [], dtype="datetime64[ns]",
+                        ).dt.tz_localize(datetime.timezone.utc),
+                    }
+                ),
             ),
-            id="scalar-types-empyt-pandas-dev-issue10273",
+            id="scalar-types-empty-pandas-dev-issue10273",
         ),
         pytest.param(
-            """
+            *QueryTestCase(
+                query="""
 SELECT
   bignumerics.row_num AS row_num,
   bignumeric_col,
@@ -465,23 +486,24 @@ WHERE
   AND `bignumerics`.row_num = `nulls`.row_num
 ORDER BY row_num ASC
             """,
-            pandas.DataFrame(
-                {
-                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
-                    # TODO: Support a special (nullable) dtype for decimal data.
-                    # https://github.com/googleapis/python-db-dtypes-pandas/issues/49
-                    "bignumeric_col": [
-                        decimal.Decimal("123456789.123456789"),
-                        decimal.Decimal("-123456789.123456789"),
-                        decimal.Decimal("987654321.987654321"),
-                    ],
-                    "nullable_col": [
-                        decimal.Decimal("123456789.123456789"),
-                        None,
-                        decimal.Decimal("987654321.987654321"),
-                    ],
-                    "null_col": [None, None, None],
-                }
+                expected=pandas.DataFrame(
+                    {
+                        "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                        # TODO: Support a special (nullable) dtype for decimal data.
+                        # https://github.com/googleapis/python-db-dtypes-pandas/issues/49
+                        "bignumeric_col": [
+                            decimal.Decimal("123456789.123456789"),
+                            decimal.Decimal("-123456789.123456789"),
+                            decimal.Decimal("987654321.987654321"),
+                        ],
+                        "nullable_col": [
+                            decimal.Decimal("123456789.123456789"),
+                            None,
+                            decimal.Decimal("987654321.987654321"),
+                        ],
+                        "null_col": [None, None, None],
+                    }
+                ),
             ),
             id="bignumeric-normal-range",
             marks=pytest.mark.skipif(
@@ -490,7 +512,8 @@ ORDER BY row_num ASC
             ),
         ),
         pytest.param(
-            """
+            *QueryTestCase(
+                query="""
 SELECT
   dates.row_num AS row_num,
   date_col,
@@ -516,61 +539,69 @@ WHERE
   AND `dates`.row_num = `timestamps`.row_num
 ORDER BY row_num ASC
             """,
-            pandas.DataFrame(
-                {
-                    "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
-                    "date_col": pandas.Series(
-                        [
-                            datetime.date(1, 1, 1),
-                            datetime.date(9999, 12, 31),
-                            datetime.date(2262, 4, 12),
-                        ],
-                        dtype="object",
-                    ),
-                    "datetime_col": pandas.Series(
-                        [
-                            datetime.datetime(1, 1, 1, 0, 0, 0, 0),
-                            datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
-                            # One microsecond more than pandas.Timestamp.max.
-                            datetime.datetime(2262, 4, 11, 23, 47, 16, 854776),
-                        ],
-                        dtype="object",
-                    ),
-                    "timestamp_col": pandas.Series(
-                        [
-                            datetime.datetime(
-                                1, 1, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc
-                            ),
-                            datetime.datetime(
-                                9999,
-                                12,
-                                31,
-                                23,
-                                59,
-                                59,
-                                999999,
-                                tzinfo=datetime.timezone.utc,
-                            ),
-                            # One microsecond more than pandas.Timestamp.max.
-                            datetime.datetime(
-                                2262,
-                                4,
-                                11,
-                                23,
-                                47,
-                                16,
-                                854776,
-                                tzinfo=datetime.timezone.utc,
-                            ),
-                        ],
-                        dtype="object",
-                    ),
-                }
+                expected=pandas.DataFrame(
+                    {
+                        "row_num": pandas.Series([1, 2, 3], dtype="Int64"),
+                        "date_col": pandas.Series(
+                            [
+                                datetime.date(1, 1, 1),
+                                datetime.date(9999, 12, 31),
+                                datetime.date(2262, 4, 12),
+                            ],
+                            dtype="object",
+                        ),
+                        "datetime_col": pandas.Series(
+                            [
+                                datetime.datetime(1, 1, 1, 0, 0, 0, 0),
+                                datetime.datetime(9999, 12, 31, 23, 59, 59, 999999),
+                                # One microsecond more than pandas.Timestamp.max.
+                                datetime.datetime(2262, 4, 11, 23, 47, 16, 854776),
+                            ],
+                            dtype="object",
+                        ),
+                        "timestamp_col": pandas.Series(
+                            [
+                                datetime.datetime(
+                                    1, 1, 1, 0, 0, 0, 0, tzinfo=datetime.timezone.utc
+                                ),
+                                datetime.datetime(
+                                    9999,
+                                    12,
+                                    31,
+                                    23,
+                                    59,
+                                    59,
+                                    999999,
+                                    tzinfo=datetime.timezone.utc,
+                                ),
+                                # One microsecond more than pandas.Timestamp.max.
+                                datetime.datetime(
+                                    2262,
+                                    4,
+                                    11,
+                                    23,
+                                    47,
+                                    16,
+                                    854776,
+                                    tzinfo=datetime.timezone.utc,
+                                ),
+                            ],
+                            dtype="object",
+                        ),
+                    }
+                ),
+                use_bqstorage_apis={True, False}
+                if FEATURES.bigquery_has_accurate_timestamp
+                else {True},
             ),
             id="issue365-extreme-datetimes",
         ),
     ],
 )
-def test_default_dtypes(read_gbq, query, use_bqstorage_api, expected):
+def test_default_dtypes(
+    read_gbq, query, expected, use_bqstorage_apis, use_bqstorage_api
+):
+    if use_bqstorage_api not in use_bqstorage_apis:
+        pytest.skip(f"use_bqstorage_api={use_bqstorage_api} not supported.")
     result = read_gbq(query, use_bqstorage_api=use_bqstorage_api)
     pandas.testing.assert_frame_equal(result, expected)
