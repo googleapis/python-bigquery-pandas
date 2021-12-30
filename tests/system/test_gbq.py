@@ -305,26 +305,6 @@ class TestReadGBQIntegration(object):
         )
         assert len(df) == 10
 
-    def test_zero_rows(self, project_id):
-        # Bug fix for https://github.com/pandas-dev/pandas/issues/10273
-        df = gbq.read_gbq(
-            'SELECT name, number, (mlc_class = "HU") is_hurricane, iso_time '
-            "FROM `bigquery-public-data.noaa_hurricanes.hurricanes` "
-            'WHERE iso_time = TIMESTAMP("1900-01-01 00:00:00") ',
-            project_id=project_id,
-            credentials=self.credentials,
-        )
-        empty_columns = {
-            "name": pandas.Series([], dtype=object),
-            "number": pandas.Series([], dtype=np.dtype(int)),
-            "is_hurricane": pandas.Series([], dtype=np.dtype(bool)),
-            "iso_time": pandas.Series([], dtype="datetime64[ns]"),
-        }
-        expected_result = DataFrame(
-            empty_columns, columns=["name", "number", "is_hurricane", "iso_time"],
-        )
-        tm.assert_frame_equal(df, expected_result, check_index_type=False)
-
     def test_one_row_one_column(self, project_id):
         df = gbq.read_gbq(
             "SELECT 3 as v",

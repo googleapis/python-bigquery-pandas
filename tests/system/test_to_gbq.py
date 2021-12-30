@@ -160,7 +160,12 @@ DATAFRAME_ROUND_TRIPS = [
             columns=["row_num", "date_col"],
         ),
         expected_df=pandas.DataFrame(
-            {"row_num": [123], "date_col": [datetime.date(2021, 12, 12)]},
+            {
+                "row_num": [123],
+                "date_col": pandas.Series(
+                    [datetime.date(2021, 12, 12)], dtype=db_dtypes.DateDtype()
+                ),
+            },
             columns=["row_num", "date_col"],
         ),
         table_schema=[
