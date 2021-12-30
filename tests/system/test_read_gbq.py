@@ -379,89 +379,6 @@ ORDER BY row_num ASC
             *QueryTestCase(
                 query="""
 SELECT
-  bools.row_num AS row_num,
-  bool_col,
-  bytes_col,
-  date_col,
-  datetime_col,
-  float_col,
-  int64_col,
-  numeric_col,
-  string_col,
-  time_col,
-  timestamp_col
-FROM
-  UNNEST([
-      STRUCT(1 AS row_num, TRUE AS bool_col) ]) AS `bools`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, CAST('F1AC' AS BYTES FORMAT 'HEX') AS bytes_col) ]) AS `bytes`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, DATE(2018, 4, 11) AS date_col) ]) AS `dates`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, DATETIME('2011-10-01 00:01:02.345678') AS datetime_col) ]) AS `datetimes`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, -2.375 AS float_col) ]) AS `floats`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, 1234 AS int64_col) ]) AS `int64s`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, CAST('123.456789' AS NUMERIC) AS numeric_col) ]) AS `numerics`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, 'abcdefghijklmnopqrstuvwxyz' AS string_col) ]) AS `strings`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, CAST('09:08:07.654321' AS TIME) AS time_col) ]) AS `times`
-INNER JOIN
-  UNNEST([
-      STRUCT(1 AS row_num, TIMESTAMP('1998-09-04 12:34:56.789101') AS timestamp_col) ]) AS `timestamps`
-WHERE
-  `bools`.row_num = `dates`.row_num
-  AND `bools`.row_num = `bytes`.row_num
-  AND `bools`.row_num = `datetimes`.row_num
-  AND `bools`.row_num = `floats`.row_num
-  AND `bools`.row_num = `int64s`.row_num
-  AND `bools`.row_num = `numerics`.row_num
-  AND `bools`.row_num = `strings`.row_num
-  AND `bools`.row_num = `times`.row_num
-  AND `bools`.row_num = `timestamps`.row_num
-  AND `bools`.row_num = -1
-ORDER BY row_num ASC
-            """,
-                expected=pandas.DataFrame(
-                    {
-                        "row_num": pandas.Series([], dtype="Int64"),
-                        "bool_col": pandas.Series(
-                            [],
-                            dtype="boolean"
-                            if FEATURES.pandas_has_boolean_dtype
-                            else "bool",
-                        ),
-                        "bytes_col": pandas.Series([], dtype="object"),
-                        "date_col": pandas.Series([], dtype=db_dtypes.DateDtype(),),
-                        "datetime_col": pandas.Series([], dtype="datetime64[ns]",),
-                        "float_col": pandas.Series([], dtype="float64"),
-                        "int64_col": pandas.Series([], dtype="Int64"),
-                        "numeric_col": pandas.Series([], dtype="object"),
-                        "string_col": pandas.Series([], dtype="object"),
-                        "time_col": pandas.Series([], dtype=db_dtypes.TimeDtype(),),
-                        "timestamp_col": pandas.Series(
-                            [], dtype="datetime64[ns]",
-                        ).dt.tz_localize(datetime.timezone.utc),
-                    }
-                ),
-            ),
-            id="scalar-types-empty-pandas-dev-issue10273",
-        ),
-        pytest.param(
-            *QueryTestCase(
-                query="""
-SELECT
   bignumerics.row_num AS row_num,
   bignumeric_col,
   nullable_col,
@@ -605,3 +522,85 @@ def test_default_dtypes(
         pytest.skip(f"use_bqstorage_api={use_bqstorage_api} not supported.")
     result = read_gbq(query, use_bqstorage_api=use_bqstorage_api)
     pandas.testing.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(["use_bqstorage_api"], [(True,), (False,)])
+def test_empty_dataframe(read_gbq, use_bqstorage_api):
+    # Bug fix for https://github.com/pandas-dev/pandas/issues/10273
+    query = """
+SELECT
+  bools.row_num AS row_num,
+  bool_col,
+  bytes_col,
+  date_col,
+  datetime_col,
+  float_col,
+  int64_col,
+  numeric_col,
+  string_col,
+  time_col,
+  timestamp_col
+FROM
+  UNNEST([
+      STRUCT(1 AS row_num, TRUE AS bool_col) ]) AS `bools`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('F1AC' AS BYTES FORMAT 'HEX') AS bytes_col) ]) AS `bytes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, DATE(2018, 4, 11) AS date_col) ]) AS `dates`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, DATETIME('2011-10-01 00:01:02.345678') AS datetime_col) ]) AS `datetimes`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, -2.375 AS float_col) ]) AS `floats`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, 1234 AS int64_col) ]) AS `int64s`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('123.456789' AS NUMERIC) AS numeric_col) ]) AS `numerics`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, 'abcdefghijklmnopqrstuvwxyz' AS string_col) ]) AS `strings`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, CAST('09:08:07.654321' AS TIME) AS time_col) ]) AS `times`
+INNER JOIN
+  UNNEST([
+      STRUCT(1 AS row_num, TIMESTAMP('1998-09-04 12:34:56.789101') AS timestamp_col) ]) AS `timestamps`
+WHERE
+  `bools`.row_num = `dates`.row_num
+  AND `bools`.row_num = `bytes`.row_num
+  AND `bools`.row_num = `datetimes`.row_num
+  AND `bools`.row_num = `floats`.row_num
+  AND `bools`.row_num = `int64s`.row_num
+  AND `bools`.row_num = `numerics`.row_num
+  AND `bools`.row_num = `strings`.row_num
+  AND `bools`.row_num = `times`.row_num
+  AND `bools`.row_num = `timestamps`.row_num
+  AND `bools`.row_num = -1
+ORDER BY row_num ASC
+    """
+    expected = pandas.DataFrame(
+        {
+            "row_num": pandas.Series([], dtype="Int64"),
+            "bool_col": pandas.Series(
+                [], dtype="boolean" if FEATURES.pandas_has_boolean_dtype else "bool",
+            ),
+            "bytes_col": pandas.Series([], dtype="object"),
+            "date_col": pandas.Series([], dtype=db_dtypes.DateDtype(),),
+            "datetime_col": pandas.Series([], dtype="datetime64[ns]",),
+            "float_col": pandas.Series([], dtype="float64"),
+            "int64_col": pandas.Series([], dtype="Int64"),
+            "numeric_col": pandas.Series([], dtype="object"),
+            "string_col": pandas.Series([], dtype="object"),
+            "time_col": pandas.Series([], dtype=db_dtypes.TimeDtype(),),
+            "timestamp_col": pandas.Series([], dtype="datetime64[ns]",).dt.tz_localize(
+                datetime.timezone.utc
+            ),
+        }
+    )
+    result = read_gbq(query, use_bqstorage_api=use_bqstorage_api)
+    pandas.testing.assert_frame_equal(result, expected, check_index_type=False)
