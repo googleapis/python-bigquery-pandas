@@ -52,6 +52,11 @@ def _test_google_api_imports():
         raise ImportError("pandas-gbq requires setuptools") from ex
 
     try:
+        import db_dtypes  # noqa
+    except ImportError as ex:
+        raise ImportError("pandas-gbq requires db-dtypes") from ex
+
+    try:
         import pydata_google_auth  # noqa
     except ImportError as ex:
         raise ImportError("pandas-gbq requires pydata-google-auth") from ex
@@ -614,7 +619,7 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     See: http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     #missing-data-casting-rules-and-indexing
     """
-    import db_dtypes  # TODO: add to _test_..._imports ?
+    import db_dtypes
 
     # If you update this mapping, also update the table at
     # `docs/reading.rst`.
