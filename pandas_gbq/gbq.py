@@ -664,7 +664,7 @@ def _finalize_dtypes(
     1970. See:
     https://github.com/googleapis/python-bigquery-pandas/issues/365
     """
-    import db_dtypes  # TODO: add to _test_..._imports ?
+    import db_dtypes
     import pandas.api.types
 
     # If you update this mapping, also update the table at
