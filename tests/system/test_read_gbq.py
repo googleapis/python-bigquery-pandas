@@ -526,7 +526,8 @@ def test_default_dtypes(
 
 @pytest.mark.parametrize(["use_bqstorage_api"], [(True,), (False,)])
 def test_empty_dataframe(read_gbq, use_bqstorage_api):
-    # Bug fix for https://github.com/pandas-dev/pandas/issues/10273
+    # Bug fix for https://github.com/pandas-dev/pandas/issues/10273 and
+    # https://github.com/googleapis/python-bigquery-pandas/issues/299
     query = """
 SELECT
   bools.row_num AS row_num,
