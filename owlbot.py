@@ -78,7 +78,7 @@ s.replace(
 
 # Workaround for https://github.com/googleapis/synthtool/issues/1317
 s.replace(
-    ["noxfile.py"], 'extras = "[]"', 'extras = ""',
+    ["noxfile.py"], r'extras = "\[\]"', 'extras = ""',
 )
 
 s.replace(
