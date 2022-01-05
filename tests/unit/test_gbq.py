@@ -109,25 +109,8 @@ def test__is_query(query_or_table, expected):
     assert result == expected
 
 
-def test_GbqConnector_get_client_w_old_bq(monkeypatch, mock_bigquery_client):
-    gbq._test_google_api_imports()
-    connector = _make_connector()
-    monkeypatch.setattr(
-        type(FEATURES),
-        "bigquery_has_client_info",
-        mock.PropertyMock(return_value=False),
-    )
-
-    connector.get_client()
-
-    # No client_info argument.
-    mock_bigquery_client.assert_called_with(credentials=mock.ANY, project=mock.ANY)
-
-
 def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):
     gbq._test_google_api_imports()
-    if not FEATURES.bigquery_has_client_info:
-        pytest.skip("google-cloud-bigquery missing client_info feature")
     pytest.importorskip("google.api_core.client_info")
 
     connector = _make_connector()
@@ -606,9 +589,6 @@ def test_read_gbq_passes_dtypes(mock_bigquery_client, mock_service_account_crede
 def test_read_gbq_use_bqstorage_api(
     mock_bigquery_client, mock_service_account_credentials
 ):
-    if not FEATURES.bigquery_has_bqstorage:  # pragma: NO COVER
-        pytest.skip("requires BigQuery Storage API")
-
     mock_service_account_credentials.project_id = "service_account_project_id"
     df = gbq.read_gbq(
         "SELECT 1 AS int_col",

@@ -30,9 +30,7 @@ except ImportError:  # pragma: NO COVER
 from pandas_gbq.exceptions import (
     AccessDenied,
     GenericGBQException,
-    PerformanceWarning,
 )
-from pandas_gbq import features
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
 import pandas_gbq.timestamp
@@ -377,18 +375,11 @@ class GbqConnector(object):
         client_info = google.api_core.client_info.ClientInfo(
             user_agent="pandas-{}".format(pandas.__version__)
         )
-
-        # In addition to new enough version of google-api-core, a new enough
-        # version of google-cloud-bigquery is required to populate the
-        # client_info.
-        if FEATURES.bigquery_has_client_info:
-            return bigquery.Client(
-                project=self.project_id,
-                credentials=self.credentials,
-                client_info=client_info,
-            )
-
-        return bigquery.Client(project=self.project_id, credentials=self.credentials)
+        return bigquery.Client(
+            project=self.project_id,
+            credentials=self.credentials,
+            client_info=client_info,
+        )
 
     @staticmethod
     def process_http_error(ex):
@@ -529,27 +520,11 @@ class GbqConnector(object):
         if user_dtypes is None:
             user_dtypes = {}
 
-        if self.use_bqstorage_api and not FEATURES.bigquery_has_bqstorage:
-            warnings.warn(
-                (
-                    "use_bqstorage_api was set, but have google-cloud-bigquery "
-                    "version {}. Requires google-cloud-bigquery version "
-                    "{} or later."
-                ).format(
-                    FEATURES.bigquery_installed_version,
-                    features.BIGQUERY_BQSTORAGE_VERSION,
-                ),
-                PerformanceWarning,
-                stacklevel=4,
-            )
-
         create_bqstorage_client = self.use_bqstorage_api
         if max_results is not None:
             create_bqstorage_client = False
 
         to_dataframe_kwargs = {}
-        if FEATURES.bigquery_has_bqstorage:
-            to_dataframe_kwargs["create_bqstorage_client"] = create_bqstorage_client
         if FEATURES.bigquery_needs_date_as_object:
             to_dataframe_kwargs["date_as_object"] = True
 
@@ -560,6 +535,7 @@ class GbqConnector(object):
             df = rows_iter.to_dataframe(
                 dtypes=conversion_dtypes,
                 progress_bar_type=progress_bar_type,
+                create_bqstorage_client=create_bqstorage_client,
                 **to_dataframe_kwargs,
             )
         except self.http_error as ex:
