@@ -76,6 +76,11 @@ s.replace(
     ["noxfile.py"], "--cov=google", "--cov=pandas_gbq",
 )
 
+# Workaround for https://github.com/googleapis/synthtool/issues/1317
+s.replace(
+    ["noxfile.py"], 'extras = "[]"', 'extras = ""',
+)
+
 s.replace(
     ["noxfile.py"],
     r"@nox.session\(python=DEFAULT_PYTHON_VERSION\)\s+def cover\(session\):",
