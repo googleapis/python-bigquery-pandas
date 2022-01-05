@@ -18,15 +18,6 @@ import numpy as np
 if typing.TYPE_CHECKING:  # pragma: NO COVER
     import pandas
 
-# Required dependencies, but treat as optional so that _test_google_api_imports
-# can provide a better error message.
-try:
-    from google.api_core import exceptions as google_exceptions
-    from google.cloud import bigquery
-except ImportError:  # pragma: NO COVER
-    bigquery = None
-    google_exceptions = None
-
 from pandas_gbq.exceptions import (
     AccessDenied,
     GenericGBQException,
@@ -370,6 +361,7 @@ class GbqConnector(object):
 
     def get_client(self):
         import google.api_core.client_info
+        from google.cloud import bigquery
         import pandas
 
         client_info = google.api_core.client_info.ClientInfo(
@@ -395,6 +387,8 @@ class GbqConnector(object):
         progress_bar_type: Optional[str] = None,
         dtypes: Optional[Dict[str, Union[str, Any]]] = None,
     ) -> "pandas.DataFrame":
+        from google.cloud import bigquery
+
         self._start_timer()
 
         try:
@@ -415,6 +409,7 @@ class GbqConnector(object):
     def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
+        from google.cloud import bigquery
 
         job_config = {
             "query": {
@@ -1026,6 +1021,9 @@ def to_gbq(
     """
 
     _test_google_api_imports()
+
+    from google.api_core import exceptions as google_exceptions
+    from google.cloud import bigquery
 
     if verbose is not None and FEATURES.pandas_has_deprecated_verbose:
         warnings.warn(
