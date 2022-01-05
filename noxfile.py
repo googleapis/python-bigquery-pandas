@@ -96,7 +96,7 @@ def default(session):
     )
 
     if session.python == "3.9":
-        extras = "[]"
+        extras = ""
     else:
         extras = "[tqdm]"
     session.install("-e", f".{extras}", "-c", constraints_path)
