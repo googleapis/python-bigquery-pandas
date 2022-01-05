@@ -683,8 +683,8 @@ def _finalize_dtypes(
         name = str(field["name"])
         dtype = dtype_map.get(field["type"].upper())
 
-        # Avoid deprecated conversion to timezone-naive dtype deprecation by
-        # only casting object dtypes.
+        # Avoid deprecated conversion to timezone-naive dtype by only casting
+        # object dtypes.
         if dtype and pandas.api.types.is_object_dtype(df[name]):
             df[name] = df[name].astype(dtype, errors="ignore")
 
