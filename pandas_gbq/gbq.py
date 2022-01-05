@@ -37,32 +37,32 @@ logger = logging.getLogger(__name__)
 def _test_google_api_imports():
     try:
         import pkg_resources  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires setuptools") from ex
 
     try:
         import db_dtypes  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires db-dtypes") from ex
 
     try:
         import pydata_google_auth  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires pydata-google-auth") from ex
 
     try:
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires google-auth-oauthlib") from ex
 
     try:
         import google.auth  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires google-auth") from ex
 
     try:
         from google.cloud import bigquery  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires google-cloud-bigquery") from ex
 
 
