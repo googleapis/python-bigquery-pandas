@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.0.0](https://www.github.com/googleapis/python-bigquery-pandas/compare/v0.16.0...v1.0.0) (2022-01-06)
+
+
+### ⚠ BREAKING CHANGES
+
+* use nullable Int64 and boolean dtypes if available (#445)
+
+### Features
+
+* accepts a table ID, which downloads the table without a query ([#443](https://www.github.com/googleapis/python-bigquery-pandas/issues/443)) ([bf0e863](https://www.github.com/googleapis/python-bigquery-pandas/commit/bf0e863ff6506eca267b14e59e47417bd60e947f))
+* use nullable Int64 and boolean dtypes if available ([#445](https://www.github.com/googleapis/python-bigquery-pandas/issues/445)) ([89078f8](https://www.github.com/googleapis/python-bigquery-pandas/commit/89078f89478469aa60a0a8b8e1e0c4a59aa059e0))
+
+
+### Bug Fixes
+
+* `read_gbq` supports extreme DATETIME values such as `0001-01-01 00:00:00` ([#444](https://www.github.com/googleapis/python-bigquery-pandas/issues/444)) ([d120f8f](https://www.github.com/googleapis/python-bigquery-pandas/commit/d120f8fbdf4541a39ce8d87067523d48f21554bf))
+* `to_gbq` allows strings for DATE and floats for NUMERIC with `api_method="load_parquet"` ([#423](https://www.github.com/googleapis/python-bigquery-pandas/issues/423)) ([2180836](https://www.github.com/googleapis/python-bigquery-pandas/commit/21808367d02b5b7fcf35b3c7520224c819879aec))
+* allow extreme DATE values such as `datetime.date(1, 1, 1)` in `load_gbq` ([#442](https://www.github.com/googleapis/python-bigquery-pandas/issues/442)) ([e13abaf](https://www.github.com/googleapis/python-bigquery-pandas/commit/e13abaf015cd1ea9da3ad5063680bf89e18f0fac))
+
+
+### Dependencies
+
+* require pandas 0.24+ and db-dtypes for TIME/DATE extension dtypes ([#423](https://www.github.com/googleapis/python-bigquery-pandas/issues/423)) ([2180836](https://www.github.com/googleapis/python-bigquery-pandas/commit/21808367d02b5b7fcf35b3c7520224c819879aec))
+
+
+### Documentation
+
+* update README to reflect repository move ([#454](https://www.github.com/googleapis/python-bigquery-pandas/issues/454)) ([7996d59](https://www.github.com/googleapis/python-bigquery-pandas/commit/7996d5927f4cdcbb2c4bd13311ad2b984b841a57))
+
 ## [0.16.0](https://www.github.com/googleapis/python-bigquery-pandas/compare/v0.16.0...v0.16.0) (2021-11-08)
 
 
