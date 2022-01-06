@@ -95,7 +95,11 @@ def default(session):
         constraints_path,
     )
 
-    session.install("-e", ".[tqdm]", "-c", constraints_path)
+    if session.python == "3.9":
+        extras = ""
+    else:
+        extras = "[tqdm]"
+    session.install("-e", f".{extras}", "-c", constraints_path)
 
     # Run py.test against the unit tests.
     session.run(
