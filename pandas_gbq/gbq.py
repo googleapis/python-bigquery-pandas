@@ -2,13 +2,13 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+from datetime import datetime
 import logging
 import re
 import time
-import warnings
-from datetime import datetime
 import typing
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Sequence, Union
+import warnings
 
 import numpy as np
 
@@ -18,58 +18,51 @@ import numpy as np
 if typing.TYPE_CHECKING:  # pragma: NO COVER
     import pandas
 
-# Required dependencies, but treat as optional so that _test_google_api_imports
-# can provide a better error message.
-try:
-    from google.api_core import exceptions as google_exceptions
-    from google.cloud import bigquery
-except ImportError:  # pragma: NO COVER
-    bigquery = None
-    google_exceptions = None
-
 from pandas_gbq.exceptions import (
     AccessDenied,
     GenericGBQException,
-    PerformanceWarning,
 )
-from pandas_gbq import features
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
 import pandas_gbq.timestamp
-
-
-logger = logging.getLogger(__name__)
 
 try:
     import tqdm  # noqa
 except ImportError:
     tqdm = None
 
+logger = logging.getLogger(__name__)
+
 
 def _test_google_api_imports():
     try:
         import pkg_resources  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires setuptools") from ex
 
     try:
+        import db_dtypes  # noqa
+    except ImportError as ex:  # pragma: NO COVER
+        raise ImportError("pandas-gbq requires db-dtypes") from ex
+
+    try:
         import pydata_google_auth  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires pydata-google-auth") from ex
 
     try:
         from google_auth_oauthlib.flow import InstalledAppFlow  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires google-auth-oauthlib") from ex
 
     try:
         import google.auth  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires google-auth") from ex
 
     try:
         from google.cloud import bigquery  # noqa
-    except ImportError as ex:
+    except ImportError as ex:  # pragma: NO COVER
         raise ImportError("pandas-gbq requires google-cloud-bigquery") from ex
 
 
@@ -368,23 +361,17 @@ class GbqConnector(object):
 
     def get_client(self):
         import google.api_core.client_info
+        from google.cloud import bigquery
         import pandas
 
         client_info = google.api_core.client_info.ClientInfo(
             user_agent="pandas-{}".format(pandas.__version__)
         )
-
-        # In addition to new enough version of google-api-core, a new enough
-        # version of google-cloud-bigquery is required to populate the
-        # client_info.
-        if FEATURES.bigquery_has_client_info:
-            return bigquery.Client(
-                project=self.project_id,
-                credentials=self.credentials,
-                client_info=client_info,
-            )
-
-        return bigquery.Client(project=self.project_id, credentials=self.credentials)
+        return bigquery.Client(
+            project=self.project_id,
+            credentials=self.credentials,
+            client_info=client_info,
+        )
 
     @staticmethod
     def process_http_error(ex):
@@ -400,6 +387,8 @@ class GbqConnector(object):
         progress_bar_type: Optional[str] = None,
         dtypes: Optional[Dict[str, Union[str, Any]]] = None,
     ) -> "pandas.DataFrame":
+        from google.cloud import bigquery
+
         self._start_timer()
 
         try:
@@ -420,6 +409,7 @@ class GbqConnector(object):
     def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
         from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
+        from google.cloud import bigquery
 
         job_config = {
             "query": {
@@ -525,27 +515,13 @@ class GbqConnector(object):
         if user_dtypes is None:
             user_dtypes = {}
 
-        if self.use_bqstorage_api and not FEATURES.bigquery_has_bqstorage:
-            warnings.warn(
-                (
-                    "use_bqstorage_api was set, but have google-cloud-bigquery "
-                    "version {}. Requires google-cloud-bigquery version "
-                    "{} or later."
-                ).format(
-                    FEATURES.bigquery_installed_version,
-                    features.BIGQUERY_BQSTORAGE_VERSION,
-                ),
-                PerformanceWarning,
-                stacklevel=4,
-            )
-
         create_bqstorage_client = self.use_bqstorage_api
         if max_results is not None:
             create_bqstorage_client = False
 
         to_dataframe_kwargs = {}
-        if FEATURES.bigquery_has_bqstorage:
-            to_dataframe_kwargs["create_bqstorage_client"] = create_bqstorage_client
+        if FEATURES.bigquery_needs_date_as_object:
+            to_dataframe_kwargs["date_as_object"] = True
 
         try:
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
@@ -554,16 +530,13 @@ class GbqConnector(object):
             df = rows_iter.to_dataframe(
                 dtypes=conversion_dtypes,
                 progress_bar_type=progress_bar_type,
+                create_bqstorage_client=create_bqstorage_client,
                 **to_dataframe_kwargs,
             )
         except self.http_error as ex:
             self.process_http_error(ex)
 
-        if df.empty:
-            df = _cast_empty_df_dtypes(schema_fields, df)
-
-        # Ensure any TIMESTAMP columns are tz-aware.
-        df = pandas_gbq.timestamp.localize_df(df, schema_fields)
+        df = _finalize_dtypes(df, schema_fields)
 
         logger.debug("Got {} rows.\n".format(rows_iter.total_rows))
         return df
@@ -617,23 +590,18 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     See: http://pandas.pydata.org/pandas-docs/dev/missing_data.html
     #missing-data-casting-rules-and-indexing
     """
+    import db_dtypes
+
     # If you update this mapping, also update the table at
     # `docs/reading.rst`.
     dtype_map = {
-        "DATE": "datetime64[ns]",
-        "DATETIME": "datetime64[ns]",
         "FLOAT": np.dtype(float),
-        "GEOMETRY": "object",
         "INTEGER": "Int64",
-        "RECORD": "object",
-        "STRING": "object",
-        # datetime.time objects cannot be case to datetime64.
-        # https://github.com/pydata/pandas-gbq/issues/328
-        "TIME": "object",
-        # pandas doesn't support timezone-aware dtype in DataFrame/Series
-        # constructors. It's more idiomatic to localize after construction.
-        # https://github.com/pandas-dev/pandas/issues/25843
-        "TIMESTAMP": "datetime64[ns]",
+        "TIME": db_dtypes.TimeDtype(),
+        # Note: Other types such as 'datetime64[ns]' and db_types.DateDtype()
+        # are not included because the pandas range does not align with the
+        # BigQuery range. We need to attempt a conversion to those types and
+        # fall back to 'object' when there are out-of-range values.
     }
 
     # Amend dtype_map with newer extension types if pandas version allows.
@@ -656,28 +624,43 @@ def _bqschema_to_nullsafe_dtypes(schema_fields):
     return dtypes
 
 
-def _cast_empty_df_dtypes(schema_fields, df):
-    """Cast any columns in an empty dataframe to correct type.
-
-    In an empty dataframe, pandas cannot choose a dtype unless one is
-    explicitly provided. The _bqschema_to_nullsafe_dtypes() function only
-    provides dtypes when the dtype safely handles null values. This means
-    that empty int64 and boolean columns are incorrectly classified as
-    ``object``.
+def _finalize_dtypes(
+    df: "pandas.DataFrame", schema_fields: Sequence[Dict[str, Any]]
+) -> "pandas.DataFrame":
     """
-    if not df.empty:
-        raise ValueError("DataFrame must be empty in order to cast non-nullsafe dtypes")
+    Attempt to change the dtypes of those columns that don't map exactly.
 
-    dtype_map = {"BOOLEAN": bool, "INTEGER": np.int64}
+    For example db_dtypes.DateDtype() and datetime64[ns] cannot represent
+    0001-01-01, but they can represent dates within a couple hundred years of
+    1970. See:
+    https://github.com/googleapis/python-bigquery-pandas/issues/365
+    """
+    import db_dtypes
+    import pandas.api.types
+
+    # If you update this mapping, also update the table at
+    # `docs/reading.rst`.
+    dtype_map = {
+        "DATE": db_dtypes.DateDtype(),
+        "DATETIME": "datetime64[ns]",
+        "TIMESTAMP": "datetime64[ns]",
+    }
 
     for field in schema_fields:
-        column = str(field["name"])
+        # This method doesn't modify ARRAY/REPEATED columns.
         if field["mode"].upper() == "REPEATED":
             continue
 
+        name = str(field["name"])
         dtype = dtype_map.get(field["type"].upper())
-        if dtype:
-            df[column] = df[column].astype(dtype)
+
+        # Avoid deprecated conversion to timezone-naive dtype by only casting
+        # object dtypes.
+        if dtype and pandas.api.types.is_object_dtype(df[name]):
+            df[name] = df[name].astype(dtype, errors="ignore")
+
+    # Ensure any TIMESTAMP columns are tz-aware.
+    df = pandas_gbq.timestamp.localize_df(df, schema_fields)
 
     return df
 
@@ -1038,6 +1021,9 @@ def to_gbq(
     """
 
     _test_google_api_imports()
+
+    from google.api_core import exceptions as google_exceptions
+    from google.cloud import bigquery
 
     if verbose is not None and FEATURES.pandas_has_deprecated_verbose:
         warnings.warn(
