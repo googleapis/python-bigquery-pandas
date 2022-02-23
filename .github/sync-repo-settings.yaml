@@ -10,13 +10,18 @@ branchProtectionRules:
     - 'cla/google'
     - 'OwlBot Post Processor'
     - 'docs'
-    - 'Kokoro'
     - 'lint'
     - 'unit (3.7)'
     - 'unit (3.8)'
     - 'unit (3.9)'
     - 'unit (3.10)'
     - 'cover'
+    - 'Kokoro'
+    - 'Samples - Lint'
+    - 'Samples - Python 3.7'
+    - 'Samples - Python 3.8'
+    - 'Samples - Python 3.9'
+    - 'Samples - Python 3.10'
 permissionRules:
   - team: actools-python
     permission: admin
