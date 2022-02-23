@@ -10,6 +10,7 @@ branchProtectionRules:
     - 'cla/google'
     - 'OwlBot Post Processor'
     - 'docs'
+    - 'Kokoro'
     - 'lint'
     - 'unit (3.7)'
     - 'unit (3.8)'
