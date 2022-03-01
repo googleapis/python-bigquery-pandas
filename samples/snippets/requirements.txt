@@ -1,4 +1,4 @@
-google-cloud-bigquery-storage==2.11.0
-google-cloud-bigquery==2.32.0
-pandas==1.3.5
-pyarrow==6.0.1
+google-cloud-bigquery-storage==2.12.0
+google-cloud-bigquery==2.34.0
+pandas==1.4.1
+pyarrow==7.0.0
