@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+import copy
 from datetime import datetime
 import logging
 import re
@@ -378,6 +379,9 @@ class GbqConnector(object):
         # See `BigQuery Troubleshooting Errors
         # <https://cloud.google.com/bigquery/troubleshooting-errors>`__
 
+        if "cancelled" in ex.message:
+            raise QueryTimeout("Reason: {0}".format(ex))
+
         raise GenericGBQException("Reason: {0}".format(ex))
 
     def download_table(
@@ -457,6 +461,7 @@ class GbqConnector(object):
             )
             timeout_ms = int(timeout_ms) if timeout_ms else None
             if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
+                self.client.cancel_job(query_reply)
                 raise QueryTimeout("Query timeout: {} ms".format(timeout_ms))
 
             timeout_sec = 1.0
@@ -673,6 +678,28 @@ def _finalize_dtypes(
     return df
 
 
+def _transform_read_gbq_configuration(configuration):
+    """
+    For backwards-compatibility, convert any previously client-side only
+    parameters such as timeoutMs to the property name expected by the REST API.
+
+    Makes a copy of configuration if changes are needed.
+    """
+
+    if configuration is None:
+        return None
+
+    timeout_ms = configuration.get("query", {}).get("timeoutMs")
+    if timeout_ms is not None:
+        # Transform timeoutMs to an actual server-side configuration.
+        # https://github.com/googleapis/python-bigquery-pandas/issues/479
+        configuration = copy.deepcopy(configuration)
+        del configuration["query"]["timeoutMs"]
+        configuration["jobTimeoutMs"] = timeout_ms
+
+    return configuration
+
+
 def read_gbq(
     query_or_table,
     project_id=None,
@@ -846,6 +873,8 @@ def read_gbq(
 
     if dialect not in ("legacy", "standard"):
         raise ValueError("'{0}' is not valid for dialect".format(dialect))
+
+    configuration = _transform_read_gbq_configuration(configuration)
 
     if configuration and "query" in configuration and "query" in configuration["query"]:
         if query_or_table is not None:

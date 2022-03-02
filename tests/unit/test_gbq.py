@@ -114,6 +114,10 @@ def test__is_query(query_or_table, expected):
     assert result == expected
 
 
+def test__transform_read_gbq_configuration_makes_copy():
+    assert False
+
+
 def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):
     gbq._test_google_api_imports()
     pytest.importorskip("google.api_core.client_info")
@@ -123,6 +127,14 @@ def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):
 
     _, kwargs = mock_bigquery_client.call_args
     assert kwargs["client_info"].user_agent == "pandas-{}".format(pandas.__version__)
+
+
+def test_GbqConnector_process_http_error_transforms_timeout():
+    original = google.api_core.exceptions.GoogleAPICallError(
+        "ob execution was cancelled: Job timed out after 0s"
+    )
+    with pytest.raises(gbq.QueryTimeout):
+        gbq.GbqConnector.process_http_error(original)
 
 
 def test_to_gbq_should_fail_if_invalid_table_name_passed():
