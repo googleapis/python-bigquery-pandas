@@ -114,8 +114,23 @@ def test__is_query(query_or_table, expected):
     assert result == expected
 
 
-def test__transform_read_gbq_configuration_makes_copy():
-    assert False
+@pytest.mark.parametrize(
+    ["original", "expected"],
+    [
+        (None, None),
+        ({}, {}),
+        ({"query": {"useQueryCache": False}}, {"query": {"useQueryCache": False}}),
+        ({"jobTimeoutMs": "1234"}, {"jobTimeoutMs": "1234"}),
+        ({"query": {"timeoutMs": "1234"}}, {"query": {}, "jobTimeoutMs": "1234"}),
+    ],
+)
+def test__transform_read_gbq_configuration_makes_copy(original, expected):
+    should_change = original == expected
+    got = gbq._transform_read_gbq_configuration(original)
+    assert got == expected
+    # Catch if we accidentally modified the original.
+    did_change = original == got
+    assert did_change == should_change
 
 
 def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):
