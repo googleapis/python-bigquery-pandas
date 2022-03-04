@@ -144,7 +144,7 @@ def test__wait_for_query_job_exits_when_done(mock_bigquery_client):
     type(mock_query).state = mock.PropertyMock(side_effect=("RUNNING", "DONE"))
     mock_query.result.side_effect = concurrent.futures.TimeoutError("fake timeout")
 
-    with freezegun.freeze_time("2020-01-01 00:00:00", auto_tick_seconds=1):
+    with freezegun.freeze_time("2020-01-01 00:00:00", tick=False):
         connector._wait_for_query_job(mock_query, 60)
 
     mock_bigquery_client.cancel_job.assert_not_called()
