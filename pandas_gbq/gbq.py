@@ -422,7 +422,8 @@ class GbqConnector(object):
                 How long to wait before cancelling the query.
         """
         # Wait at most 10 seconds so we can show progress.
-        # TODO: Include a tqdm progress bar here?
+        # TODO(https://github.com/googleapis/python-bigquery-pandas/issues/327):
+        # Include a tqdm progress bar here instead of a stream of log messages.
         timeout_sec = 10.0
         if timeout_ms:
             timeout_sec = min(timeout_sec, timeout_ms / 1000.0)
