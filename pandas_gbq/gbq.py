@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 import copy
+import concurrent.futures
 from datetime import datetime
 import logging
 import re
@@ -410,8 +411,40 @@ class GbqConnector(object):
             user_dtypes=dtypes,
         )
 
+    def _wait_for_query_job(self, query_reply, timeout_ms):
+        """Wait for query to complete, pausing occasionaly to update progress.
+
+        Args:
+            query_reply (QueryJob):
+                A query job which has started.
+
+            timeout_ms (Optional[int]):
+                How long to wait before cancelling the query.
+        """
+        # Wait at most 10 seconds so we can show progress.
+        # TODO: Include a tqdm progress bar here?
+        timeout_sec = 10.0
+        if timeout_ms:
+            timeout_sec = min(timeout_sec, timeout_ms / 1000.0)
+
+        while query_reply.state != "DONE":
+            self.log_elapsed_seconds("  Elapsed", "s. Waiting...")
+
+            if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
+                self.client.cancel_job(
+                    query_reply.job_id, location=query_reply.location
+                )
+                raise QueryTimeout("Query timeout: {} ms".format(timeout_ms))
+
+            try:
+                query_reply.result(timeout=timeout_sec)
+            except concurrent.futures.TimeoutError:
+                # Use our own timeout logic
+                pass
+            except self.http_error as ex:
+                self.process_http_error(ex)
+
     def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
-        from concurrent.futures import TimeoutError
         from google.auth.exceptions import RefreshError
         from google.cloud import bigquery
         import pandas
@@ -453,29 +486,11 @@ class GbqConnector(object):
         job_id = query_reply.job_id
         logger.debug("Job ID: %s" % job_id)
 
-        while query_reply.state != "DONE":
-            self.log_elapsed_seconds("  Elapsed", "s. Waiting...")
-
-            timeout_ms = job_config.get("jobTimeoutMs") or job_config["query"].get(
-                "timeoutMs"
-            )
-            timeout_ms = int(timeout_ms) if timeout_ms else None
-            if timeout_ms and timeout_ms < self.get_elapsed_seconds() * 1000:
-                self.client.cancel_job(query_reply)
-                raise QueryTimeout("Query timeout: {} ms".format(timeout_ms))
-
-            timeout_sec = 1.0
-            if timeout_ms:
-                # Wait at most 1 second so we can show progress bar
-                timeout_sec = min(1.0, timeout_ms / 1000.0)
-
-            try:
-                query_reply.result(timeout=timeout_sec)
-            except TimeoutError:
-                # Use our own timeout logic
-                pass
-            except self.http_error as ex:
-                self.process_http_error(ex)
+        timeout_ms = job_config.get("jobTimeoutMs") or job_config["query"].get(
+            "timeoutMs"
+        )
+        timeout_ms = int(timeout_ms) if timeout_ms else None
+        self._wait_for_query_job(query_reply, timeout_ms)
 
         if query_reply.cache_hit:
             logger.debug("Query done.\nCache hit.\n")

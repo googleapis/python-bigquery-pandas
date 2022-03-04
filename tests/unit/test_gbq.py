@@ -4,10 +4,12 @@
 
 # -*- coding: utf-8 -*-
 
+import concurrent.futures
 import copy
 import datetime
 from unittest import mock
 
+import freezegun
 import google.api_core.exceptions
 import numpy
 import pandas
@@ -131,6 +133,42 @@ def test__transform_read_gbq_configuration_makes_copy(original, expected):
     # Catch if we accidentally modified the original.
     did_change = original == got
     assert did_change == should_change
+
+
+def test__wait_for_query_job_exits_when_done(mock_bigquery_client):
+    connector = _make_connector()
+    connector.client = mock_bigquery_client
+    connector.start = datetime.datetime(2020, 1, 1).timestamp()
+
+    mock_query = mock.create_autospec(google.cloud.bigquery.QueryJob)
+    type(mock_query).state = mock.PropertyMock(side_effect=("RUNNING", "DONE"))
+    mock_query.result.side_effect = concurrent.futures.TimeoutError("fake timeout")
+
+    with freezegun.freeze_time("2020-01-01 00:00:00", auto_tick_seconds=15):
+        connector._wait_for_query_job(mock_query, 60)
+
+    mock_bigquery_client.cancel_job.assert_not_called()
+
+
+def test__wait_for_query_job_cancels_after_timeout(mock_bigquery_client):
+    connector = _make_connector()
+    connector.client = mock_bigquery_client
+    connector.start = datetime.datetime(2020, 1, 1).timestamp()
+
+    mock_query = mock.create_autospec(google.cloud.bigquery.QueryJob)
+    mock_query.job_id = "a-random-id"
+    mock_query.location = "job-location"
+    mock_query.state = "RUNNING"
+    mock_query.result.side_effect = concurrent.futures.TimeoutError("fake timeout")
+
+    with freezegun.freeze_time(
+        "2020-01-01 00:00:00", auto_tick_seconds=15
+    ), pytest.raises(gbq.QueryTimeout):
+        connector._wait_for_query_job(mock_query, 60)
+
+    mock_bigquery_client.cancel_job.assert_called_with(
+        "a-random-id", location="job-location"
+    )
 
 
 def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):
