@@ -412,7 +412,7 @@ class GbqConnector(object):
         )
 
     def _wait_for_query_job(self, query_reply, timeout_ms):
-        """Wait for query to complete, pausing occasionaly to update progress.
+        """Wait for query to complete, pausing occasionally to update progress.
 
         Args:
             query_reply (QueryJob):
