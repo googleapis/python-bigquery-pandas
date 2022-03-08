@@ -184,7 +184,7 @@ def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):
 
 def test_GbqConnector_process_http_error_transforms_timeout():
     original = google.api_core.exceptions.GoogleAPICallError(
-        "ob execution was cancelled: Job timed out after 0s"
+        "Job execution was cancelled: Job timed out after 0s"
     )
     with pytest.raises(gbq.QueryTimeout):
         gbq.GbqConnector.process_http_error(original)
