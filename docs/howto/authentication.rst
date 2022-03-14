@@ -159,7 +159,7 @@ credentials are not found.
        # Note, this doesn't work if you're running from a notebook on a
        # remote sever, such as over SSH or with Google Colab. In those cases,
        # install the gcloud command line interface and authenticate with the
-       # `gcloud auth application-default login` command an the `--no-browser`
+       # `gcloud auth application-default login` command and the `--no-browser`
        # option.
        auth_local_webserver=True,
    )
