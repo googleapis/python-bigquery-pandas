@@ -1,103 +1,70 @@
-Python Client for Google BigQuery connector for pandas API
-==========================================================
+pandas-gbq
+==========
 
-|preview| |pypi| |versions|
+|preview| |pypi| |versions| 
 
-`Google BigQuery connector for pandas API`_: 
+**pandas-gbq** is a package providing an interface to the Google BigQuery API from pandas.
 
-- `Client Library Documentation`_
-- `Product Documentation`_
+-  `Library Documentation`_
+-  `Product Documentation`_
 
 .. |preview| image:: https://img.shields.io/badge/support-preview-orange.svg
-   :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#stability-levels
+   :target: https://github.com/googleapis/google-cloud-python/blob/main/README.rst#beta-support
 .. |pypi| image:: https://img.shields.io/pypi/v/pandas-gbq.svg
    :target: https://pypi.org/project/pandas-gbq/
 .. |versions| image:: https://img.shields.io/pypi/pyversions/pandas-gbq.svg
    :target: https://pypi.org/project/pandas-gbq/
-.. _Google BigQuery connector for pandas API: https://cloud.google.com/bigquery
-.. _Client Library Documentation: https://cloud.google.com/python/docs/reference//latest
-.. _Product Documentation:  https://cloud.google.com/bigquery
-
-Quick Start
------------
-
-In order to use this library, you first need to go through the following steps:
-
-1. `Select or create a Cloud Platform project.`_
-2. `Enable billing for your project.`_
-3. `Enable the Google BigQuery connector for pandas API.`_
-4. `Setup Authentication.`_
-
-.. _Select or create a Cloud Platform project.: https://console.cloud.google.com/project
-.. _Enable billing for your project.: https://cloud.google.com/billing/docs/how-to/modify-project#enable_billing_for_a_project
-.. _Enable the Google BigQuery connector for pandas API.:  https://cloud.google.com/bigquery
-.. _Setup Authentication.: https://googleapis.dev/python/google-api-core/latest/auth.html
+.. _Library Documentation: https://googleapis.dev/python/pandas-gbq/latest/
+.. _Product Documentation: https://cloud.google.com/bigquery/docs/reference/v2/
 
 Installation
+------------
+
+
+Install latest release version via conda
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: shell
+
+   $ conda install pandas-gbq --channel conda-forge
+
+Install latest release version via pip
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: shell
+
+   $ pip install pandas-gbq
+
+Install latest development version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: shell
+
+    $ pip install git+https://github.com/googleapis/python-bigquery-pandas.git
+
+
+Usage
+-----
+
+Perform a query
+~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    import pandas_gbq
+    
+    result_dataframe = pandas_gbq.read_gbq("SELECT column FROM dataset.table WHERE value = 'something'")
+
+Upload a dataframe
+~~~~~~~~~~~~~~~~~~
+
+.. code:: python
+
+    import pandas_gbq
+    
+    pandas_gbq.to_gbq(dataframe, "dataset.table")
+
+More samples
 ~~~~~~~~~~~~
 
-Install this library in a `virtualenv`_ using pip. `virtualenv`_ is a tool to
-create isolated Python environments. The basic problem it addresses is one of
-dependencies and versions, and indirectly permissions.
-
-With `virtualenv`_, it's possible to install this library without needing system
-install permissions, and without clashing with the installed system
-dependencies.
-
-.. _`virtualenv`: https://virtualenv.pypa.io/en/latest/
-
-
-Code samples and snippets
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Code samples and snippets live in the `samples/` folder.
-
-
-Supported Python Versions
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Our client libraries are compatible with all current [active](https://devguide.python.org/devcycle/#in-development-main-branch) and [maintenance](https://devguide.python.org/devcycle/#maintenance-branches) versions of
-Python.
-
-Python >= 3.7
-
-Unsupported Python Versions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Python <= 3.6
-
-If you are using an [end-of-life](https://devguide.python.org/devcycle/#end-of-life-branches)
-version of Python, we recommend that you update as soon as possible to an actively supported version.
-
-
-Mac/Linux
-^^^^^^^^^
-
-.. code-block:: console
-
-    pip install virtualenv
-    virtualenv <your-env>
-    source <your-env>/bin/activate
-    <your-env>/bin/pip install pandas-gbq
-
-
-Windows
-^^^^^^^
-
-.. code-block:: console
-
-    pip install virtualenv
-    virtualenv <your-env>
-    <your-env>\Scripts\activate
-    <your-env>\Scripts\pip.exe install pandas-gbq
-
-Next Steps
-~~~~~~~~~~
-
--  Read the `Client Library Documentation`_ for Google BigQuery connector for pandas API
-   to see other available methods on the client.
--  Read the `Google BigQuery connector for pandas API Product documentation`_ to learn
-   more about the product and see How-to Guides.
--  View this `README`_ to see the full list of Cloud
-   APIs that we cover.
-
-.. _Google BigQuery connector for pandas API Product documentation:  https://cloud.google.com/bigquery
-.. _README: https://github.com/googleapis/google-cloud-python/blob/main/README.rst
+See the `pandas-gbq documentation <https://googleapis.dev/python/pandas-gbq/latest/>`_ for more details.
