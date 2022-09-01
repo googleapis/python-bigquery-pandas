@@ -196,9 +196,7 @@ def unit(session):
 def install_systemtest_dependencies(session, *constraints):
 
     # Use pre-release gRPC for system tests.
-
-    # Exclude version 1.49.0rc1 which has a known issue. See https://github.com/grpc/grpc/pull/30642
-    session.install("--pre", "grpcio!=1.49.0rc1")
+    session.install("--pre", "grpcio")
 
     session.install(*SYSTEM_TEST_STANDARD_DEPENDENCIES, *constraints)
 
@@ -294,8 +292,7 @@ def prerelease(session):
         "google-cloud-bigquery-storage",
         "google-cloud-core",
         "google-resumable-media",
-        # Exclude version 1.49.0rc1 which has a known issue. See https://github.com/grpc/grpc/pull/30642
-        "grpcio!=1.49.0rc1",
+        "grpcio",
     )
     session.install(
         "freezegun",
@@ -462,8 +459,7 @@ def prerelease_deps(session):
         # dependency of grpc
         "six",
         "googleapis-common-protos",
-        # Exclude version 1.49.0rc1 which has a known issue. See https://github.com/grpc/grpc/pull/30642
-        "grpcio!=1.49.0rc1",        
+        "grpcio",
         "grpcio-status",
         "google-api-core",
         "proto-plus",
