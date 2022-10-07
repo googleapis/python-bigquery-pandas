@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.17.10](https://github.com/googleapis/python-bigquery-pandas/compare/v0.17.9...v0.17.10) (2022-10-07)
+
+
+### Bug Fixes
+
+* **deps:** Allow protobuf 3.19.5 ([#577](https://github.com/googleapis/python-bigquery-pandas/issues/577)) ([afd6e21](https://github.com/googleapis/python-bigquery-pandas/commit/afd6e21e46456051ab6867b305e1a75e72a83dd1))
+
 ## [0.17.9](https://github.com/googleapis/python-bigquery-pandas/compare/v0.17.8...v0.17.9) (2022-09-27)
 
 
