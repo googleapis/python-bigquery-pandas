@@ -577,6 +577,7 @@ class GbqConnector(object):
         self,
         dataframe,
         destination_table_ref,
+        write_disposition,
         chunksize=None,
         schema=None,
         progress_bar=True,
@@ -586,12 +587,12 @@ class GbqConnector(object):
         from pandas_gbq import load
 
         total_rows = len(dataframe)
-
         try:
             chunks = load.load_chunks(
                 self.client,
                 dataframe,
                 destination_table_ref,
+                write_disposition,
                 chunksize=chunksize,
                 schema=schema,
                 location=self.location,
@@ -609,10 +610,10 @@ class GbqConnector(object):
         except self.http_error as ex:
             self.process_http_error(ex)
 
-    def delete_and_recreate_table(self, project_id, dataset_id, table_id, table_schema):
-        table = _Table(project_id, dataset_id, credentials=self.credentials)
-        table.delete(table_id)
-        table.create(table_id, table_schema)
+    # def delete_and_recreate_table(self, project_id, dataset_id, table_id, table_schema):
+    #     table = _Table(project_id, dataset_id, credentials=self.credentials)
+    #     table.delete(table_id)
+    #     table.create(table_id, table_schema)
 
 
 def _bqschema_to_nullsafe_dtypes(schema_fields):
@@ -963,13 +964,13 @@ def to_gbq(
     project_id=None,
     chunksize=None,
     reauth=False,
-    if_exists="fail",
     auth_local_webserver=True,
     table_schema=None,
     location=None,
     progress_bar=True,
     credentials=None,
     api_method: str = "default",
+    write_disposition: str = "WRITE_EMPTY",
     verbose=None,
     private_key=None,
 ):
@@ -1082,6 +1083,7 @@ def to_gbq(
 
     from google.api_core import exceptions as google_exceptions
     from google.cloud import bigquery
+    import pdb
 
     if verbose is not None and FEATURES.pandas_has_deprecated_verbose:
         warnings.warn(
@@ -1114,9 +1116,6 @@ def to_gbq(
                 stacklevel=2,
             )
 
-    if if_exists not in ("fail", "replace", "append"):
-        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
-
     if "." not in destination_table:
         raise NotFoundException(
             "Invalid Table Name. Should be of the form 'datasetId.tableId' or "
@@ -1142,8 +1141,10 @@ def to_gbq(
     table_id = destination_table_ref.table_id
 
     default_schema = _generate_bq_schema(dataframe)
+    # If table_schema isn't provided, we'll create one for you
     if not table_schema:
         table_schema = default_schema
+    # It table_schema is provided, we'll update the default schema to the provided table_schema
     else:
         table_schema = pandas_gbq.schema.update_schema(
             default_schema, dict(fields=table_schema)
@@ -1151,8 +1152,11 @@ def to_gbq(
 
     # If table exists, check if_exists parameter
     try:
+        # try to get the table
         table = bqclient.get_table(destination_table_ref)
+    # and unless the table is not found (doesn't exist)...
     except google_exceptions.NotFound:
+        # if the table didn't exist, create it
         table_connector = _Table(
             project_id_table,
             dataset_id,
@@ -1161,34 +1165,25 @@ def to_gbq(
         )
         table_connector.create(table_id, table_schema)
     else:
+        # convert original schema (the schema that already exists) to pandas-gbq API format
+        # TODO: rename to "remote_schema" | add keyword arguments? `schema_is_subset(remote_schema=remote_schema, local_schema=table_schema)`
         original_schema = pandas_gbq.schema.to_pandas_gbq(table.schema)
-
-        if if_exists == "fail":
-            raise TableCreationError(
-                "Could not create the table because it "
-                "already exists. "
-                "Change the if_exists parameter to "
-                "'append' or 'replace' data."
-            )
-        elif if_exists == "replace":
-            connector.delete_and_recreate_table(
-                project_id_table, dataset_id, table_id, table_schema
-            )
-        else:
-            if not pandas_gbq.schema.schema_is_subset(original_schema, table_schema):
-                raise InvalidSchema(
-                    "Please verify that the structure and "
-                    "data types in the DataFrame match the "
-                    "schema of the destination table.",
-                    table_schema,
-                    original_schema,
-                )
-
-            # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
-            # matches. See: https://github.com/pydata/pandas-gbq/issues/315
-            table_schema = pandas_gbq.schema.update_schema(
-                table_schema, original_schema
-            )
+        # check that the schema created here matches the schema of the destination table - does this have to happen here?
+        # we'd want to catch a mismatch early...
+        # "original_schema" is "remote_schema", "table_schema" is "local_schema"
+        # if not pandas_gbq.schema.schema_is_subset(original_schema, table_schema):
+        #                 raise InvalidSchema(
+        #                 "Please verify that the structure and "
+        #                 "data types in the DataFrame match the "
+        #                 "schema of the destination table.",
+        #                 table_schema,
+        #                 original_schema,
+        #             )
+        # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
+        # matches. See: https://github.com/pydata/pandas-gbq/issues/315
+        table_schema = pandas_gbq.schema.update_schema(
+            table_schema, original_schema
+        )
 
     if dataframe.empty:
         # Create the table (if needed), but don't try to run a load job with an
@@ -1198,6 +1193,7 @@ def to_gbq(
     connector.load_data(
         dataframe,
         destination_table_ref,
+        write_disposition=write_disposition,
         chunksize=chunksize,
         schema=table_schema,
         progress_bar=progress_bar,
@@ -1291,64 +1287,6 @@ class _Table(GbqConnector):
             return False
         except self.http_error as ex:
             self.process_http_error(ex)
-
-    def create(self, table_id, schema):
-        """Create a table in Google BigQuery given a table and schema
-
-        Parameters
-        ----------
-        table : str
-            Name of table to be written
-        schema : str
-            Use the generate_bq_schema to generate your table schema from a
-            dataframe.
-        """
-        from google.cloud.bigquery import DatasetReference
-        from google.cloud.bigquery import Table
-        from google.cloud.bigquery import TableReference
-
-        if self.exists(table_id):
-            raise TableCreationError("Table {0} already exists".format(table_id))
-
-        if not _Dataset(self.project_id, credentials=self.credentials).exists(
-            self.dataset_id
-        ):
-            _Dataset(
-                self.project_id,
-                credentials=self.credentials,
-                location=self.location,
-            ).create(self.dataset_id)
-
-        table_ref = TableReference(
-            DatasetReference(self.project_id, self.dataset_id), table_id
-        )
-        table = Table(table_ref)
-        table.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
-
-        try:
-            self.client.create_table(table)
-        except self.http_error as ex:
-            self.process_http_error(ex)
-
-    def delete(self, table_id):
-        """Delete a table in Google BigQuery
-
-        Parameters
-        ----------
-        table : str
-            Name of table to be deleted
-        """
-        from google.api_core.exceptions import NotFound
-
-        table_ref = self._table_ref(table_id)
-        try:
-            self.client.delete_table(table_ref)
-        except NotFound:
-            # Ignore 404 error which may occur if table already deleted
-            pass
-        except self.http_error as ex:
-            self.process_http_error(ex)
-
 
 class _Dataset(GbqConnector):
     def __init__(
