@@ -151,7 +151,9 @@ def test_load_csv_from_file_generates_schema(mock_bigquery_client):
     )
 
     _ = list(
-        load.load_csv_from_file(mock_bigquery_client, df, destination, None, None, None, None)
+        load.load_csv_from_file(
+            mock_bigquery_client, df, destination, None, None, None, None
+        )
     )
 
     mock_load = mock_bigquery_client.load_table_from_file
@@ -235,7 +237,14 @@ def test_load_parquet_allows_client_to_generate_schema(mock_bigquery_client):
         "my-project.my_dataset.my_table"
     )
 
-    load.load_parquet(mock_bigquery_client, df, destination, None, None, None,)
+    load.load_parquet(
+        mock_bigquery_client,
+        df,
+        destination,
+        None,
+        None,
+        None,
+    )
 
     mock_load = mock_bigquery_client.load_table_from_dataframe
     assert mock_load.called

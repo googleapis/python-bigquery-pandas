@@ -68,7 +68,9 @@ def test_to_gbq_load_method_translates_exception(
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_append(mock_bigquery_client, expected_load_method):
+def test_to_gbq_with_write_disposition_append(
+    mock_bigquery_client, expected_load_method
+):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
@@ -87,7 +89,9 @@ def test_to_gbq_with_write_disposition_append(mock_bigquery_client, expected_loa
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client, expected_load_method):
+def test_to_gbq_with_write_disposition_append_mismatch(
+    mock_bigquery_client, expected_load_method
+):
     from google.cloud.bigquery import SchemaField
     import pdb
 
@@ -116,7 +120,9 @@ def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client, exp
     assert exc.local_schema == {"fields": [{"name": "col_a", "type": "FLOAT"}]}
 
 
-def test_to_gbq_with_write_disposition_truncate(mock_bigquery_client, expected_load_method):
+def test_to_gbq_with_write_disposition_truncate(
+    mock_bigquery_client, expected_load_method
+):
     mock_bigquery_client.get_table.side_effect = (
         # Initial check
         google.cloud.bigquery.Table("myproj.my_dataset.my_table"),
@@ -148,7 +154,6 @@ def test_to_gbq_with_write_disposition_truncate_cross_project(
         write_disposition="WRITE_TRUNCATE",
     )
     expected_load_method.assert_called_once()
-
 
     # Check that billing project and destination table is set correctly.
     expected_load_method.assert_called_once()
