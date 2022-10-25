@@ -675,7 +675,7 @@ class TestToGBQIntegration(object):
         df = make_mixed_dataframe_v2(test_size)
         self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df))
 
-        # Test the default value of if_exists is 'fail'
+        # Test the default value of write_disposition == 'WRITE_EMPTY'
         with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,
@@ -684,13 +684,13 @@ class TestToGBQIntegration(object):
                 credentials=self.credentials,
             )
 
-        # Test the if_exists parameter with value 'fail'
+        # Test the write_disposition parameter with value 'WRITE_EMPTY'
         with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
                 project_id,
-                if_exists="fail",
+                write_disposition="WRITE_EMPTY",
                 credentials=self.credentials,
             )
 
@@ -709,12 +709,12 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the if_exists parameter with value 'append'
+        # Test the write_disposition parameter with value 'WRITE_APPEND
         gbq.to_gbq(
             df,
             self.destination_table + test_id,
             project_id,
-            if_exists="append",
+            write_disposition="WRITE_APPEND",
             credentials=self.credentials,
         )
 
@@ -734,7 +734,7 @@ class TestToGBQIntegration(object):
                 df_different_schema,
                 self.destination_table + test_id,
                 project_id,
-                if_exists="append",
+                write_disposition="WRITE_APPEND",
                 credentials=self.credentials,
             )
 
@@ -755,12 +755,12 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the if_exists parameter with value 'append'
+        # Test the write_disposition parameter with value 'WRITE_APPEND'
         gbq.to_gbq(
             df_subset_cols,
             self.destination_table + test_id,
             project_id,
-            if_exists="append",
+            write_disposition="WRITE_APPEND",
             credentials=self.credentials,
         )
 
@@ -789,12 +789,12 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the if_exists parameter with the value 'replace'.
+        # Test the write_disposition parameter with the value 'WRITE_TRUNCATE'.
         gbq.to_gbq(
             df_different_schema,
             self.destination_table + test_id,
             project_id,
-            if_exists="replace",
+            write_disposition="WRITE_TRUNCATE",
             credentials=self.credentials,
         )
 
@@ -924,7 +924,7 @@ class TestToGBQIntegration(object):
             df_columns_reversed,
             self.destination_table + test_id,
             project_id,
-            if_exists="append",
+            write_disposition="WRITE_APPEND",
             credentials=self.credentials,
         )
 
@@ -1324,7 +1324,7 @@ def test_to_gbq_does_not_override_mode(gbq_table, gbq_connector):
         pandas.DataFrame({"A": [1.0], "B": [2.0], "C": ["a"]}),
         "{0}.{1}".format(gbq_table.dataset_id, table_id),
         project_id=gbq_connector.project_id,
-        if_exists="append",
+        write_disposition="WRITE_APPEND",
     )
 
     assert verify_schema(gbq_connector, gbq_table.dataset_id, table_id, table_schema)

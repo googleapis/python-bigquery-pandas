@@ -16,7 +16,6 @@ from google.cloud import bigquery
 from pandas_gbq import exceptions
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
-import pdb
 
 
 def encode_chunk(dataframe):
@@ -120,14 +119,18 @@ def load_parquet(
     billing_project: Optional[str] = None,
 ):
     job_config = bigquery.LoadJobConfig()
+
+    # if write_disposition is not None:
     job_config.write_disposition = write_disposition
+    # else:
+    #     job_config.write_disposition = "WRITE_EMPTY"
+
     job_config.source_format = "PARQUET"
 
     if schema is not None:
         schema = pandas_gbq.schema.remove_policy_tags(schema)
         job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
         dataframe = cast_dataframe_for_parquet(dataframe, schema)
-
     try:
         client.load_table_from_dataframe(
             dataframe,
@@ -150,8 +153,12 @@ def load_csv(
     load_chunk: Callable,
 ):
     job_config = bigquery.LoadJobConfig()
+
+    # if write_disposition is not None:
     job_config.write_disposition = write_disposition
-    # job_config.create_disposition = "CREATE_NEVER"
+    # else:
+    #     job_config.write_disposition = "WRITE_EMPTY"
+
     job_config.source_format = "CSV"
     job_config.allow_quoted_newlines = True
 
@@ -190,7 +197,7 @@ def load_csv_from_dataframe(
             project=billing_project,
         ).result()
 
-    return load_csv(dataframe, chunksize, bq_schema, write_disposition, load_chunk)
+    return load_csv(dataframe, write_disposition, chunksize, bq_schema, load_chunk)
 
 
 def load_csv_from_file(
@@ -227,21 +234,20 @@ def load_csv_from_file(
         finally:
             chunk_buffer.close()
 
-    return load_csv(dataframe, chunksize, bq_schema, write_disposition, load_chunk)
+    return load_csv(dataframe, write_disposition, chunksize, bq_schema, load_chunk)
 
 
 def load_chunks(
     client,
     dataframe,
     destination_table_ref,
-    write_disposition,
     chunksize=None,
     schema=None,
     location=None,
     api_method="load_parquet",
+    write_disposition="WRITE_EMPTY",
     billing_project: Optional[str] = None,
 ):
-    # pdb.set_trace()
     if api_method == "load_parquet":
         load_parquet(
             client,
@@ -260,10 +266,10 @@ def load_chunks(
                 client,
                 dataframe,
                 destination_table_ref,
+                write_disposition,
                 location,
                 chunksize,
                 schema,
-                write_disposition=write_disposition,
                 billing_project=billing_project,
             )
         else:
@@ -271,10 +277,10 @@ def load_chunks(
                 client,
                 dataframe,
                 destination_table_ref,
+                write_disposition,
                 location,
                 chunksize,
                 schema,
-                write_disposition=write_disposition,
                 billing_project=billing_project,
             )
     else:

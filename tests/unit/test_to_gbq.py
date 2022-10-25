@@ -87,14 +87,18 @@ def test_to_gbq_with_write_disposition_append(mock_bigquery_client, expected_loa
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client):
+def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client, expected_load_method):
     from google.cloud.bigquery import SchemaField
+    import pdb
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
         "myproj.my_dataset.my_table",
         schema=(SchemaField("col_a", "INTEGER"), SchemaField("col_b", "STRING")),
     )
+
+    # expected_load_method.side_effect = google.api_core.exceptions.NotFound("schema mismatch")
     with pytest.raises(gbq.InvalidSchema) as exception_block:
+        # pdb.set_trace()
         gbq.to_gbq(
             DataFrame({"col_a": [0.25, 1.5, -1.0]}),
             "my_dataset.my_table",
@@ -154,13 +158,3 @@ def test_to_gbq_with_write_disposition_truncate_cross_project(
     assert table_destination.dataset_id == "my_dataset"
     assert table_destination.table_id == "my_table"
     assert load_kwargs["project"] == "billing-project"
-
-
-def test_to_gbq_with_write_disposition_unspecified():
-    with pytest.raises(ValueError):
-        gbq.to_gbq(
-            DataFrame([[1]]),
-            "my_dataset.my_table",
-            project_id="myproj",
-            write_disposition="WRITE_DISPOSITION_UNSPECIFIED",
-        )

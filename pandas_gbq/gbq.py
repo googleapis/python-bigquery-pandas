@@ -8,6 +8,7 @@ from datetime import datetime
 import logging
 import re
 import time
+from tkinter import W
 import typing
 from typing import Any, Dict, Optional, Sequence, Union
 import warnings
@@ -109,7 +110,7 @@ class InvalidPageToken(ValueError):
     pass
 
 
-class InvalidSchema(ValueError):
+class InvalidSchema(GenericGBQException):
     """
     Raised when the provided DataFrame does
     not match the schema of the destination
@@ -117,19 +118,13 @@ class InvalidSchema(ValueError):
     """
 
     def __init__(
-        self, message: str, local_schema: Dict[str, Any], remote_schema: Dict[str, Any]
-    ):
+        self, message: str):
         super().__init__(message)
-        self._local_schema = local_schema
-        self._remote_schema = remote_schema
+        self._message = message
 
     @property
-    def local_schema(self) -> Dict[str, Any]:
-        return self._local_schema
-
-    @property
-    def remote_schema(self) -> Dict[str, Any]:
-        return self._remote_schema
+    def message(self) -> str:
+        return self._message
 
 
 class NotFoundException(ValueError):
@@ -290,9 +285,11 @@ class GbqConnector(object):
         global context
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
+        from google.api_core.exceptions import BadRequest
+
         from pandas_gbq import auth
 
-        self.http_error = (ClientError, GoogleAPIError)
+        self.http_error = (ClientError, GoogleAPIError, BadRequest)
         self.project_id = project_id
         self.location = location
         self.reauth = reauth
@@ -377,13 +374,17 @@ class GbqConnector(object):
 
     @staticmethod
     def process_http_error(ex):
+        import pdb
         # See `BigQuery Troubleshooting Errors
         # <https://cloud.google.com/bigquery/troubleshooting-errors>`__
-
         if "cancelled" in ex.message:
             raise QueryTimeout("Reason: {0}".format(ex))
-
-        raise GenericGBQException("Reason: {0}".format(ex))
+        elif "Provided Schema does not match" in ex.message:
+            # pdb.set_trace()
+            error_message = ex.errors[0]["message"]
+            raise InvalidSchema(f"Reason: {error_message}")
+        else:
+            raise GenericGBQException("Reason: {0}".format(ex))
 
     def download_table(
         self,
@@ -577,7 +578,7 @@ class GbqConnector(object):
         self,
         dataframe,
         destination_table_ref,
-        write_disposition,
+        write_disposition: str = "WRITE_EMPTY",
         chunksize=None,
         schema=None,
         progress_bar=True,
@@ -592,11 +593,11 @@ class GbqConnector(object):
                 self.client,
                 dataframe,
                 destination_table_ref,
-                write_disposition,
                 chunksize=chunksize,
                 schema=schema,
                 location=self.location,
                 api_method=api_method,
+                write_disposition=write_disposition,
                 billing_project=billing_project,
             )
             if progress_bar and tqdm:
@@ -609,12 +610,6 @@ class GbqConnector(object):
                 )
         except self.http_error as ex:
             self.process_http_error(ex)
-
-    # def delete_and_recreate_table(self, project_id, dataset_id, table_id, table_schema):
-    #     table = _Table(project_id, dataset_id, credentials=self.credentials)
-    #     table.delete(table_id)
-    #     table.create(table_id, table_schema)
-
 
 def _bqschema_to_nullsafe_dtypes(schema_fields):
     """Specify explicit dtypes based on BigQuery schema.
@@ -970,10 +965,13 @@ def to_gbq(
     progress_bar=True,
     credentials=None,
     api_method: str = "default",
-    write_disposition: str = "WRITE_EMPTY",
     verbose=None,
     private_key=None,
+    write_disposition: str = "WRITE_EMPTY"
 ):
+
+    # write_disposition: str = "WRITE_APPEND",
+
     """Write a DataFrame to a Google BigQuery table.
 
     The main method a user calls to export pandas DataFrame contents to
@@ -1002,6 +1000,8 @@ def to_gbq(
     reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
+
+TODO: write_disposition
     if_exists : str, default 'fail'
         Behavior when the destination table exists. Value can be one of:
 
@@ -1287,6 +1287,61 @@ class _Table(GbqConnector):
             return False
         except self.http_error as ex:
             self.process_http_error(ex)
+
+    def create(self, table_id, schema):
+        """Create a table in Google BigQuery given a table and schema
+        Parameters
+        ----------
+        table : str
+            Name of table to be written
+        schema : str
+            Use the generate_bq_schema to generate your table schema from a
+            dataframe.
+        """
+        from google.cloud.bigquery import DatasetReference
+        from google.cloud.bigquery import Table
+        from google.cloud.bigquery import TableReference
+
+        if self.exists(table_id):
+            raise TableCreationError("Table {0} already exists".format(table_id))
+
+        if not _Dataset(self.project_id, credentials=self.credentials).exists(
+            self.dataset_id
+        ):
+            _Dataset(
+                self.project_id,
+                credentials=self.credentials,
+                location=self.location,
+            ).create(self.dataset_id)
+
+        table_ref = TableReference(
+            DatasetReference(self.project_id, self.dataset_id), table_id
+        )
+        table = Table(table_ref)
+        table.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
+
+        try:
+            self.client.create_table(table)
+        except self.http_error as ex:
+            self.process_http_error(ex)
+
+    def delete(self, table_id):
+            """Delete a table in Google BigQuery
+            Parameters
+            ----------
+            table : str
+                Name of table to be deleted
+            """
+            from google.api_core.exceptions import NotFound
+
+            table_ref = self._table_ref(table_id)
+            try:
+                self.client.delete_table(table_ref)
+            except NotFound:
+                # Ignore 404 error which may occur if table already deleted
+                pass
+            except self.http_error as ex:
+                self.process_http_error(ex)
 
 class _Dataset(GbqConnector):
     def __init__(
