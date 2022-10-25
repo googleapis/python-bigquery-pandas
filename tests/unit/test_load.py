@@ -213,12 +213,10 @@ def test_load_chunks_omits_policy_tags(
             mock_bigquery_client, df, destination, schema=schema, api_method=api_method
         )
     )
-    import pdb
 
     mock_load = load_method(mock_bigquery_client, api_method=api_method)
     assert mock_load.called
     _, kwargs = mock_load.call_args
-    # pdb.set_trace()
     assert "job_config" in kwargs
     sent_field = kwargs["job_config"].schema[0].to_api_repr()
     assert "policyTags" not in sent_field

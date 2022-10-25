@@ -27,6 +27,12 @@ class InvalidPrivateKeyFormat(ValueError):
     Raised when provided private key has invalid format.
     """
 
+class InvalidSchema(GenericGBQException):
+    """
+    Raised when the provided DataFrame does
+    not match the schema of the destination
+    table in BigQuery.
+    """
 
 class PerformanceWarning(RuntimeWarning):
     """

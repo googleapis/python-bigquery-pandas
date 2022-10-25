@@ -90,19 +90,16 @@ def test_to_gbq_with_write_disposition_append(
 
 
 def test_to_gbq_with_write_disposition_append_mismatch(
-    mock_bigquery_client, expected_load_method
+    mock_bigquery_client
 ):
     from google.cloud.bigquery import SchemaField
-    import pdb
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
         "myproj.my_dataset.my_table",
         schema=(SchemaField("col_a", "INTEGER"), SchemaField("col_b", "STRING")),
     )
 
-    # expected_load_method.side_effect = google.api_core.exceptions.NotFound("schema mismatch")
     with pytest.raises(gbq.InvalidSchema) as exception_block:
-        # pdb.set_trace()
         gbq.to_gbq(
             DataFrame({"col_a": [0.25, 1.5, -1.0]}),
             "my_dataset.my_table",

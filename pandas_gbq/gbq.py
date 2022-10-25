@@ -24,6 +24,7 @@ if typing.TYPE_CHECKING:  # pragma: NO COVER
 from pandas_gbq.exceptions import (
     AccessDenied,
     GenericGBQException,
+    InvalidSchema
 )
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
@@ -108,22 +109,6 @@ class InvalidPageToken(ValueError):
     """
 
     pass
-
-
-class InvalidSchema(GenericGBQException):
-    """
-    Raised when the provided DataFrame does
-    not match the schema of the destination
-    table in BigQuery.
-    """
-
-    def __init__(self, message: str):
-        super().__init__(message)
-        self._message = message
-
-    @property
-    def message(self) -> str:
-        return self._message
 
 
 class NotFoundException(ValueError):
@@ -373,14 +358,12 @@ class GbqConnector(object):
 
     @staticmethod
     def process_http_error(ex):
-        import pdb
 
         # See `BigQuery Troubleshooting Errors
         # <https://cloud.google.com/bigquery/troubleshooting-errors>`__
         if "cancelled" in ex.message:
             raise QueryTimeout("Reason: {0}".format(ex))
         elif "Provided Schema does not match" in ex.message:
-            # pdb.set_trace()
             error_message = ex.errors[0]["message"]
             raise InvalidSchema(f"Reason: {error_message}")
         else:
@@ -578,7 +561,7 @@ class GbqConnector(object):
         self,
         dataframe,
         destination_table_ref,
-        write_disposition: str = "WRITE_EMPTY",
+        write_disposition,
         chunksize=None,
         schema=None,
         progress_bar=True,
@@ -970,9 +953,6 @@ def to_gbq(
     private_key=None,
     write_disposition: str = "WRITE_EMPTY",
 ):
-
-    # write_disposition: str = "WRITE_APPEND",
-
     """Write a DataFrame to a Google BigQuery table.
 
         The main method a user calls to export pandas DataFrame contents to
@@ -1002,16 +982,6 @@ def to_gbq(
             Force Google BigQuery to re-authenticate the user. This is useful
             if multiple accounts are used.
 
-    TODO: write_disposition
-        if_exists : str, default 'fail'
-            Behavior when the destination table exists. Value can be one of:
-
-            ``'fail'``
-                If table exists, do nothing.
-            ``'replace'``
-                If table exists, drop it, recreate it, and insert data.
-            ``'append'``
-                If table exists, insert data. Create if does not exist.
         auth_local_webserver : bool, default True
             Use the `local webserver flow
             <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server>`_
@@ -1078,13 +1048,22 @@ def to_gbq(
             or
             :func:`google.oauth2.service_account.Credentials.from_service_account_file`
             instead.
+
+        write_disposition: str, default "WRITE_EMPTY"
+            Behavior when the destination table exists. Value can be one of:
+
+            ``'WRITE_EMPTY'``
+                If table exists, do nothing.
+            ``'WRITE_TRUNCATE'``
+                If table exists, drop it, recreate it, and insert data.
+            ``'WRITE_APPEND'``
+                If table exists, insert data. Create if does not exist.
     """
 
     _test_google_api_imports()
 
     from google.api_core import exceptions as google_exceptions
     from google.cloud import bigquery
-    import pdb
 
     if verbose is not None and FEATURES.pandas_has_deprecated_verbose:
         warnings.warn(
@@ -1145,19 +1124,17 @@ def to_gbq(
     # If table_schema isn't provided, we'll create one for you
     if not table_schema:
         table_schema = default_schema
-    # It table_schema is provided, we'll update the default schema to the provided table_schema
+    # It table_schema is provided, we'll update the default_schema to the provided table_schema
     else:
         table_schema = pandas_gbq.schema.update_schema(
             default_schema, dict(fields=table_schema)
         )
 
-    # If table exists, check if_exists parameter
     try:
-        # try to get the table
+        # Try to get the table
         table = bqclient.get_table(destination_table_ref)
-    # and unless the table is not found (doesn't exist)...
     except google_exceptions.NotFound:
-        # if the table didn't exist, create it
+        # If the table doesn't already exist, create it
         table_connector = _Table(
             project_id_table,
             dataset_id,
@@ -1166,20 +1143,9 @@ def to_gbq(
         )
         table_connector.create(table_id, table_schema)
     else:
-        # convert original schema (the schema that already exists) to pandas-gbq API format
-        # TODO: rename to "remote_schema" | add keyword arguments? `schema_is_subset(remote_schema=remote_schema, local_schema=table_schema)`
+        # Convert original schema (the schema that already exists) to pandas-gbq API format
         original_schema = pandas_gbq.schema.to_pandas_gbq(table.schema)
-        # check that the schema created here matches the schema of the destination table - does this have to happen here?
-        # we'd want to catch a mismatch early...
-        # "original_schema" is "remote_schema", "table_schema" is "local_schema"
-        # if not pandas_gbq.schema.schema_is_subset(original_schema, table_schema):
-        #                 raise InvalidSchema(
-        #                 "Please verify that the structure and "
-        #                 "data types in the DataFrame match the "
-        #                 "schema of the destination table.",
-        #                 table_schema,
-        #                 original_schema,
-        #             )
+
         # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
         # matches. See: https://github.com/pydata/pandas-gbq/issues/315
         table_schema = pandas_gbq.schema.update_schema(table_schema, original_schema)
