@@ -9,11 +9,11 @@ db-dtypes==0.3.1
 google-api-core==2.10.2
 google-auth==2.13.0
 google-auth-oauthlib==0.7.0
-google-cloud-bigquery==1.27.2
-google-cloud-bigquery-storage==1.1.0
+google-cloud-bigquery==3.3.5
+google-cloud-bigquery-storage==2.16.2
 numpy==1.16.6
 pandas==0.24.2
 pyarrow==3.0.0
-pydata-google-auth==0.1.2
+pydata-google-auth==1.4.0
 tqdm==4.23.0
 protobuf==3.19.5
