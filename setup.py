@@ -23,9 +23,9 @@ description = "Google BigQuery connector for pandas"
 release_status = "Development Status :: 4 - Beta"
 dependencies = [
     "setuptools",
-    "db-dtypes >=0.3.1,<2.0.0",
+    "db-dtypes >=1.0.4,<2.0.0",
     "numpy >=1.16.6",
-    "pandas >=0.24.2",
+    "pandas >=1.5.1",
     "pyarrow >=3.0.0, <10.0dev",
     "pydata-google-auth",
     # Note: google-api-core and google-auth are also included via transitive
