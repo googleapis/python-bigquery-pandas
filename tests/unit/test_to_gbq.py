@@ -89,32 +89,26 @@ def test_to_gbq_with_write_disposition_append(
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_append_mismatch(
-    mock_bigquery_client
-):
+def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
         "myproj.my_dataset.my_table",
         schema=(SchemaField("col_a", "INTEGER"), SchemaField("col_b", "STRING")),
     )
+    mock_bigquery_client.side_effect = gbq.InvalidSchema(
+        message=r"Provided Schema does not match Table *"
+    )
 
-    with pytest.raises(gbq.InvalidSchema) as exception_block:
+    with pytest.raises((gbq.InvalidSchema)) as exception_block:
         gbq.to_gbq(
             DataFrame({"col_a": [0.25, 1.5, -1.0]}),
             "my_dataset.my_table",
             project_id="myproj",
             write_disposition="WRITE_APPEND",
         )
-
     exc = exception_block.value
-    assert exc.remote_schema == {
-        "fields": [
-            {"name": "col_a", "type": "INTEGER", "mode": "NULLABLE"},
-            {"name": "col_b", "type": "STRING", "mode": "NULLABLE"},
-        ]
-    }
-    assert exc.local_schema == {"fields": [{"name": "col_a", "type": "FLOAT"}]}
+    assert exc.message == r"Provided Schema does not match Table *"
 
 
 def test_to_gbq_with_write_disposition_truncate(

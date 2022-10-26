@@ -673,7 +673,15 @@ class TestToGBQIntegration(object):
         test_id = "2"
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
-        self.table.create(TABLE_ID + test_id, gbq._generate_bq_schema(df))
+
+        # Initialize table with sample data
+        gbq.to_gbq(
+            df,
+            self.destination_table + test_id,
+            project_id,
+            chunksize=10000,
+            credentials=self.credentials,
+        )
 
         # Test the default value of write_disposition == 'WRITE_EMPTY'
         with pytest.raises(gbq.TableCreationError):
@@ -813,13 +821,13 @@ class TestToGBQIntegration(object):
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
 
-        # Test invalid value for if_exists parameter raises value error
+        # Test invalid value for write_disposition parameter raises value error
         with pytest.raises(ValueError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
                 project_id,
-                if_exists="xxxxx",
+                write_disposition="WRITE_DISPOSITION_UNSPECIFIED",
                 credentials=self.credentials,
             )
 

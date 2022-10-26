@@ -119,12 +119,7 @@ def load_parquet(
     billing_project: Optional[str] = None,
 ):
     job_config = bigquery.LoadJobConfig()
-
-    # if write_disposition is not None:
     job_config.write_disposition = write_disposition
-    # else:
-    #     job_config.write_disposition = "WRITE_EMPTY"
-
     job_config.source_format = "PARQUET"
 
     if schema is not None:
@@ -154,11 +149,7 @@ def load_csv(
 ):
     job_config = bigquery.LoadJobConfig()
 
-    # if write_disposition is not None:
     job_config.write_disposition = write_disposition
-    # else:
-    #     job_config.write_disposition = "WRITE_EMPTY"
-
     job_config.source_format = "CSV"
     job_config.allow_quoted_newlines = True
 

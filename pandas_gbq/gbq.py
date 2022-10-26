@@ -21,11 +21,7 @@ import numpy as np
 if typing.TYPE_CHECKING:  # pragma: NO COVER
     import pandas
 
-from pandas_gbq.exceptions import (
-    AccessDenied,
-    GenericGBQException,
-    InvalidSchema
-)
+from pandas_gbq.exceptions import AccessDenied, GenericGBQException
 from pandas_gbq.features import FEATURES
 import pandas_gbq.schema
 import pandas_gbq.timestamp
@@ -111,6 +107,21 @@ class InvalidPageToken(ValueError):
     pass
 
 
+class InvalidSchema(ValueError):
+    """
+    Raised when the provided DataFrame does
+    not match the schema of the destination
+    table in BigQuery.
+    """
+
+    def __init__(self, message: str):
+        self._message = message
+
+    @property
+    def message(self) -> str:
+        return self._message
+
+
 class NotFoundException(ValueError):
     """
     Raised when the project_id, table or dataset provided in the query could
@@ -134,7 +145,12 @@ class TableCreationError(ValueError):
     Raised when the create table method fails
     """
 
-    pass
+    def __init__(self, message: str):
+        self._message = message
+
+    @property
+    def message(self) -> str:
+        return self._message
 
 
 class Context(object):
@@ -358,7 +374,6 @@ class GbqConnector(object):
 
     @staticmethod
     def process_http_error(ex):
-
         # See `BigQuery Troubleshooting Errors
         # <https://cloud.google.com/bigquery/troubleshooting-errors>`__
         if "cancelled" in ex.message:
@@ -366,6 +381,9 @@ class GbqConnector(object):
         elif "Provided Schema does not match" in ex.message:
             error_message = ex.errors[0]["message"]
             raise InvalidSchema(f"Reason: {error_message}")
+        elif "Already Exists: Table" in ex.message:
+            error_message = ex.errors[0]["message"]
+            raise TableCreationError(f"Reason: {error_message}")
         else:
             raise GenericGBQException("Reason: {0}".format(ex))
 
@@ -955,109 +973,109 @@ def to_gbq(
 ):
     """Write a DataFrame to a Google BigQuery table.
 
-        The main method a user calls to export pandas DataFrame contents to
-        Google BigQuery table.
+    The main method a user calls to export pandas DataFrame contents to
+    Google BigQuery table.
 
-        This method uses the Google Cloud client library to make requests to
-        Google BigQuery, documented `here
-        <https://googleapis.dev/python/bigquery/latest/index.html>`__.
+    This method uses the Google Cloud client library to make requests to
+    Google BigQuery, documented `here
+    <https://googleapis.dev/python/bigquery/latest/index.html>`__.
 
-        See the :ref:`How to authenticate with Google BigQuery <authentication>`
-        guide for authentication instructions.
+    See the :ref:`How to authenticate with Google BigQuery <authentication>`
+    guide for authentication instructions.
 
-        Parameters
-        ----------
-        dataframe : pandas.DataFrame
-            DataFrame to be written to a Google BigQuery table.
-        destination_table : str
-            Name of table to be written, in the form ``dataset.tablename`` or
-            ``project.dataset.tablename``.
-        project_id : str, optional
-            Google Cloud Platform project ID. Optional when available from
-            the environment.
-        chunksize : int, optional
-            Number of rows to be inserted in each chunk from the dataframe.
-            Set to ``None`` to load the whole dataframe at once.
-        reauth : bool, default False
-            Force Google BigQuery to re-authenticate the user. This is useful
-            if multiple accounts are used.
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        DataFrame to be written to a Google BigQuery table.
+    destination_table : str
+        Name of table to be written, in the form ``dataset.tablename`` or
+        ``project.dataset.tablename``.
+    project_id : str, optional
+        Google Cloud Platform project ID. Optional when available from
+        the environment.
+    chunksize : int, optional
+        Number of rows to be inserted in each chunk from the dataframe.
+        Set to ``None`` to load the whole dataframe at once.
+    reauth : bool, default False
+        Force Google BigQuery to re-authenticate the user. This is useful
+        if multiple accounts are used.
 
-        auth_local_webserver : bool, default True
-            Use the `local webserver flow
-            <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server>`_
-            instead of the `console flow
-            <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console>`_
-            when getting user credentials. Your code must run on the same machine
-            as your web browser and your web browser can access your application
-            via ``localhost:808X``.
+    auth_local_webserver : bool, default True
+        Use the `local webserver flow
+        <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server>`_
+        instead of the `console flow
+        <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console>`_
+        when getting user credentials. Your code must run on the same machine
+        as your web browser and your web browser can access your application
+        via ``localhost:808X``.
 
-            .. versionadded:: 0.2.0
-        table_schema : list of dicts, optional
-            List of BigQuery table fields to which according DataFrame
-            columns conform to, e.g. ``[{'name': 'col1', 'type':
-            'STRING'},...]``.  The ``type`` values must be BigQuery type names.
+        .. versionadded:: 0.2.0
+    table_schema : list of dicts, optional
+        List of BigQuery table fields to which according DataFrame
+        columns conform to, e.g. ``[{'name': 'col1', 'type':
+        'STRING'},...]``.  The ``type`` values must be BigQuery type names.
 
-            - If ``table_schema`` is provided, it may contain all or a subset of
-              DataFrame columns. If a subset is provided, the rest will be
-              inferred from the DataFrame dtypes.  If ``table_schema`` contains
-              columns not in the DataFrame, they'll be ignored.
-            - If ``table_schema`` is **not** provided, it will be
-              generated according to dtypes of DataFrame columns. See
-              `Inferring the Table Schema
-              <https://pandas-gbq.readthedocs.io/en/latest/writing.html#writing-schema>`__.
-              for a description of the schema inference.
+        - If ``table_schema`` is provided, it may contain all or a subset of
+          DataFrame columns. If a subset is provided, the rest will be
+          inferred from the DataFrame dtypes.  If ``table_schema`` contains
+          columns not in the DataFrame, they'll be ignored.
+        - If ``table_schema`` is **not** provided, it will be
+          generated according to dtypes of DataFrame columns. See
+          `Inferring the Table Schema
+          <https://pandas-gbq.readthedocs.io/en/latest/writing.html#writing-schema>`__.
+          for a description of the schema inference.
 
-            See `BigQuery API documentation on valid column names
-            <https://cloud.google.com/bigquery/docs/schemas#column_names`>__.
+        See `BigQuery API documentation on valid column names
+        <https://cloud.google.com/bigquery/docs/schemas#column_names`>__.
 
-            .. versionadded:: 0.3.1
-        location : str, optional
-            Location where the load job should run. See the `BigQuery locations
-            documentation
-            <https://cloud.google.com/bigquery/docs/dataset-locations>`__ for a
-            list of available locations. The location must match that of the
-            target dataset.
+        .. versionadded:: 0.3.1
+    location : str, optional
+        Location where the load job should run. See the `BigQuery locations
+        documentation
+        <https://cloud.google.com/bigquery/docs/dataset-locations>`__ for a
+        list of available locations. The location must match that of the
+        target dataset.
 
-            .. versionadded:: 0.5.0
-        progress_bar : bool, default True
-            Use the library `tqdm` to show the progress bar for the upload,
-            chunk by chunk.
+        .. versionadded:: 0.5.0
+    progress_bar : bool, default True
+        Use the library `tqdm` to show the progress bar for the upload,
+        chunk by chunk.
 
-            .. versionadded:: 0.5.0
-        credentials : google.auth.credentials.Credentials, optional
-            Credentials for accessing Google APIs. Use this parameter to override
-            default credentials, such as to use Compute Engine
-            :class:`google.auth.compute_engine.Credentials` or Service Account
-            :class:`google.oauth2.service_account.Credentials` directly.
+        .. versionadded:: 0.5.0
+    credentials : google.auth.credentials.Credentials, optional
+        Credentials for accessing Google APIs. Use this parameter to override
+        default credentials, such as to use Compute Engine
+        :class:`google.auth.compute_engine.Credentials` or Service Account
+        :class:`google.oauth2.service_account.Credentials` directly.
 
-            .. versionadded:: 0.8.0
-        api_method : str, optional
-            API method used to upload DataFrame to BigQuery. One of "load_parquet",
-            "load_csv". Default "load_parquet" if pandas is version 1.1.0+,
-            otherwise "load_csv".
+        .. versionadded:: 0.8.0
+    api_method : str, optional
+        API method used to upload DataFrame to BigQuery. One of "load_parquet",
+        "load_csv". Default "load_parquet" if pandas is version 1.1.0+,
+        otherwise "load_csv".
 
-            .. versionadded:: 0.16.0
-        verbose : bool, deprecated
-            Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
-            to adjust verbosity instead
-            <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
-        private_key : str, deprecated
-            Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
-            parameter and
-            :func:`google.oauth2.service_account.Credentials.from_service_account_info`
-            or
-            :func:`google.oauth2.service_account.Credentials.from_service_account_file`
-            instead.
+        .. versionadded:: 0.16.0
+    verbose : bool, deprecated
+        Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
+        to adjust verbosity instead
+        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+    private_key : str, deprecated
+        Deprecated in pandas-gbq version 0.8.0. Use the ``credentials``
+        parameter and
+        :func:`google.oauth2.service_account.Credentials.from_service_account_info`
+        or
+        :func:`google.oauth2.service_account.Credentials.from_service_account_file`
+        instead.
 
-        write_disposition: str, default "WRITE_EMPTY"
-            Behavior when the destination table exists. Value can be one of:
+    write_disposition: str, default "WRITE_EMPTY"
+        Behavior when the destination table exists. Value can be one of:
 
-            ``'WRITE_EMPTY'``
-                If table exists, do nothing.
-            ``'WRITE_TRUNCATE'``
-                If table exists, drop it, recreate it, and insert data.
-            ``'WRITE_APPEND'``
-                If table exists, insert data. Create if does not exist.
+        ``'WRITE_EMPTY'``
+            If table exists, do nothing.
+        ``'WRITE_TRUNCATE'``
+            If table exists, drop it, recreate it, and insert data.
+        ``'WRITE_APPEND'``
+            If table exists, insert data. Create if does not exist.
     """
 
     _test_google_api_imports()
