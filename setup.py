@@ -25,7 +25,7 @@ dependencies = [
     "setuptools",
     "db-dtypes >=1.0.4,<2.0.0",
     "numpy >=1.16.6",
-    "pandas >=1.1.4",
+    "pandas >=0.24.2",
     "pyarrow >=3.0.0, <10.0dev",
     "pydata-google-auth",
     # Note: google-api-core and google-auth are also included via transitive
