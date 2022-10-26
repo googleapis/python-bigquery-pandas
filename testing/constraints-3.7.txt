@@ -12,8 +12,8 @@ google-auth-oauthlib==0.7.0
 google-cloud-bigquery==3.3.5
 google-cloud-bigquery-storage==2.16.2
 numpy==1.16.6
-pandas==0.24.2
+pandas==1.1.4
 pyarrow==3.0.0
-pydata-google-auth==1.4.0
+pydata-google-auth==0.1.2
 tqdm==4.23.0
 protobuf==3.19.5
