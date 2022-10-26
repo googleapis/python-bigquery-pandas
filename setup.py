@@ -31,9 +31,9 @@ dependencies = [
     # Note: google-api-core and google-auth are also included via transitive
     # dependency on google-cloud-bigquery, but this library also uses them
     # directly.
-    "google-api-core >= 1.31.5, <3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
+    "google-api-core >= 2.10.2, <3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
     "google-auth >=2.13.0",
-    "google-auth-oauthlib >=0.0.1",
+    "google-auth-oauthlib >=0.7.0",
     # Require 1.27.* because it has a fix for out-of-bounds timestamps.  See:
     # https://github.com/googleapis/python-bigquery/pull/209 and
     # https://github.com/googleapis/python-bigquery-pandas/issues/365

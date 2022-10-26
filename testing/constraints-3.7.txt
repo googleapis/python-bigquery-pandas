@@ -6,9 +6,9 @@
 # e.g., if setup.py has "foo >= 1.14.0, < 2.0.0dev",
 # Then this file should have foo==1.14.0
 db-dtypes==0.3.1
-google-api-core==1.31.5
+google-api-core==2.10.2
 google-auth==2.13.0
-google-auth-oauthlib==0.0.1
+google-auth-oauthlib==0.7.0
 google-cloud-bigquery==1.27.2
 google-cloud-bigquery-storage==1.1.0
 numpy==1.16.6
