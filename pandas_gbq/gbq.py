@@ -8,7 +8,6 @@ from datetime import datetime
 import logging
 import re
 import time
-from tkinter import W
 import typing
 from typing import Any, Dict, Optional, Sequence, Union
 import warnings
