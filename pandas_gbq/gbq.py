@@ -960,6 +960,7 @@ def to_gbq(
     project_id=None,
     chunksize=None,
     reauth=False,
+    if_exists="fail",
     auth_local_webserver=True,
     table_schema=None,
     location=None,
@@ -968,7 +969,6 @@ def to_gbq(
     api_method: str = "default",
     verbose=None,
     private_key=None,
-    write_disposition: str = "WRITE_EMPTY",
 ):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -998,7 +998,14 @@ def to_gbq(
     reauth : bool, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
-
+    if_exists : str, default 'fail'
+        Behavior when the destination table exists. Value can be one of:
+        ``'fail'``
+            If table exists, do nothing.
+        ``'replace'``
+            If table exists, drop it, recreate it, and insert data.
+        ``'append'``
+            If table exists, insert data. Create if does not exist.
     auth_local_webserver : bool, default True
         Use the `local webserver flow
         <https://googleapis.dev/python/google-auth-oauthlib/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server>`_
@@ -1065,16 +1072,6 @@ def to_gbq(
         or
         :func:`google.oauth2.service_account.Credentials.from_service_account_file`
         instead.
-
-    write_disposition: str, default "WRITE_EMPTY"
-        Behavior when the destination table exists. Value can be one of:
-
-        ``'WRITE_EMPTY'``
-            If table exists, do nothing.
-        ``'WRITE_TRUNCATE'``
-            If table exists, drop it, recreate it, and insert data.
-        ``'WRITE_APPEND'``
-            If table exists, insert data. Create if does not exist.
     """
 
     _test_google_api_imports()
@@ -1118,6 +1115,15 @@ def to_gbq(
             "Invalid Table Name. Should be of the form 'datasetId.tableId' or "
             "'projectId.datasetId.tableId'"
         )
+
+    if if_exists not in ("fail", "replace", "append"):
+        raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
+
+    if_exists_list = ["fail", "replace", "append"]
+    dispositions = ["WRITE_EMPTY", "WRITE_TRUNCATE", "WRITE_APPEND"]
+    dispositions_dict = dict(zip(if_exists_list, dispositions))
+
+    write_disposition = dispositions_dict[if_exists]
 
     connector = GbqConnector(
         project_id,

@@ -683,7 +683,7 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the default value of write_disposition == 'WRITE_EMPTY'
+        # Test the default value of if_exists == 'fail'
         with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,
@@ -692,13 +692,13 @@ class TestToGBQIntegration(object):
                 credentials=self.credentials,
             )
 
-        # Test the write_disposition parameter with value 'WRITE_EMPTY'
+        # Test the if_exists parameter with value 'replace'
         with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
                 project_id,
-                write_disposition="WRITE_EMPTY",
+                if_exists="fail",
                 credentials=self.credentials,
             )
 
@@ -717,12 +717,12 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the write_disposition parameter with value 'WRITE_APPEND
+        # Test the if_exists parameter with value 'append'
         gbq.to_gbq(
             df,
             self.destination_table + test_id,
             project_id,
-            write_disposition="WRITE_APPEND",
+            if_exists="append",
             credentials=self.credentials,
         )
 
@@ -742,7 +742,7 @@ class TestToGBQIntegration(object):
                 df_different_schema,
                 self.destination_table + test_id,
                 project_id,
-                write_disposition="WRITE_APPEND",
+                if_exists="append",
                 credentials=self.credentials,
             )
 
@@ -763,12 +763,12 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the write_disposition parameter with value 'WRITE_APPEND'
+        # Test the if_exists parameter with value 'append'
         gbq.to_gbq(
             df_subset_cols,
             self.destination_table + test_id,
             project_id,
-            write_disposition="WRITE_APPEND",
+            if_exists="append",
             credentials=self.credentials,
         )
 
@@ -797,12 +797,12 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the write_disposition parameter with the value 'WRITE_TRUNCATE'.
+        # Test the if_exists parameter with the value 'replace'.
         gbq.to_gbq(
             df_different_schema,
             self.destination_table + test_id,
             project_id,
-            write_disposition="WRITE_TRUNCATE",
+            if_exists="replace",
             credentials=self.credentials,
         )
 
@@ -821,13 +821,13 @@ class TestToGBQIntegration(object):
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
 
-        # Test invalid value for write_disposition parameter raises value error
+        # Test invalid value for if_exists parameter raises value error
         with pytest.raises(ValueError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
                 project_id,
-                write_disposition="WRITE_DISPOSITION_UNSPECIFIED",
+                if_exists="xxxxx",
                 credentials=self.credentials,
             )
 
@@ -932,7 +932,7 @@ class TestToGBQIntegration(object):
             df_columns_reversed,
             self.destination_table + test_id,
             project_id,
-            write_disposition="WRITE_APPEND",
+            if_exists="append",
             credentials=self.credentials,
         )
 
@@ -1332,7 +1332,7 @@ def test_to_gbq_does_not_override_mode(gbq_table, gbq_connector):
         pandas.DataFrame({"A": [1.0], "B": [2.0], "C": ["a"]}),
         "{0}.{1}".format(gbq_table.dataset_id, table_id),
         project_id=gbq_connector.project_id,
-        write_disposition="WRITE_APPEND",
+        if_exists="append",
     )
 
     assert verify_schema(gbq_connector, gbq_table.dataset_id, table_id, table_schema)

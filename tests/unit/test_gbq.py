@@ -628,7 +628,7 @@ def test_load_does_not_modify_schema_arg(mock_bigquery_client):
         "dataset.schematest",
         project_id="my-project",
         table_schema=original_schema,
-        write_disposition="WRITE_EMPTY",
+        if_exists="fail",
     )
     assert original_schema == original_schema_cp
 
@@ -645,7 +645,7 @@ def test_load_does_not_modify_schema_arg(mock_bigquery_client):
         "dataset.schematest",
         project_id="my-project",
         table_schema=original_schema,
-        write_disposition="WRITE_APPEND",
+        if_exists="append",
     )
     assert original_schema == original_schema_cp
 

@@ -68,9 +68,7 @@ def test_to_gbq_load_method_translates_exception(
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_append(
-    mock_bigquery_client, expected_load_method
-):
+def test_to_gbq_with_if_exists_append(mock_bigquery_client, expected_load_method):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
@@ -84,12 +82,12 @@ def test_to_gbq_with_write_disposition_append(
         DataFrame({"col_a": [0.25, 1.5, -1.0], "col_b": ["a", "b", "c"]}),
         "my_dataset.my_table",
         project_id="myproj",
-        write_disposition="WRITE_APPEND",
+        if_exists="append",
     )
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client):
+def test_to_gbq_with_if_exists_append_mismatch(mock_bigquery_client):
     from google.cloud.bigquery import SchemaField
 
     mock_bigquery_client.get_table.return_value = google.cloud.bigquery.Table(
@@ -105,15 +103,13 @@ def test_to_gbq_with_write_disposition_append_mismatch(mock_bigquery_client):
             DataFrame({"col_a": [0.25, 1.5, -1.0]}),
             "my_dataset.my_table",
             project_id="myproj",
-            write_disposition="WRITE_APPEND",
+            if_exists="append",
         )
     exc = exception_block.value
     assert exc.message == r"Provided Schema does not match Table *"
 
 
-def test_to_gbq_with_write_disposition_truncate(
-    mock_bigquery_client, expected_load_method
-):
+def test_to_gbq_with_if_exists_truncate(mock_bigquery_client, expected_load_method):
     mock_bigquery_client.get_table.side_effect = (
         # Initial check
         google.cloud.bigquery.Table("myproj.my_dataset.my_table"),
@@ -124,12 +120,12 @@ def test_to_gbq_with_write_disposition_truncate(
         DataFrame([[1]]),
         "my_dataset.my_table",
         project_id="myproj",
-        write_disposition="WRITE_TRUNCATE",
+        if_exists="replace",
     )
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_write_disposition_truncate_cross_project(
+def test_to_gbq_with_if_exists_truncate_cross_project(
     mock_bigquery_client, expected_load_method
 ):
     mock_bigquery_client.get_table.side_effect = (
@@ -142,7 +138,7 @@ def test_to_gbq_with_write_disposition_truncate_cross_project(
         DataFrame([[1]]),
         "data-project.my_dataset.my_table",
         project_id="billing-project",
-        write_disposition="WRITE_TRUNCATE",
+        if_exists="replace",
     )
     expected_load_method.assert_called_once()
 
