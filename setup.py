@@ -23,9 +23,9 @@ description = "Google BigQuery connector for pandas"
 release_status = "Development Status :: 4 - Beta"
 dependencies = [
     "setuptools",
-    "db-dtypes >=1.0.4,<2.0.0",
+    "db-dtypes >=0.3.1,<2.0.0",
     "numpy >=1.16.6",
-    "pandas >=1.1.4",
+    "pandas >=0.24.2",
     "pyarrow >=3.0.0, <10.0dev",
     "pydata-google-auth",
     # Note: google-api-core and google-auth are also included via transitive
@@ -39,8 +39,8 @@ dependencies = [
     # https://github.com/googleapis/python-bigquery-pandas/issues/365
     # Exclude 2.4.* because it has a bug where waiting for the query can hang
     # indefinitely. https://github.com/pydata/pandas-gbq/issues/343
-    "google-cloud-bigquery >=3.3.5,<4.0.0dev,!=2.4.*",
-    "google-cloud-bigquery-storage >=2.16.2,<3.0.0dev",
+    "google-cloud-bigquery >=1.27.2,<4.0.0dev,!=2.4.*",
+    "google-cloud-bigquery-storage >=1.1.0,<3.0.0dev",
 ]
 extras = {
     "tqdm": "tqdm>=4.23.0",
