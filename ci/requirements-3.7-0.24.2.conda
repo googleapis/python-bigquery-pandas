@@ -5,11 +5,11 @@ fastavro
 flake8
 freezegun
 numpy==1.16.6
-google-auth==2.13.0
+google-auth
 google-cloud-bigquery==1.27.2
 google-cloud-bigquery-storage==1.1.0
 pyarrow==3.0.0
-pydata-google-auth==1.4.0
+pydata-google-auth
 pytest
 pytest-cov
 tqdm==4.23.0
