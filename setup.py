@@ -40,7 +40,7 @@ dependencies = [
     # Exclude 2.4.* because it has a bug where waiting for the query can hang
     # indefinitely. https://github.com/pydata/pandas-gbq/issues/343
     "google-cloud-bigquery >=3.3.5,<4.0.0dev,!=2.4.*",
-    "google-cloud-bigquery-storage >=1.1.0,<3.0.0dev",
+    "google-cloud-bigquery-storage >=2.16.2,<3.0.0dev",
 ]
 extras = {
     "tqdm": "tqdm>=4.23.0",
