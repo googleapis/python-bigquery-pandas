@@ -972,8 +972,7 @@ def to_gbq(
 ):
     """Write a DataFrame to a Google BigQuery table.
 
-    The main method a user calls to export pandas DataFrame contents to
-    Google BigQuery table.
+    The main method a user calls to export pandas DataFrame contents to Google BigQuery table.
 
     This method uses the Google Cloud client library to make requests to Google BigQuery, documented `here
     <https://googleapis.dev/python/bigquery/latest/index.html>`__.
@@ -999,6 +998,7 @@ def to_gbq(
         if multiple accounts are used.
     if_exists : str, default 'fail'
         Behavior when the destination table exists. Value can be one of:
+
         ``'fail'``
             If table exists, do nothing.
         ``'replace'``
