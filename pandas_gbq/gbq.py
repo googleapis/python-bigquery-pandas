@@ -975,8 +975,7 @@ def to_gbq(
     The main method a user calls to export pandas DataFrame contents to
     Google BigQuery table.
 
-    This method uses the Google Cloud client library to make requests to
-    Google BigQuery, documented `here
+    This method uses the Google Cloud client library to make requests to Google BigQuery, documented `here
     <https://googleapis.dev/python/bigquery/latest/index.html>`__.
 
     See the :ref:`How to authenticate with Google BigQuery <authentication>`
