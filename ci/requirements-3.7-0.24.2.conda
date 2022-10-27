@@ -5,6 +5,7 @@ fastavro
 flake8
 freezegun
 numpy==1.16.6
+google-auth-oauthlib==0.7.0
 google-cloud-bigquery==1.27.2
 google-cloud-bigquery-storage==1.1.0
 pyarrow==3.0.0
