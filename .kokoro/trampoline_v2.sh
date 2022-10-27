@@ -203,29 +203,6 @@ elif [[ -n "${GITHUB_RUN_ID:-}" ]]; then
 	"GITHUB_HEAD_REF"
 	"GITHUB_BASE_REF"
     )
-# elif [[ "${CIRCLECI:-}" == "true" ]]; then
-#     RUNNING_IN_CI="true"
-#     TRAMPOLINE_CI="circleci"
-#     pass_down_envvars+=(
-# 	"CIRCLE_BRANCH"
-# 	"CIRCLE_BUILD_NUM"
-# 	"CIRCLE_BUILD_URL"
-# 	"CIRCLE_COMPARE_URL"
-# 	"CIRCLE_JOB"
-# 	"CIRCLE_NODE_INDEX"
-# 	"CIRCLE_NODE_TOTAL"
-# 	"CIRCLE_PREVIOUS_BUILD_NUM"
-# 	"CIRCLE_PROJECT_REPONAME"
-# 	"CIRCLE_PROJECT_USERNAME"
-# 	"CIRCLE_REPOSITORY_URL"
-# 	"CIRCLE_SHA1"
-# 	"CIRCLE_STAGE"
-# 	"CIRCLE_USERNAME"
-# 	"CIRCLE_WORKFLOW_ID"
-# 	"CIRCLE_WORKFLOW_JOB_ID"
-# 	"CIRCLE_WORKFLOW_UPSTREAM_JOB_IDS"
-# 	"CIRCLE_WORKFLOW_WORKSPACE_ID"
-#     )
 fi
 
 # Configure the service account for pulling the docker image.
