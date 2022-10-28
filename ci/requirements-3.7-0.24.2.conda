@@ -4,12 +4,13 @@ db-dtypes==0.3.1
 fastavro
 flake8
 freezegun
-numpy==1.16.6
-google-auth
+numpy==1.23.4
+google-api-core==2.10.2
+google-auth==2.13.0
 google-auth-oauthlib==0.7.0
 google-cloud-bigquery==1.27.2
-google-cloud-bigquery-storage==1.1.0
-pyarrow==3.0.0
+google-cloud-bigquery-storage==2.11.0
+pyarrow==9.0.0
 pydata-google-auth
 pytest
 pytest-cov
