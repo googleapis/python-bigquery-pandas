@@ -373,6 +373,7 @@ class GbqConnector(object):
     def process_http_error(ex):
         # See `BigQuery Troubleshooting Errors
         # <https://cloud.google.com/bigquery/troubleshooting-errors>`__
+
         if "cancelled" in ex.message:
             raise QueryTimeout("Reason: {0}".format(ex))
         elif "Provided Schema does not match" in ex.message:
@@ -586,6 +587,7 @@ class GbqConnector(object):
         from pandas_gbq import load
 
         total_rows = len(dataframe)
+
         try:
             chunks = load.load_chunks(
                 self.client,
