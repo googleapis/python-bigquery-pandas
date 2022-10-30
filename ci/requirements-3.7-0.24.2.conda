@@ -1,0 +1,16 @@
+codecov
+coverage
+db-dtypes==0.3.1
+fastavro
+flake8
+freezegun
+numpy==1.16.6
+google-api-core
+google-cloud-bigquery==1.27.2
+google-cloud-bigquery-storage==1.1.0
+pyarrow==3.0.0
+pydata-google-auth
+pytest
+pytest-cov
+requests-oauthlib
+tqdm==4.23.0

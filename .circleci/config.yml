@@ -10,7 +10,7 @@ jobs:
       - image: mambaorg/micromamba
     environment:
       PYTHON: "3.7"
-      PANDAS: "1.1.4"
+      PANDAS: "0.24.2"
     steps:
       - checkout
       - run: ci/config_auth.sh

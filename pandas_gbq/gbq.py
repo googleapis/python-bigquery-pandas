@@ -284,11 +284,9 @@ class GbqConnector(object):
         global context
         from google.api_core.exceptions import GoogleAPIError
         from google.api_core.exceptions import ClientError
-        from google.api_core.exceptions import BadRequest
-
         from pandas_gbq import auth
 
-        self.http_error = (ClientError, GoogleAPIError, BadRequest)
+        self.http_error = (ClientError, GoogleAPIError)
         self.project_id = project_id
         self.location = location
         self.reauth = reauth
