@@ -13,7 +13,7 @@ micromamba activate
 # https://github.com/mamba-org/micromamba-docker
 REQ="ci/requirements-${PYTHON}-${PANDAS}"
 micromamba install -q pandas=$PANDAS python=${PYTHON} -c conda-forge;
-micromamba install -q --file "$REQ.conda" -c conda-forge;
+micromamba install --file "$REQ.conda" -c conda-forge;
 micromamba list
 micromamba info
 
