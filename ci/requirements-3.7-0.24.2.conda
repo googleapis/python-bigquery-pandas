@@ -1,6 +1,6 @@
 codecov
 coverage
-db-dtype
+db-dtypes
 fastavro
 flake8
 freezegun
