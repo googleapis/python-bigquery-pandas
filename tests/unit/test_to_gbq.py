@@ -150,3 +150,13 @@ def test_to_gbq_with_if_exists_truncate_cross_project(
     assert table_destination.dataset_id == "my_dataset"
     assert table_destination.table_id == "my_table"
     assert load_kwargs["project"] == "billing-project"
+
+
+def test_to_gbq_with_if_exists_unknown():
+    with pytest.raises(ValueError):
+        gbq.to_gbq(
+            DataFrame([[1]]),
+            "my_dataset.my_table",
+            project_id="myproj",
+            if_exists="unknown",
+        )

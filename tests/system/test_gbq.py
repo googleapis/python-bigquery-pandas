@@ -692,7 +692,7 @@ class TestToGBQIntegration(object):
                 credentials=self.credentials,
             )
 
-        # Test the if_exists parameter with value 'replace'
+        # Test the if_exists parameter with value 'fail'
         with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,

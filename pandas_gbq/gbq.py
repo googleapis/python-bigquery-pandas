@@ -1275,6 +1275,7 @@ class _Table(GbqConnector):
 
     def create(self, table_id, schema):
         """Create a table in Google BigQuery given a table and schema
+
         Parameters
         ----------
         table : str
@@ -1312,6 +1313,7 @@ class _Table(GbqConnector):
 
     def delete(self, table_id):
         """Delete a table in Google BigQuery
+
         Parameters
         ----------
         table : str
