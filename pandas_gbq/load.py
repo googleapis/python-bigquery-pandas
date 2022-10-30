@@ -126,6 +126,7 @@ def load_parquet(
         schema = pandas_gbq.schema.remove_policy_tags(schema)
         job_config.schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
         dataframe = cast_dataframe_for_parquet(dataframe, schema)
+
     try:
         client.load_table_from_dataframe(
             dataframe,
@@ -148,7 +149,6 @@ def load_csv(
     load_chunk: Callable,
 ):
     job_config = bigquery.LoadJobConfig()
-
     job_config.write_disposition = write_disposition
     job_config.source_format = "CSV"
     job_config.allow_quoted_newlines = True

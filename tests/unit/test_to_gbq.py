@@ -105,6 +105,7 @@ def test_to_gbq_with_if_exists_append_mismatch(mock_bigquery_client):
             project_id="myproj",
             if_exists="append",
         )
+
     exc = exception_block.value
     assert exc.message == r"Provided Schema does not match Table *"
 
