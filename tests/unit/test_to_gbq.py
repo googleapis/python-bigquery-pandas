@@ -109,7 +109,7 @@ def test_to_gbq_with_if_exists_append_mismatch(mock_bigquery_client):
     assert exc.message == r"Provided Schema does not match Table *"
 
 
-def test_to_gbq_with_if_exists_truncate(mock_bigquery_client, expected_load_method):
+def test_to_gbq_with_if_exists_replace(mock_bigquery_client, expected_load_method):
     mock_bigquery_client.get_table.side_effect = (
         # Initial check
         google.cloud.bigquery.Table("myproj.my_dataset.my_table"),
@@ -125,7 +125,7 @@ def test_to_gbq_with_if_exists_truncate(mock_bigquery_client, expected_load_meth
     expected_load_method.assert_called_once()
 
 
-def test_to_gbq_with_if_exists_truncate_cross_project(
+def test_to_gbq_with_if_exists_replace_cross_project(
     mock_bigquery_client, expected_load_method
 ):
     mock_bigquery_client.get_table.side_effect = (
