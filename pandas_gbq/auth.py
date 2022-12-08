@@ -28,7 +28,13 @@ CLIENT_SECRET = "4hqze9yI8fxShls8eJWkeMdJ"
 
 
 def get_credentials(
-    private_key=None, project_id=None, reauth=False, auth_local_webserver=True
+    private_key=None,
+    project_id=None,
+    reauth=False,
+    auth_local_webserver=True,
+    redirect_uri=None,
+    client_id=None,
+    client_secret=None,
 ):
     import pydata_google_auth
 
@@ -43,10 +49,11 @@ method from the google-auth package."""
 
     credentials, default_project_id = pydata_google_auth.default(
         SCOPES,
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
+        client_id=client_id,
+        client_secret=client_secret,
         credentials_cache=get_credentials_cache(reauth),
         auth_local_webserver=auth_local_webserver,
+        redirect_uri=redirect_uri,
     )
 
     project_id = project_id or default_project_id

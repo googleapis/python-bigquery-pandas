@@ -280,6 +280,9 @@ class GbqConnector(object):
         location=None,
         credentials=None,
         use_bqstorage_api=False,
+        redirect_uri=None,
+        client_id=None,
+        client_secret=None,
     ):
         global context
         from google.api_core.exceptions import GoogleAPIError
@@ -294,6 +297,10 @@ class GbqConnector(object):
         self.auth_local_webserver = auth_local_webserver
         self.dialect = dialect
         self.credentials = credentials
+        self.redirect_uri = redirect_uri
+        self.client_id = client_id
+        self.client_secret = client_secret
+        
         default_project = None
 
         # Service account credentials have a project associated with them.
@@ -313,6 +320,10 @@ class GbqConnector(object):
                 project_id=project_id,
                 reauth=reauth,
                 auth_local_webserver=auth_local_webserver,
+                redirect_uri=redirect_uri,
+                client_id=client_id,
+                client_secret=client_secret,
+
             )
 
         if self.project_id is None:
@@ -735,6 +746,10 @@ def read_gbq(
     private_key=None,
     progress_bar_type="tqdm",
     dtypes=None,
+    redirect_uri=None,
+    client_id=None,
+    client_secret=None,
+
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -864,6 +879,8 @@ def read_gbq(
         or
         :func:`google.oauth2.service_account.Credentials.from_service_account_file`
         instead.
+    # TODO: add parameters for redirect_uri, client_id, client_secret
+
 
     Returns
     -------
@@ -912,6 +929,10 @@ def read_gbq(
         credentials=credentials,
         private_key=private_key,
         use_bqstorage_api=use_bqstorage_api,
+        redirect_uri=redirect_uri,
+        client_id=client_id,
+        client_secret=client_secret,
+
     )
 
     if _is_query(query_or_table):
