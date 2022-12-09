@@ -32,7 +32,7 @@ def get_credentials(
     project_id=None,
     reauth=False,
     auth_local_webserver=True,
-    redirect_uri=None,
+    auth_redirect_uri=None,
     client_id=None,
     client_secret=None,
 ):
@@ -53,7 +53,7 @@ method from the google-auth package."""
         client_secret=client_secret,
         credentials_cache=get_credentials_cache(reauth),
         auth_local_webserver=auth_local_webserver,
-        redirect_uri=redirect_uri,
+        auth_redirect_uri=auth_redirect_uri,
     )
 
     project_id = project_id or default_project_id
