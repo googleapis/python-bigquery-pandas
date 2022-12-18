@@ -41,6 +41,15 @@ Install latest development version
 .. code-block:: shell
 
     $ pip install git+https://github.com/googleapis/python-bigquery-pandas.git
+    
+ 
+Or
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+ 
+.. code-block:: shell
+
+   $ pip install pandas-gbq -U
+   
 
 
 Usage
