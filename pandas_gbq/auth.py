@@ -53,7 +53,7 @@ method from the google-auth package."""
         client_secret=client_secret,
         credentials_cache=get_credentials_cache(reauth),
         auth_local_webserver=auth_local_webserver,
-        auth_redirect_uri=auth_redirect_uri,
+        redirect_uri=auth_redirect_uri,
     )
 
     project_id = project_id or default_project_id
