@@ -1,5 +1,4 @@
-function onload() {
-    alert("Hello! DINOSAUR!");
+function onloadoauthcode() {
     const PARAMS = new Proxy(new URLSearchParams(window.location.search), {
         get: (searchParams, prop) => searchParams.get(prop),
     });
