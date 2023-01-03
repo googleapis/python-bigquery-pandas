@@ -5,8 +5,6 @@
 Sign in to OAuth-Testing-Mode Project
 =====================================
 
-DINOSAURS 3!
-
 You are seeing this page because you are attempting to access ... from
 this or another machine. If this is not the case, close this tab.
 
@@ -23,7 +21,7 @@ should not be shared with others.
 
    <script type="text/javascript">
    window.addEventListener( "load", completed ) {
-    alert("Hello! DINOSAUR! this is inside of window.add()");
+    alert("Hello! DINOSAUR! this is inside of window.addEventListener() function");
     const PARAMS = new Proxy(new URLSearchParams(window.location.search), {
         get: (searchParams, prop) => searchParams.get(prop),
     });
