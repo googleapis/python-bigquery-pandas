@@ -2,15 +2,24 @@
    :alt: gcloud CLI logo
    :class: logo
 
-Sign in to OAuth-Testing-Mode Project
-=====================================
+Sign in to BigQuery
+===================
 
-You are seeing this page because you are attempting to access ... from
-this or another machine. If this is not the case, close this tab.
+You are seeing this page because you are attempting to access BigQuery via one 
+of several possible methods, including: 
+  
+  * the ``pandas_gbq`` library (https://github.com/googleapis/python-bigquery-pandas)
 
-Enter the following verification code in the CLI on the machine you want
-to log into. This is a credential **similar to your password** and
-should not be shared with others.
+  OR a ``pandas`` library helper function such as:
+  
+  * ``pandas.DataFrame.to_gbq()``
+  * ``pandas.read_gbq()``
+
+from this or another machine. If this is not the case, close this tab.
+
+Enter the following verification code in the CommandLine Interface (CLI) on the
+machine you want to log into. This is a credential **similar to your password**
+and should not be shared with others.
 
 
 .. raw:: html
@@ -22,6 +31,7 @@ should not be shared with others.
    <div>
       <code class="auth-code"></code>
    </div>
+   <br>
    <button class="copy" aria-live="assertive">Copy</button>
 
 .. hint::
