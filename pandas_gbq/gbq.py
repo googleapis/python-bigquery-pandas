@@ -300,7 +300,7 @@ class GbqConnector(object):
         self.auth_redirect_uri = auth_redirect_uri
         self.client_id = client_id
         self.client_secret = client_secret
-        
+
         default_project = None
 
         # Service account credentials have a project associated with them.
@@ -323,7 +323,6 @@ class GbqConnector(object):
                 auth_redirect_uri=auth_redirect_uri,
                 client_id=client_id,
                 client_secret=client_secret,
-
             )
 
         if self.project_id is None:
@@ -749,7 +748,6 @@ def read_gbq(
     auth_redirect_uri=None,
     client_id=None,
     client_secret=None,
-
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -932,7 +930,6 @@ def read_gbq(
         auth_redirect_uri=auth_redirect_uri,
         client_id=client_id,
         client_secret=client_secret,
-
     )
 
     if _is_query(query_or_table):
