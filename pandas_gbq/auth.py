@@ -47,6 +47,12 @@ google.oauth2.service_account.Credentials.from_service_account_info class
 method from the google-auth package."""
         )
 
+    if client_id is None:
+        client_id = CLIENT_ID
+
+    if client_secret is None:
+        client_secret = CLIENT_SECRET
+
     credentials, default_project_id = pydata_google_auth.default(
         SCOPES,
         client_id=client_id,
