@@ -879,7 +879,7 @@ def read_gbq(
         instead.
     auth_redirect_uri : str
         Path to the authentication page for organization-specific authentication
-        workflows.
+        workflows. Used when `auth_local_webserver=False`.
     client_id : str
         The Client ID for the Google Cloud Project the user is attempting to
         connect to.
@@ -1101,7 +1101,7 @@ def to_gbq(
         instead.
     auth_redirect_uri : str
         Path to the authentication page for organization-specific authentication
-        workflows.
+        workflows. Used when `auth_local_webserver=False`.
     client_id : str
         The Client ID for the Google Cloud Project the user is attempting to
         connect to.
