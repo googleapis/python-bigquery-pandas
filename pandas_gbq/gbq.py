@@ -987,6 +987,9 @@ def to_gbq(
     api_method: str = "default",
     verbose=None,
     private_key=None,
+    auth_redirect_uri=None,
+    client_id=None,
+    client_secret=None,
 ):
     """Write a DataFrame to a Google BigQuery table.
 
@@ -1089,6 +1092,8 @@ def to_gbq(
         or
         :func:`google.oauth2.service_account.Credentials.from_service_account_file`
         instead.
+    #TODO add parameters for auth_redirect, client_id, client_secret
+
     """
 
     _test_google_api_imports()
@@ -1149,6 +1154,9 @@ def to_gbq(
         location=location,
         credentials=credentials,
         private_key=private_key,
+        auth_redirect_uri=auth_redirect_uri,
+        client_id=client_id,
+        client_secret=client_secret,
     )
     bqclient = connector.client
 
