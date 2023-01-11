@@ -877,8 +877,15 @@ def read_gbq(
         or
         :func:`google.oauth2.service_account.Credentials.from_service_account_file`
         instead.
-    # TODO: add parameters for auth_redirect_uri, client_id, client_secret
-
+    auth_redirect_uri : str
+        Path to the authentication page for organization-specific authentication
+        workflows.
+    client_id : str
+        The Client ID for the Google Cloud Project the user is attempting to
+        connect to.
+    client_secret : str
+        The Client Secret associated with the Client ID for the Google Cloud Project
+        the user is attempting to connect to.
 
     Returns
     -------
@@ -1092,8 +1099,15 @@ def to_gbq(
         or
         :func:`google.oauth2.service_account.Credentials.from_service_account_file`
         instead.
-    #TODO add parameters for auth_redirect, client_id, client_secret
-
+    auth_redirect_uri : str
+        Path to the authentication page for organization-specific authentication
+        workflows.
+    client_id : str
+        The Client ID for the Google Cloud Project the user is attempting to
+        connect to.
+    client_secret : str
+        The Client Secret associated with the Client ID for the Google Cloud Project
+        the user is attempting to connect to.
     """
 
     _test_google_api_imports()
