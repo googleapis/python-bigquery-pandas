@@ -11,7 +11,9 @@ analytics web service to simplify retrieving results from BigQuery tables
 using SQL-like queries. Result sets are parsed into a :class:`pandas.DataFrame`
 with a shape and data types derived from the source table. Additionally,
 DataFrames can be inserted into new BigQuery tables or appended to existing
-tables. The canonical version of this documentation can always be found on the
+tables.
+
+Note:  The canonical version of this documentation can always be found on the
 `googleapis.dev pangas-gbq site
 <https://googleapis.dev/python/pandas-gbq/latest/index.html>`__.
 
