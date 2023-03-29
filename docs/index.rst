@@ -14,7 +14,7 @@ DataFrames can be inserted into new BigQuery tables or appended to existing
 tables.
 
 Note:  The canonical version of this documentation can always be found on the
-`googleapis.dev pangas-gbq site
+`googleapis.dev pandas-gbq site
 <https://googleapis.dev/python/pandas-gbq/latest/index.html>`__.
 
 .. note::
