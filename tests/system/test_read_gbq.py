@@ -554,7 +554,13 @@ def test_default_dtypes(
         use_bqstorage_api=use_bqstorage_api,
         configuration={"query": {"useQueryCache": False}},
     )
-    pandas.testing.assert_frame_equal(result, expected)
+    pandas.testing.assert_frame_equal(
+        result,
+        expected,
+        # dbdate support microsecond precision with pandas 2.0
+        # See: https://github.com/googleapis/python-bigquery-pandas/issues/626
+        check_dtype=False,
+    )
 
 
 @pytest.mark.parametrize(["use_bqstorage_api"], [(True,), (False,)])

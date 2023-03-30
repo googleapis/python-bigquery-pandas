@@ -274,4 +274,10 @@ def test_dataframe_round_trip_with_table_schema(
         use_bqstorage_api=True,
     )
     round_trip.sort_values("row_num", inplace=True)
-    pandas.testing.assert_frame_equal(expected_df, round_trip)
+    pandas.testing.assert_frame_equal(
+        expected_df,
+        round_trip,
+        # dbdate support microsecond precision with pandas 2.0
+        # See: https://github.com/googleapis/python-bigquery-pandas/issues/626
+        check_dtype=False,
+    )
