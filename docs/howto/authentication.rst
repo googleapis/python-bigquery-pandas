@@ -1,6 +1,10 @@
 Authentication
 ==============
 
+.. contents:: Table of Contents
+    :local:
+    :depth: 1
+
 Before you begin, you must create a Google Cloud Platform project. Use the
 `BigQuery sandbox <https://cloud.google.com/bigquery/docs/sandbox>`__ to try
 the service for free.
@@ -34,7 +38,20 @@ authentication methods:
        # The credentials and project_id arguments can be omitted.
        df = pandas_gbq.read_gbq("SELECT my_col FROM `my_dataset.my_table`")
 
-2. Application Default Credentials via the :func:`google.auth.default`
+2. If running on `Google Colab <https://colab.research.google.com/>`_,
+   pandas-gbq attempts to authenticate with the
+   ``google.colab.auth.authenticate_user()`` method. See the `Getting started
+   with BigQuery on Colab notebook
+   <https://colab.research.google.com/notebooks/bigquery.ipynb>`_ for an
+   example of using this authentication method with other libraries that use
+   Google BigQuery.
+
+   .. note::
+
+      To use Colab authentication, install version 1.8.0 or later of the
+      ``pydata-google-auth`` package.
+
+3. Application Default Credentials via the :func:`google.auth.default`
    function.
 
    .. note::
@@ -44,10 +61,11 @@ authentication methods:
        user account credentials.
 
        A common problem with default credentials when running on Google
-       Compute Engine is that the VM does not have sufficient scopes to query
-       BigQuery.
+       Compute Engine is that the VM does not have sufficient `access scopes
+       <https://cloud.google.com/compute/docs/access/service-accounts#accesscopesiam>`_
+       to query BigQuery.
 
-3. User account credentials.
+4. User account credentials.
 
    pandas-gbq loads cached credentials from a hidden user folder on the
    operating system.
@@ -190,3 +208,25 @@ credentials are not found.
 Additional information on the user credentials authentication mechanism
 can be found in the `Google Cloud authentication guide
 <https://cloud.google.com/docs/authentication/end-user>`__.
+
+Authenticating from Highly Constrained Development Environments
+---------------------------------------------------------------
+
+The instructions above may not be adequate for users who are working in
+a *highly constrained development environment*:
+
+Highly constrained development environments typically prevent users from using
+the `Default Authentication Methods` and are generally characterized by one or
+more of the following circumstances:
+
+* There are limitations on what you can install on the development environment
+  (i.e. you can't install ``gcloud``).
+* You don't have access to a graphical user interface (i.e. you are remotely
+  SSH'ed into a headless server and don't have access to a browser to complete
+  the authentication process used in the default login workflow) .
+* The code is being executed in a typical data science context: using a Jupyter
+  (or similar) notebook.
+
+If the conditions above apply to you, your needs may be better served
+by the content in the `Authentication (Highly Constrained Development Environment)
+<authentication_highly_constrained_environments.html>`_ section.
