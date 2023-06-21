@@ -54,7 +54,7 @@ UNIT_TEST_EXTRAS_BY_PYTHON = {
 
 CONDA_TEST_PYTHON_VERSIONS = [
     UNIT_TEST_PYTHON_VERSIONS[0],
-    UNIT_TEST_PYTHON_VERSIONS[-1]
+    UNIT_TEST_PYTHON_VERSIONS[-1],
 ]
 
 SYSTEM_TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11"]
@@ -524,22 +524,18 @@ def prerelease_deps(session):
 
 
 def install_conda_unittest_dependencies(session, standard_deps, conda_forge_packages):
-    """Installs packages from conda forge, pypi, and locally.
-    """
+    """Installs packages from conda forge, pypi, and locally."""
 
     # Install from conda-forge and default conda package repos.
-    session.conda_install(
-        *conda_forge_packages,
-        channel=['defaults', 'conda-forge']
-    )
+    session.conda_install(*conda_forge_packages, channel=["defaults", "conda-forge"])
 
     # Install from pypi for packages not readily available on conda forge.
     session.install(
         *standard_deps,
     )
-    
+
     # Install via pip from the local repo, avoid doing dependency resolution
-    # via pip, so that we don't override any conda resolved dependencies 
+    # via pip, so that we don't override any conda resolved dependencies
     session.install("-e", ".", "--no-deps")
 
 
@@ -549,8 +545,8 @@ def conda_test(session):
 
     Installs all test dependencies, then installs this package.
     NOTE: Some of these libraries are not readily available on conda-forge
-    at this time and are thus installed using pip after the base install of 
-    libraries from conda-forge. 
+    at this time and are thus installed using pip after the base install of
+    libraries from conda-forge.
 
     We decided that it was more important to prove a base ability to install
     using conda than to complicate things with adding a whole nother
@@ -566,28 +562,25 @@ def conda_test(session):
     )
 
     conda_forge_packages = [
-        'db-dtypes',
-        'google-api-core',
-        'google-auth',
-        'google-auth-oauthlib',
-        'google-cloud-bigquery',
-        'google-cloud-bigquery-storage',
-        'numpy',
-        'pandas',
-        'pyarrow',
-        'pydata-google-auth',
-        'tqdm',
-        'protobuf',
+        "db-dtypes",
+        "google-api-core",
+        "google-auth",
+        "google-auth-oauthlib",
+        "google-cloud-bigquery",
+        "google-cloud-bigquery-storage",
+        "numpy",
+        "pandas",
+        "pyarrow",
+        "pydata-google-auth",
+        "tqdm",
+        "protobuf",
     ]
 
     install_conda_unittest_dependencies(session, standard_deps, conda_forge_packages)
 
     # Provide a list of all installed packages (both from conda forge and pip)
     # for troubleshooting purposes
-    session.run(
-        "mamba",
-        "list"
-    )
+    session.run("mamba", "list")
 
     # Tests are limited to unit tests only, at this time.
     session.run(
