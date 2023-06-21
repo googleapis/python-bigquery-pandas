@@ -180,8 +180,7 @@ def default(session):
     # Run py.test against the unit tests.
     session.run(
         "py.test",
-        # "--quiet",
-        "-vv",
+        "--quiet",
         f"--junitxml=unit_{session.python}_sponge_log.xml",
         "--cov=pandas_gbq",
         "--cov=tests/unit",
@@ -259,8 +258,7 @@ def system(session):
     if system_test_exists:
         session.run(
             "py.test",
-            #"--quiet",
-            "-vv",
+            "--quiet",
             f"--junitxml=system_{session.python}_sponge_log.xml",
             system_test_path,
             *session.posargs,
@@ -268,8 +266,7 @@ def system(session):
     if system_test_folder_exists:
         session.run(
             "py.test",
-            #"--quiet",
-            "-vv",
+            "--quiet",
             f"--junitxml=system_{session.python}_sponge_log.xml",
             system_test_folder_path,
             *session.posargs,
