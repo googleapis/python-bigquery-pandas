@@ -578,7 +578,7 @@ def conda_test(session):
     install_conda_unittest_dependencies(session, standard_deps, conda_forge_packages)
 
     # Provide a list of all installed packages (both from conda forge and pip)
-    # for troubleshooting purposes
+    # for troubleshooting purposes.
     session.run("mamba", "list")
 
     # Tests are limited to unit tests only, at this time.
