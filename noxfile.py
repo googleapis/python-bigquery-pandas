@@ -579,7 +579,7 @@ def conda_test(session):
 
     # Provide a list of all installed packages (both from conda forge and pip)
     # for troubleshooting purposes.
-    session.run("mamba", "list")
+    session.run("conda", "list")
 
     # Tests are limited to unit tests only, at this time.
     session.run(
