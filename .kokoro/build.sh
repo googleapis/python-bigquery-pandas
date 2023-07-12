@@ -25,7 +25,7 @@ cd "${PROJECT_ROOT}"
 export PYTHONUNBUFFERED=1
 
 # Debug: show build environment
-env | grep KOKORO
+env #| grep KOKORO
 
 # Setup service account credentials.
 export GOOGLE_APPLICATION_CREDENTIALS=${KOKORO_GFILE_DIR}/service-account.json
