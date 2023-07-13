@@ -32,7 +32,7 @@ export _CE_CONDA=
 export CONDA_SHLVL=1
 export CONDA_PYTHON_EXE=/root/conda/bin/python
 export CONDA_DEFAULT_ENV=base
-export PATH=/root/conda/bin:/root/conda/condabin:$PATH
+export PATH=/root/conda/bin:/root/conda/condabin:${PATH}
 
 # Debug: show build environment
 env #| grep KOKORO
