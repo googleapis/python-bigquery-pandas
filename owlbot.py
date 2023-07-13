@@ -92,7 +92,7 @@ export PATH=/root/conda/bin:/root/conda/condabin:${PATH}
 # Enable display of all environmental variables, not just KOKORO related vars
 s.replace(
     [".kokoro/build.sh"],
-    r"env | grep KOKORO",
+    r"env \| grep KOKORO",
     "env",
 )
 
