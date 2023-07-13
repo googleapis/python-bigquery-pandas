@@ -71,6 +71,32 @@ s.replace(
 # Work around bug in templates https://github.com/googleapis/synthtool/pull/1335
 s.replace(".github/workflows/unittest.yml", "--fail-under=100", "--fail-under=96")
 
+# Add environment variables to build.sh to support conda virtualenv 
+# installations
+s.replace(
+    [".kokoro/build.sh"],
+    "export PYTHONUNBUFFERED=1",
+    r"""export PYTHONUNBUFFERED=1
+export CONDA_EXE=/root/conda/bin/conda
+export CONDA_PREFIX=/root/conda
+export CONDA_PROMPT_MODIFIER=(base) 
+export _CE_CONDA=
+export CONDA_SHLVL=1
+export CONDA_PYTHON_EXE=/root/conda/bin/python
+export CONDA_DEFAULT_ENV=base
+export PATH=/root/conda/bin:/root/conda/condabin:${PATH}
+""",
+)
+
+
+# Enable display of all environmental variables, not just KOKORO related vars
+s.replace(
+    [".kokoro/build.sh"],
+    "env | grep KOKORO",
+    "env",
+)
+
+
 # ----------------------------------------------------------------------------
 # Samples templates
 # ----------------------------------------------------------------------------
