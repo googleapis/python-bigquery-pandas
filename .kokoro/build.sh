@@ -34,7 +34,7 @@ export PATH=/root/conda/bin:/root/conda/condabin:${PATH}
 
 
 # Debug: show build environment
-env | grep KOKORO
+env
 
 # Setup service account credentials.
 export GOOGLE_APPLICATION_CREDENTIALS=${KOKORO_GFILE_DIR}/service-account.json
