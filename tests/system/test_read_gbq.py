@@ -631,7 +631,7 @@ ORDER BY row_num ASC
             ),
             "datetime_col": pandas.Series(
                 [],
-                dtype="datetime64[us]",
+                dtype="datetime64[ns]",
             ),
             "float_col": pandas.Series([], dtype="float64"),
             "int64_col": pandas.Series([], dtype="Int64"),
