@@ -643,7 +643,7 @@ ORDER BY row_num ASC
             ),
             "timestamp_col": pandas.Series(
                 [],
-                dtype="datetime64[us]",
+                dtype="datetime64[ns]",
             ).dt.tz_localize(datetime.timezone.utc),
         }
     )
