@@ -149,7 +149,7 @@ ORDER BY row_num ASC
                                 "2011-10-01 00:01:02.345678",
                                 "2018-04-11 23:59:59.999999",
                             ],
-                            dtype="datetime64[ns]",
+                            dtype="datetime64[us]",
                         ),
                         "float_col": [1.125, -2.375, 0.0],
                         "int64_col": pandas.Series(
@@ -175,7 +175,7 @@ ORDER BY row_num ASC
                                 "2011-10-01 00:01:02.345678",
                                 "2018-04-11 23:59:59.999999",
                             ],
-                            dtype="datetime64[ns]",
+                            dtype="datetime64[us]",
                         ).dt.tz_localize(datetime.timezone.utc),
                     }
                 ),
@@ -283,7 +283,7 @@ ORDER BY row_num ASC
                                 "2011-10-01 00:01:02.345678",
                                 None,
                             ],
-                            dtype="datetime64[ns]",
+                            dtype="datetime64[us]",
                         ),
                         "float_col": [None, -2.375, 0.0],
                         "int64_col": pandas.Series([-1, None, 0], dtype="Int64"),
@@ -303,7 +303,7 @@ ORDER BY row_num ASC
                                 None,
                                 "2018-04-11 23:59:59.999999",
                             ],
-                            dtype="datetime64[ns]",
+                            dtype="datetime64[us]",
                         ).dt.tz_localize(datetime.timezone.utc),
                     }
                 ),
@@ -383,7 +383,7 @@ ORDER BY row_num ASC
                         ),
                         "datetime_col": pandas.Series(
                             [None],
-                            dtype="datetime64[ns]",
+                            dtype="datetime64[us]",
                         ),
                         "float_col": pandas.Series([None], dtype="float64"),
                         "int64_col": pandas.Series([None], dtype="Int64"),
@@ -395,7 +395,7 @@ ORDER BY row_num ASC
                         ),
                         "timestamp_col": pandas.Series(
                             [None],
-                            dtype="datetime64[ns]",
+                            dtype="datetime64[us]",
                         ).dt.tz_localize(datetime.timezone.utc),
                     }
                 ),
@@ -631,7 +631,7 @@ ORDER BY row_num ASC
             ),
             "datetime_col": pandas.Series(
                 [],
-                dtype="datetime64[ns]",
+                dtype="datetime64[us]",
             ),
             "float_col": pandas.Series([], dtype="float64"),
             "int64_col": pandas.Series([], dtype="Int64"),
@@ -643,7 +643,7 @@ ORDER BY row_num ASC
             ),
             "timestamp_col": pandas.Series(
                 [],
-                dtype="datetime64[ns]",
+                dtype="datetime64[us]",
             ).dt.tz_localize(datetime.timezone.utc),
         }
     )
