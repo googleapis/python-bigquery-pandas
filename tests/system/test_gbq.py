@@ -1014,7 +1014,7 @@ class TestToGBQIntegration(object):
                 "2018-07-13T05:40:45.348318",
                 "2018-08-13T05:40:45.348318",
             ],
-            dtype="datetime64[ns]",
+            dtype="datetime64[us]",
         ).dt.tz_localize("UTC")
 
         gbq.to_gbq(
