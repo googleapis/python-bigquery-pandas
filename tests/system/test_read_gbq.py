@@ -552,6 +552,7 @@ def test_default_dtypes(
     result = read_gbq(
         query,
         use_bqstorage_api=use_bqstorage_api,
+        dtypes={"times": "datetime64[us, UTC]"},
         configuration={"query": {"useQueryCache": False}},
     )
     pandas.testing.assert_frame_equal(result, expected)
