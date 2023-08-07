@@ -1027,7 +1027,7 @@ class TestToGBQIntegration(object):
         result_df = gbq.read_gbq(
             "SELECT * FROM {0}".format(self.destination_table + test_id),
             project_id=project_id,
-            dtypes={"datetime_col": "datetime64[us, UTC]"},
+            dtypes={"times": "datetime64[us, UTC]"},
             credentials=self.credentials,
             dialect="legacy",
         )
