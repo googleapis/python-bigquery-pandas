@@ -1014,7 +1014,7 @@ class TestToGBQIntegration(object):
                 "2018-07-13T05:40:45.348318",
                 "2018-08-13T05:40:45.348318",
             ],
-            dtype="datetime64[us]",
+            dtype="datetime64[ns]",
         ).dt.tz_localize("UTC")
 
         gbq.to_gbq(
@@ -1027,7 +1027,6 @@ class TestToGBQIntegration(object):
         result_df = gbq.read_gbq(
             "SELECT * FROM {0}".format(self.destination_table + test_id),
             project_id=project_id,
-            dtypes={"times": "datetime64[us]"},
             credentials=self.credentials,
             dialect="legacy",
         )
