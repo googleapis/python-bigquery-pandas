@@ -558,7 +558,6 @@ def test_default_dtypes(
         configuration={"query": {"useQueryCache": False}},
     )
     pandas.testing.assert_frame_equal(result, expected)
-    assert False
 
 
 @pytest.mark.parametrize(["use_bqstorage_api"], [(True,), (False,)])
