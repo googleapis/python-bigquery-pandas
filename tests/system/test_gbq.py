@@ -997,6 +997,7 @@ class TestToGBQIntegration(object):
                 credentials=self.credentials,
                 table_schema=test_schema,
             )
+
     @pytest.mark.skipif(
         packaging.version.parse(pandas.__version__).release >= (2, 0), reason=""
     )
