@@ -200,7 +200,6 @@ def unit(session):
 
 
 def install_systemtest_dependencies(session, *constraints):
-
     # Use pre-release gRPC for system tests.
     # Exclude version 1.52.0rc1 which has a known issue.
     # See https://github.com/grpc/grpc/issues/32163
