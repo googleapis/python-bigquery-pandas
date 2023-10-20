@@ -2,6 +2,10 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+# .readthedocs.yaml
+# Read the Docs configuration file
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
 version: 2
 
 build:
@@ -11,4 +15,4 @@ build:
 
 python:
   install:
-  - requirements: docs/requirements.txt
+  - requirements: docs/requirements-docs.txt
