@@ -8,7 +8,6 @@ build:
   image: latest
 
 python:
-  pip_install: true
   version: 3.8
   install:
   - requirements: docs/requirements.txt
