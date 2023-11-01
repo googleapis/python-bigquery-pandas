@@ -799,8 +799,7 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # When if_exists == 'replace', table schema should be the same as the
-        # new table.
+        # When if_exists == 'replace', table schema should change too.
         gbq.to_gbq(
             df_different_schema,
             self.destination_table + test_id,

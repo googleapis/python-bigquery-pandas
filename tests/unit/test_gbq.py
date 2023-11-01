@@ -651,7 +651,7 @@ def test_load_does_not_modify_schema_arg(mock_bigquery_client):
 
 
 def test_load_modifies_schema(mock_bigquery_client):
-    """Test of Issue # 670."""
+    """Test of https://github.com/googleapis/python-bigquery-pandas/issues/670"""
     from google.api_core.exceptions import NotFound
 
     # Create table with new schema.

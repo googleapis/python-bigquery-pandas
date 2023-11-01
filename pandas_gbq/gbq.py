@@ -1211,8 +1211,6 @@ def to_gbq(
 
             # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
             # matches. See: https://github.com/pydata/pandas-gbq/issues/315
-
-            # this overwrites the local schema, when
             table_schema = pandas_gbq.schema.update_schema(
                 table_schema, original_schema
             )
