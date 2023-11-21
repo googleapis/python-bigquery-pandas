@@ -735,6 +735,7 @@ def read_gbq(
     project_id=None,
     index_col=None,
     col_order=None,
+    columns=None,
     reauth=False,
     auth_local_webserver=True,
     dialect=None,
@@ -776,6 +777,8 @@ def read_gbq(
     col_order : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
+    columns : list(str), optional
+        List of BigQuery column names to return, alias for col_order
     reauth : boolean, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
@@ -965,6 +968,9 @@ def read_gbq(
             raise InvalidIndexColumn(
                 'Index column "{0}" does not exist in DataFrame.'.format(index_col)
             )
+
+    # Creating an alias for col_order, which is columns
+    col_order = col_order or columns
 
     # Change the order of columns in the DataFrame based on provided list
     if col_order is not None:
