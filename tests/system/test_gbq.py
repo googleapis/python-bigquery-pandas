@@ -600,30 +600,9 @@ class TestReadGBQIntegration(object):
         )
         assert df["max_year"][0] >= 2000
 
-    def test_columns_and_col_order(self, project_id):
-        query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
-        columns = ["string_2", "string_1"]
-        col_order = ["string_3", "string_1", "string_2"]
-        result_frame = gbq.read_gbq(
-            query,
-            project_id=project_id,
-            columns=columns,
-            col_order=col_order,
-            credentials=self.credentials,
-            dialect="standard",
-        )
-        correct_frame = DataFrame(
-            {"string_1": ["a"], "string_2": ["b"], "string_3": ["c"]}
-        )[col_order]
-        tm.assert_frame_equal(result_frame, correct_frame)
-
-        # Verify that col_order is prioritized over columns
-        assert sorted(col_order) == sorted(result_frame.columns)
-
-    def test_col_order_as_alias(self, project_id):
+    def test_columns_as_alias(self, project_id):
         query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
         columns = ["string_2", "string_1", "string_3"]
-        # Not explicitly specifying col_order
 
         result_frame = gbq.read_gbq(
             query,
@@ -640,8 +619,22 @@ class TestReadGBQIntegration(object):
         # Verify that the result_frame matches the expected DataFrame
         tm.assert_frame_equal(result_frame, correct_frame)
 
-        # Ensure that the order of columns in the result_frame matches the specified order
-        assert sorted(columns) == sorted(result_frame.columns)
+        assert columns == result_frame.columns
+
+    def test_columns_and_col_order_raises_error(self, project_id):
+        query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
+        columns = ["string_2", "string_1"]
+        col_order = ["string_3", "string_1", "string_2"]
+
+        with pytest.raises(ValueError):
+            gbq.read_gbq(
+                query,
+                project_id=project_id,
+                columns=columns,
+                col_order=col_order,
+                credentials=self.credentials,
+                dialect="standard",
+            )
 
 
 class TestToGBQIntegration(object):
