@@ -778,7 +778,7 @@ def read_gbq(
         List of BigQuery column names in the desired order for results
         DataFrame.
     columns : list(str), optional
-        List of BigQuery column names to return, alias for col_order
+        Alias for col_order
     reauth : boolean, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
@@ -969,13 +969,16 @@ def read_gbq(
                 'Index column "{0}" does not exist in DataFrame.'.format(index_col)
             )
 
-    # Creating an alias for col_order, which is columns
-    col_order = col_order or columns
+    # Using columns as an alias for col_order, raising an error if both provided
+    if col_order and not columns:
+        columns = col_order
+    elif col_order and columns:
+        raise ValueError("Must specify either columns or col_order, not both")
 
     # Change the order of columns in the DataFrame based on provided list
-    if col_order is not None:
-        if sorted(col_order) == sorted(final_df.columns):
-            final_df = final_df[col_order]
+    if columns is not None:
+        if sorted(columns) == sorted(final_df.columns):
+            final_df = final_df[columns]
         else:
             raise InvalidColumnOrder("Column order does not match this DataFrame.")
 
