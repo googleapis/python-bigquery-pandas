@@ -734,7 +734,6 @@ def read_gbq(
     query_or_table,
     project_id=None,
     index_col=None,
-    col_order=None,
     columns=None,
     reauth=False,
     auth_local_webserver=True,
@@ -751,6 +750,8 @@ def read_gbq(
     auth_redirect_uri=None,
     client_id=None,
     client_secret=None,
+    *,
+    col_order=None,
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -774,11 +775,9 @@ def read_gbq(
         the environment.
     index_col : str, optional
         Name of result column to use for index in results DataFrame.
-    col_order : list(str), optional
+    columns : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
-    columns : list(str), optional
-        Alias for col_order
     reauth : boolean, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
@@ -891,6 +890,8 @@ def read_gbq(
     client_secret : str
         The Client Secret associated with the Client ID for the Google Cloud Project
         the user is attempting to connect to.
+    col_order : list(str), optional
+        Alias for columns, retained for backwards compatibility.
 
     Returns
     -------
@@ -976,6 +977,7 @@ def read_gbq(
         raise ValueError("Must specify either columns or col_order, not both")
 
     # Change the order of columns in the DataFrame based on provided list
+    # TO DO: allow columns to be a subset of all columns in the table, with follow up PR
     if columns is not None:
         if sorted(columns) == sorted(final_df.columns):
             final_df = final_df[columns]
