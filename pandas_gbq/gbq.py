@@ -977,7 +977,7 @@ def read_gbq(
         raise ValueError("Must specify either columns or col_order, not both")
 
     # Change the order of columns in the DataFrame based on provided list
-    # TO DO: allow columns to be a subset of all columns in the table, with follow up PR
+    # TODO(kiraksi): allow columns to be a subset of all columns in the table, with follow up PR
     if columns is not None:
         if sorted(columns) == sorted(final_df.columns):
             final_df = final_df[columns]
