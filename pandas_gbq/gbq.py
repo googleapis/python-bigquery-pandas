@@ -778,8 +778,6 @@ def read_gbq(
     columns : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
-    columns : list(str), optional
-        Alias for col_order
     reauth : boolean, default False
         Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
