@@ -974,7 +974,9 @@ def read_gbq(
     if col_order and not columns:
         columns = col_order
     elif col_order and columns:
-        raise ValueError("Must specify either columns (preferred) or col_order, not both")
+        raise ValueError(
+            "Must specify either columns (preferred) or col_order, not both"
+        )
 
     # Change the order of columns in the DataFrame based on provided list
     # TODO(kiraksi): allow columns to be a subset of all columns in the table, with follow up PR
