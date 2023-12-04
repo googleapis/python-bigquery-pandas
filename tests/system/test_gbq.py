@@ -15,9 +15,9 @@ import pandas.testing as tm
 from pandas import DataFrame
 
 try:
-    import pkg_resources  # noqa
+    import importlib.metadata as metadata
 except ImportError:
-    raise ImportError("Could not import pkg_resources (setuptools).")
+    import importlib_metadata as metadata
 import pytest
 import pytz
 
@@ -26,7 +26,7 @@ import pandas_gbq.schema
 
 
 TABLE_ID = "new_test"
-PANDAS_VERSION = pkg_resources.parse_version(pandas.__version__)
+PANDAS_VERSION = metadata.version("pandas")
 
 
 def test_imports():
