@@ -37,8 +37,6 @@ class Features:
 
     @property
     def bigquery_installed_version(self):
-        import google.cloud.bigquery
-
         try:
             import importlib.metadata as metadata
         except ImportError:
@@ -90,8 +88,6 @@ class Features:
 
     @property
     def pandas_installed_version(self):
-        import pandas
-
         try:
             import importlib.metadata as metadata
         except ImportError:
