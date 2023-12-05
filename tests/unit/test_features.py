@@ -7,6 +7,12 @@ import pytest
 from pandas_gbq.features import FEATURES
 
 
+@pytest.fixture(autouse=True)
+def fresh_bigquery_version(monkeypatch):
+    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", None)
+    monkeypatch.setattr(FEATURES, "_pandas_installed_version", None)
+
+
 @pytest.mark.parametrize(
     ["bigquery_version", "expected"],
     [
@@ -19,7 +25,9 @@ from pandas_gbq.features import FEATURES
     ],
 )
 def test_bigquery_has_accurate_timestamp(monkeypatch, bigquery_version, expected):
-    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", bigquery_version)
+    import google.cloud.bigquery
+
+    monkeypatch.setattr(google.cloud.bigquery, "__version__", bigquery_version)
     assert FEATURES.bigquery_has_accurate_timestamp == expected
 
 
@@ -35,7 +43,9 @@ def test_bigquery_has_accurate_timestamp(monkeypatch, bigquery_version, expected
     ],
 )
 def test_bigquery_has_bignumeric(monkeypatch, bigquery_version, expected):
-    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", bigquery_version)
+    import google.cloud.bigquery
+
+    monkeypatch.setattr(google.cloud.bigquery, "__version__", bigquery_version)
     assert FEATURES.bigquery_has_bignumeric == expected
 
 
@@ -51,7 +61,9 @@ def test_bigquery_has_bignumeric(monkeypatch, bigquery_version, expected):
     ],
 )
 def test_bigquery_has_from_dataframe_with_csv(monkeypatch, bigquery_version, expected):
-    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", bigquery_version)
+    import google.cloud.bigquery
+
+    monkeypatch.setattr(google.cloud.bigquery, "__version__", bigquery_version)
     assert FEATURES.bigquery_has_from_dataframe_with_csv == expected
 
 
@@ -66,7 +78,9 @@ def test_bigquery_has_from_dataframe_with_csv(monkeypatch, bigquery_version, exp
     ],
 )
 def test_bigquery_needs_date_as_object(monkeypatch, bigquery_version, expected):
-    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", bigquery_version)
+    import google.cloud.bigquery
+
+    monkeypatch.setattr(google.cloud.bigquery, "__version__", bigquery_version)
     assert FEATURES.bigquery_needs_date_as_object == expected
 
 
@@ -82,5 +96,7 @@ def test_bigquery_needs_date_as_object(monkeypatch, bigquery_version, expected):
     ],
 )
 def test_pandas_has_deprecated_verbose(monkeypatch, pandas_version, expected):
-    monkeypatch.setattr(FEATURES, "_pandas_installed_version", pandas_version)
+    import pandas
+
+    monkeypatch.setattr(pandas, "__version__", pandas_version)
     assert FEATURES.pandas_has_deprecated_verbose == expected

@@ -549,9 +549,8 @@ def test_read_gbq_wo_verbose_w_new_pandas_no_warnings(monkeypatch, recwarn):
 def test_read_gbq_with_old_bq_raises_importerror(monkeypatch):
     import google.cloud.bigquery
 
-    # TODO: Fix this test
     monkeypatch.setattr(google.cloud.bigquery, "__version__", "0.27.0")
-    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", "0.27.0")
+    monkeypatch.setattr(FEATURES, "_bigquery_installed_version", None)
     with pytest.raises(ImportError, match="google-cloud-bigquery"):
         gbq.read_gbq(
             "SELECT 1",
