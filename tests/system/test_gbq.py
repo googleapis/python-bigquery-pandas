@@ -14,11 +14,7 @@ import pandas.api.types
 import pandas.testing as tm
 from pandas import DataFrame
 
-try:
-    import importlib.metadata as metadata
-except ImportError:
-    import importlib_metadata as metadata
-import pytest
+import packaging.version
 import pytz
 
 from pandas_gbq import gbq
@@ -26,7 +22,7 @@ import pandas_gbq.schema
 
 
 TABLE_ID = "new_test"
-PANDAS_VERSION = metadata.version("pandas")
+PANDAS_VERSION = packaging.version.parse(pandas.__version__)
 
 
 def test_imports():
