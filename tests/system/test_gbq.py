@@ -14,8 +14,8 @@ import pandas.api.types
 import pandas.testing as tm
 from pandas import DataFrame
 
-import packaging.version
 import pytz
+import pytest
 
 from pandas_gbq import gbq
 import pandas_gbq.schema
