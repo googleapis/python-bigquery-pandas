@@ -41,6 +41,7 @@ dependencies = [
     # indefinitely. https://github.com/pydata/pandas-gbq/issues/343
     "google-cloud-bigquery >=3.3.5,<4.0.0dev,!=2.4.*",
     "google-cloud-bigquery-storage >=2.16.2,<3.0.0dev",
+    "packaging >=20.0.0",
 ]
 extras = {
     "tqdm": "tqdm>=4.23.0",
@@ -90,6 +91,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Operating System :: OS Independent",
         "Topic :: Internet",
         "Topic :: Scientific/Engineering",
