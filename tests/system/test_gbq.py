@@ -14,19 +14,15 @@ import pandas.api.types
 import pandas.testing as tm
 from pandas import DataFrame
 
-try:
-    import pkg_resources  # noqa
-except ImportError:
-    raise ImportError("Could not import pkg_resources (setuptools).")
-import pytest
 import pytz
+import pytest
 
 from pandas_gbq import gbq
 import pandas_gbq.schema
 
 
 TABLE_ID = "new_test"
-PANDAS_VERSION = pkg_resources.parse_version(pandas.__version__)
+PANDAS_VERSION = packaging.version.parse(pandas.__version__)
 
 
 def test_imports():
@@ -600,6 +596,40 @@ class TestReadGBQIntegration(object):
         )
         assert df["max_year"][0] >= 2000
 
+    def test_columns_as_alias(self, project_id):
+        query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
+        columns = ["string_2", "string_1", "string_3"]
+
+        df = gbq.read_gbq(
+            query,
+            project_id=project_id,
+            columns=columns,
+            credentials=self.credentials,
+            dialect="standard",
+        )
+
+        expected = DataFrame({"string_1": ["a"], "string_2": ["b"], "string_3": ["c"]})[
+            columns
+        ]
+
+        # Verify that the result_frame matches the expected DataFrame
+        tm.assert_frame_equal(df, expected)
+
+    def test_columns_and_col_order_raises_error(self, project_id):
+        query = "SELECT 'a' AS string_1, 'b' AS string_2, 'c' AS string_3"
+        columns = ["string_2", "string_1"]
+        col_order = ["string_3", "string_1", "string_2"]
+
+        with pytest.raises(ValueError):
+            gbq.read_gbq(
+                query,
+                project_id=project_id,
+                columns=columns,
+                col_order=col_order,
+                credentials=self.credentials,
+                dialect="standard",
+            )
+
 
 class TestToGBQIntegration(object):
     @pytest.fixture(autouse=True, scope="function")
@@ -788,6 +818,7 @@ class TestToGBQIntegration(object):
         test_size = 10
         df = make_mixed_dataframe_v2(test_size)
         df_different_schema = make_mixed_dataframe_v1()
+        schema_new = gbq.generate_bq_schema(df_different_schema)
 
         # Initialize table with sample data
         gbq.to_gbq(
@@ -798,7 +829,7 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        # Test the if_exists parameter with the value 'replace'.
+        # When if_exists == 'replace', table schema should change too.
         gbq.to_gbq(
             df_different_schema,
             self.destination_table + test_id,
@@ -807,15 +838,16 @@ class TestToGBQIntegration(object):
             credentials=self.credentials,
         )
 
-        result = gbq.read_gbq(
-            "SELECT COUNT(*) AS num_rows FROM {0}".format(
-                self.destination_table + test_id
-            ),
+        df_new = gbq.read_gbq(
+            "SELECT * FROM {0}".format(self.destination_table + test_id),
             project_id=project_id,
             credentials=self.credentials,
             dialect="legacy",
         )
-        assert result["num_rows"][0] == 5
+
+        schema_returned = gbq.generate_bq_schema(df_new)
+        assert schema_new == schema_returned
+        assert df_new.shape[0] == 5
 
     def test_upload_data_if_table_exists_raises_value_error(self, project_id):
         test_id = "4"

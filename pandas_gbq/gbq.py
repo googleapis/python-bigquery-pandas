@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 
 def _test_google_api_imports():
     try:
-        import pkg_resources  # noqa
+        import packaging  # noqa
     except ImportError as ex:  # pragma: NO COVER
-        raise ImportError("pandas-gbq requires setuptools") from ex
+        raise ImportError("pandas-gbq requires db-dtypes") from ex
 
     try:
         import db_dtypes  # noqa
@@ -483,13 +483,15 @@ class GbqConnector(object):
                 project=self.project_id,
             )
             logger.debug("Query running...")
-        except (RefreshError, ValueError):
+        except (RefreshError, ValueError) as ex:
             if self.private_key:
-                raise AccessDenied("The service account credentials are not valid")
+                raise AccessDenied(
+                    f"The service account credentials are not valid: {ex}"
+                )
             else:
                 raise AccessDenied(
                     "The credentials have been revoked or expired, "
-                    "please re-run the application to re-authorize"
+                    f"please re-run the application to re-authorize: {ex}"
                 )
         except self.http_error as ex:
             self.process_http_error(ex)
@@ -732,7 +734,7 @@ def read_gbq(
     query_or_table,
     project_id=None,
     index_col=None,
-    col_order=None,
+    columns=None,
     reauth=False,
     auth_local_webserver=True,
     dialect=None,
@@ -748,6 +750,8 @@ def read_gbq(
     auth_redirect_uri=None,
     client_id=None,
     client_secret=None,
+    *,
+    col_order=None,
 ):
     r"""Load data from Google BigQuery using google-cloud-python
 
@@ -771,7 +775,7 @@ def read_gbq(
         the environment.
     index_col : str, optional
         Name of result column to use for index in results DataFrame.
-    col_order : list(str), optional
+    columns : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
     reauth : boolean, default False
@@ -886,6 +890,8 @@ def read_gbq(
     client_secret : str
         The Client Secret associated with the Client ID for the Google Cloud Project
         the user is attempting to connect to.
+    col_order : list(str), optional
+        Alias for columns, retained for backwards compatibility.
 
     Returns
     -------
@@ -964,10 +970,19 @@ def read_gbq(
                 'Index column "{0}" does not exist in DataFrame.'.format(index_col)
             )
 
+    # Using columns as an alias for col_order, raising an error if both provided
+    if col_order and not columns:
+        columns = col_order
+    elif col_order and columns:
+        raise ValueError(
+            "Must specify either columns (preferred) or col_order, not both"
+        )
+
     # Change the order of columns in the DataFrame based on provided list
-    if col_order is not None:
-        if sorted(col_order) == sorted(final_df.columns):
-            final_df = final_df[col_order]
+    # TODO(kiraksi): allow columns to be a subset of all columns in the table, with follow up PR
+    if columns is not None:
+        if sorted(columns) == sorted(final_df.columns):
+            final_df = final_df[columns]
         else:
             raise InvalidColumnOrder("Column order does not match this DataFrame.")
 
@@ -1205,12 +1220,15 @@ def to_gbq(
         )
         table_connector.create(table_id, table_schema)
     else:
-        # Convert original schema (the schema that already exists) to pandas-gbq API format
-        original_schema = pandas_gbq.schema.to_pandas_gbq(table.schema)
+        if if_exists == "append":
+            # Convert original schema (the schema that already exists) to pandas-gbq API format
+            original_schema = pandas_gbq.schema.to_pandas_gbq(table.schema)
 
-        # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
-        # matches. See: https://github.com/pydata/pandas-gbq/issues/315
-        table_schema = pandas_gbq.schema.update_schema(table_schema, original_schema)
+            # Update the local `table_schema` so mode (NULLABLE/REQUIRED)
+            # matches. See: https://github.com/pydata/pandas-gbq/issues/315
+            table_schema = pandas_gbq.schema.update_schema(
+                table_schema, original_schema
+            )
 
     if dataframe.empty:
         # Create the table (if needed), but don't try to run a load job with an
