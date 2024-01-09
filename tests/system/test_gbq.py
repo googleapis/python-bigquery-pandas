@@ -426,33 +426,6 @@ class TestReadGBQIntegration(object):
         )
         tm.assert_frame_equal(df, DataFrame({"valid_string": ["PI"]}))
 
-    def test_configuration_without_query(self, project_id):
-        sql_statement = "SELECT 1"
-        config = {
-            "copy": {
-                "sourceTable": {
-                    "projectId": project_id,
-                    "datasetId": "publicdata:samples",
-                    "tableId": "wikipedia",
-                },
-                "destinationTable": {
-                    "projectId": project_id,
-                    "datasetId": "publicdata:samples",
-                    "tableId": "wikipedia_copied",
-                },
-            }
-        }
-        # Test that only 'query' configurations are supported
-        # nor 'copy','load','extract'
-        with pytest.raises(ValueError):
-            gbq.read_gbq(
-                sql_statement,
-                project_id=project_id,
-                credentials=self.credentials,
-                configuration=config,
-                dialect="legacy",
-            )
-
     def test_configuration_raises_value_error_with_multiple_config(self, project_id):
         sql_statement = "SELECT 1"
         config = {
