@@ -581,7 +581,9 @@ def conda_test(session):
     # for troubleshooting purposes.
     session.run("mamba", "list")
 
-    subprocess.run(["pip", "check"], check=True)  # Raise an exception if pip check fails
+    subprocess.run(
+        ["pip", "check"], check=True
+    )  # Raise an exception if pip check fails
 
     # Tests are limited to unit tests only, at this time.
     session.run(
