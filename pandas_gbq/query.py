@@ -40,6 +40,13 @@ def _wait_for_query_job(
     """Wait for query to complete, pausing occasionally to update progress.
 
     Args:
+        connector (GbqConnector):
+            General pandas-gbq "connector" with helpers for stateful progress
+            logs and error raising.
+
+        client (bigquery.Client):
+            A connection to BigQuery, used to make API requests.
+
         query_reply (QueryJob):
             A query job which has started.
 
@@ -82,6 +89,39 @@ def query_and_wait(
     max_results: Optional[int],
     timeout_ms: Optional[int],
 ):
+    """Start a query and wait for it to complete.
+
+    Args:
+        connector (GbqConnector):
+            General pandas-gbq "connector" with helpers for stateful progress
+            logs and error raising.
+
+        client (bigquery.Client):
+            A connection to BigQuery, used to make API requests.
+
+        query (str):
+            The text of the query to run.
+
+        job_config (bigquery.QueryJobConfig):
+            Options for running the query.
+
+        location (Optional[str]):
+            BigQuery location to run the query. Uses the default if not set.
+
+        project (Optional[str]):
+            GCP project ID where to run the query. Uses the default if not set.
+
+        max_results (Optional[int]):
+            Maximum number of rows in the result set.
+
+        timeout_ms (Optional[int]):
+            How long to wait before cancelling the query.
+
+    Returns:
+        bigquery.RowIterator:
+            Result iterator from which we can download the results in the
+            desired format (pandas.DataFrame).
+    """
     from google.auth.exceptions import RefreshError
 
     try:
