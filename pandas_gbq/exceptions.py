@@ -42,5 +42,3 @@ class QueryTimeout(ValueError):
     Raised when the query request exceeds the timeoutMs value specified in the
     BigQuery configuration.
     """
-
-    pass

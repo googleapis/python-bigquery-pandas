@@ -74,8 +74,6 @@ class DatasetCreationError(ValueError):
     Raised when the create dataset method fails
     """
 
-    pass
-
 
 class InvalidColumnOrder(ValueError):
     """
@@ -83,8 +81,6 @@ class InvalidColumnOrder(ValueError):
     results DataFrame does not match the schema
     returned by BigQuery.
     """
-
-    pass
 
 
 class InvalidIndexColumn(ValueError):
@@ -94,16 +90,12 @@ class InvalidIndexColumn(ValueError):
     returned by BigQuery.
     """
 
-    pass
-
 
 class InvalidPageToken(ValueError):
     """
     Raised when Google BigQuery fails to return,
     or returns a duplicate page token.
     """
-
-    pass
 
 
 class InvalidSchema(ValueError):
@@ -126,8 +118,6 @@ class NotFoundException(ValueError):
     Raised when the project_id, table or dataset provided in the query could
     not be found.
     """
-
-    pass
 
 
 class TableCreationError(ValueError):
