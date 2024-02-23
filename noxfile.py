@@ -183,8 +183,7 @@ def default(session):
     # Run py.test against the unit tests.
     session.run(
         "py.test",
-        # "--quiet",
-        "-s",
+        "--quiet",
         f"--junitxml=unit_{session.python}_sponge_log.xml",
         "--cov=pandas_gbq",
         "--cov=tests/unit",
