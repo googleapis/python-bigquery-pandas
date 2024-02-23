@@ -232,7 +232,7 @@ def test_to_gbq_wo_verbose_w_new_pandas_no_warnings(monkeypatch, recwarn):
         gbq.to_gbq(DataFrame([[1]]), "dataset.tablename", project_id="my-project")
     except gbq.TableCreationError:
         pass
-    print("\nDINOSAUR:", recwarn.list, "\n")
+    print("\nDINOSAUR:", recwarn, "LIST:", recwarn.list, "\n")
     assert len(recwarn) == 0
 
 
