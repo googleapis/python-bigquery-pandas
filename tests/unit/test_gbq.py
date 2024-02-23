@@ -232,8 +232,9 @@ def test_to_gbq_wo_verbose_w_new_pandas_no_warnings(monkeypatch, recwarn):
         gbq.to_gbq(DataFrame([[1]]), "dataset.tablename", project_id="my-project")
     except gbq.TableCreationError:
         pass
-    print("\nDINOSAUR:", recwarn, "LIST:", recwarn.list, "\n")
-    assert len(recwarn) == 0
+    # TQDM generates a single warning related to the deprecated
+    # datetime.datetime.utcfromtimestamp() function
+    assert len(recwarn) == 1
 
 
 def test_to_gbq_with_verbose_old_pandas_no_warnings(monkeypatch, recwarn):
@@ -251,7 +252,9 @@ def test_to_gbq_with_verbose_old_pandas_no_warnings(monkeypatch, recwarn):
         )
     except gbq.TableCreationError:
         pass
-    assert len(recwarn) == 0
+    # TQDM generates a single warning related to the deprecated
+    # datetime.datetime.utcfromtimestamp() function
+    assert len(recwarn) == 1
 
 
 def test_to_gbq_with_private_key_raises_notimplementederror():
