@@ -1,2 +1,2 @@
 numpy==1.17.5
-db-dtypes==1.0.3
+db-dtypes==1.0.4
