@@ -488,7 +488,7 @@ def prerelease_deps(session):
     session.install(*constraints_deps)
 
     prerel_deps = [
-        #"protobuf",
+        # "protobuf",
         # dependency of grpc
         "six",
         "googleapis-common-protos",
