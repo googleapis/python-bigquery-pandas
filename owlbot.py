@@ -55,7 +55,7 @@ s.move(
         # creating clients, not the end user.
         "docs/multiprocessing.rst",
         "noxfile.py",
-	    "README.rst",
+	"README.rst",
         # exclude .kokoro/build.sh which is customized due to support for conda
         ".kokoro/build.sh",
     ],
