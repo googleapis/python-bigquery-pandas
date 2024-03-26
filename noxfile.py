@@ -22,6 +22,7 @@ import pathlib
 import re
 import shutil
 import warnings
+import subprocess
 
 import nox
 
@@ -600,6 +601,10 @@ def conda_test(session):
     # Provide a list of all installed packages (both from conda forge and pip)
     # for troubleshooting purposes.
     session.run("mamba", "list")
+
+    subprocess.run(
+        ["pip", "check"], check=True
+    )  # Raise an exception if pip check fails
 
     # Tests are limited to unit tests only, at this time.
     session.run(
