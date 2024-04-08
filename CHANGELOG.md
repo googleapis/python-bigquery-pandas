@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.1](https://github.com/googleapis/python-bigquery-pandas/compare/v0.22.0...v0.22.1) (2024-04-08)
+
+
+### Documentation
+
+* Add summary_overview template ([#751](https://github.com/googleapis/python-bigquery-pandas/issues/751)) ([602e8fe](https://github.com/googleapis/python-bigquery-pandas/commit/602e8fe34c0eb41917a04de7c9c30cf97f5604d8))
+
 ## [0.22.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.21.0...v0.22.0) (2024-03-05)
 
 
