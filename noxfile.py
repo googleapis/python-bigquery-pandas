@@ -298,7 +298,7 @@ def prerelease(session):
         "--pre",
         "--upgrade",
         "google-api-core",
-        "google-cloud-bigquery",
+        "google-cloud-bigquery==3.20.1",
         "google-cloud-bigquery-storage",
         "google-cloud-core",
         "google-resumable-media",
@@ -350,12 +350,14 @@ def prerelease(session):
         "--quiet",
         f"--junitxml=prerelease_unit_{session.python}_sponge_log.xml",
         os.path.join("tests", "unit"),
+        *session.posargs,
     )
     session.run(
         "py.test",
         "--quiet",
         f"--junitxml=prerelease_system_{session.python}_sponge_log.xml",
         os.path.join("tests", "system"),
+        *session.posargs,
     )
 
 
