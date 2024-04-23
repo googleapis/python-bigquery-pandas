@@ -302,7 +302,7 @@ def prerelease(session):
         "--pre",
         "--upgrade",
         "google-api-core",
-        "google-cloud-bigquery",
+        "google-cloud-bigquery==3.20.1",
         "google-cloud-bigquery-storage",
         "google-cloud-core",
         "google-resumable-media",
