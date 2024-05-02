@@ -513,7 +513,7 @@ def prerelease_deps(session):
         "requests",
     ]
     session.install(*other_deps)
-    session.run("python", "-m", "pip", "freeze")  
+    session.run("python", "-m", "pip", "freeze")
 
     # Print out prerelease package versions
     session.run(
@@ -525,7 +525,6 @@ def prerelease_deps(session):
 
     system_test_path = os.path.join("tests", "system.py")
     system_test_folder_path = os.path.join("tests", "system")
-
 
     # Only run system tests if found.
     if os.path.exists(system_test_path):
