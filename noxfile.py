@@ -518,6 +518,7 @@ def prerelease_deps(session):
         "requests",
     ]
     session.install(*other_deps)
+    session.run("python", "-m", "pip", "freeze")
 
     # Print out package versions.
     session.run("python", "-m", "pip", "freeze")
