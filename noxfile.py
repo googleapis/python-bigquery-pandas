@@ -256,6 +256,9 @@ def system(session):
 
     install_systemtest_dependencies(session, "-c", constraints_path)
 
+    # Print out package versions.
+    session.run("python", "-m", "pip", "freeze")
+
     # Run py.test against the system tests.
     if system_test_exists:
         session.run(
@@ -514,7 +517,9 @@ def prerelease_deps(session):
     ]
     session.install(*other_deps)
 
-    # Print out prerelease package versions
+    # Print out package versions.
+    session.run("python", "-m", "pip", "freeze")
+
     session.run(
         "python", "-c", "import google.protobuf; print(google.protobuf.__version__)"
     )
