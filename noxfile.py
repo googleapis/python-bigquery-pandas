@@ -361,7 +361,7 @@ def prerelease(session):
         "py.test",
         "--quiet",
         f"--junitxml=prerelease_system_{session.python}_sponge_log.xml",
-        # os.path.join("tests", "system"),
+        os.path.join("tests", "system"),
         *session.posargs,
     )
 
