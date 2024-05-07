@@ -473,6 +473,9 @@ class TestReadGBQIntegration(object):
         sql_statement = """
         select count(*) from unnest(generate_array(1,1000000)), unnest(generate_array(1, 10000))
         """
+
+        # This first test confirms that we get a timeout error if we exceed the timeout limit.
+        # The above query is expected to take a long time and exceed the limit. 
         configs = [
             # we have a minimum limit on the timeout_ms being 400 milliseconds
             # see pandas-gbq/gbq.py/GbqConnector/run_query docstring
@@ -483,6 +486,28 @@ class TestReadGBQIntegration(object):
             # https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfiguration.FIELDS.job_timeout_ms
             {"query": {"useQueryCache": False}, "jobTimeoutMs": 401},
         ]
+        for config in configs:
+            with pytest.raises(gbq.QueryTimeout):
+                gbq.read_gbq(
+                    sql_statement,
+                    project_id=project_id,
+                    credentials=self.credentials,
+                    configuration=config,
+                )
+        
+        # This second test confirms out our validation logic won't allow a 
+        # value less than or equal to 400 be used as a timeout value.
+        # by exercising the system for various edge cases to ensure we catch
+        # invalid values less than or equal to 400.
+        configs = [
+            {"query": {"useQueryCache": False, "timeoutMs": 399}},
+            {"query": {"useQueryCache": False, "timeoutMs": 400}},
+            {"query": {"useQueryCache": False, "timeoutMs": 1}},                        
+            {"query": {"useQueryCache": False}, "jobTimeoutMs": 399},
+            {"query": {"useQueryCache": False}, "jobTimeoutMs": 400},
+            {"query": {"useQueryCache": False}, "jobTimeoutMs": 1},                        
+        ]
+
         for config in configs:
             with pytest.raises(gbq.QueryTimeout):
                 gbq.read_gbq(
