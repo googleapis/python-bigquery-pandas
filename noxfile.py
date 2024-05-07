@@ -348,7 +348,6 @@ def prerelease(session):
     session.run("python", "-m", "pip", "freeze")
 
     # Run all tests, except a few samples tests which require extra dependencies.
-
     session.run(
         "py.test",
         "--quiet",
