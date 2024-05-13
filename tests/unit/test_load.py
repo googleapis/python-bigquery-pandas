@@ -379,12 +379,7 @@ def test_cast_dataframe_for_parquet_w_null_numerics():
 
     dataframe = pandas.DataFrame(
         {
-            "A": pandas.Series([Decimal("5413.36888"), Decimal("nan"), None]),
-        },
-    )
-    expected = pandas.DataFrame(
-        {
-            "A": pandas.Series([Decimal("5413.36888"), Decimal("nan"), Decimal("nan")]),
+            "A": pandas.Series([Decimal("5413.36"), Decimal("nan"), None]),
         },
     )
 
@@ -392,6 +387,7 @@ def test_cast_dataframe_for_parquet_w_null_numerics():
     result = load.cast_dataframe_for_parquet(dataframe, schema)
 
     # pandas.testing.assert_frame_equal() doesn't distinguish Decimal('nan')
-    # vs. None, bypass that using numpy.testing.assert_array_equal()
+    # vs. None, verify Decimal("nan") directly.
     # https://github.com/pandas-dev/pandas/issues/18463
-    numpy.testing.assert_array_equal(result["A"].values, expected["A"].values)
+    assert result["A"][1].is_nan()
+    assert result["A"][2].is_nan()

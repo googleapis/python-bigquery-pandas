@@ -101,7 +101,12 @@ def cast_dataframe_for_parquet(
         elif column_type in {"NUMERIC", "DECIMAL", "BIGNUMERIC", "BIGDECIMAL"}:
             # decimal.Decimal does not support `None` input, add support here.
             # https://github.com/googleapis/python-bigquery-pandas/issues/719
-            convert = lambda x: decimal.Decimal(x if x is not None else "NaN")
+            def convert(x):
+                if x is None:
+                    return decimal.Decimal("NaN")
+                else:
+                    return decimal.Decimal(x)
+
             cast_column = dataframe[column_name].map(convert)
         else:
             cast_column = None
