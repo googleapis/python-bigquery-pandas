@@ -6,10 +6,13 @@
 
 import copy
 import datetime
+import re
 from unittest import mock
+import warnings
 
 import google.api_core.exceptions
 import google.cloud.bigquery
+import google.cloud.bigquery.table
 import numpy
 import packaging.version
 import pandas
@@ -17,6 +20,8 @@ from pandas import DataFrame
 import pytest
 
 from pandas_gbq import gbq
+import pandas_gbq.constants
+import pandas_gbq.exceptions
 import pandas_gbq.features
 from pandas_gbq.features import FEATURES
 
@@ -145,6 +150,56 @@ def test__transform_read_gbq_configuration_makes_copy(original, expected):
     # Catch if we accidentally modified the original.
     did_change = original == got
     assert did_change == should_change
+
+
+def test_GbqConnector_download_results_warns_for_large_tables():
+    gbq._test_google_api_imports()
+    connector = _make_connector()
+    rows_iter = mock.create_autospec(
+        google.cloud.bigquery.table.RowIterator, instance=True
+    )
+    table = google.cloud.bigquery.Table.from_api_repr(
+        {
+            "tableReference": {
+                "projectId": "my-proj",
+                "datasetId": "my-dset",
+                "tableId": "my_tbl",
+            },
+            "numBytes": 2 * pandas_gbq.constants.BYTES_IN_GIB,
+        },
+    )
+    rows_iter._table = table
+
+    with pytest.warns(
+        pandas_gbq.exceptions.LargeResultsWarning,
+        match=re.escape("Your results are 2.0 GiB. Consider using BigQuery DataFrames"),
+    ):
+        connector._download_results(rows_iter)
+
+
+def test_GbqConnector_download_results_doesnt_warn_for_small_tables():
+    gbq._test_google_api_imports()
+    connector = _make_connector()
+    rows_iter = mock.create_autospec(
+        google.cloud.bigquery.table.RowIterator, instance=True
+    )
+    table = google.cloud.bigquery.Table.from_api_repr(
+        {
+            "tableReference": {
+                "projectId": "my-proj",
+                "datasetId": "my-dset",
+                "tableId": "my_tbl",
+            },
+            "numBytes": 999 * pandas_gbq.constants.BYTES_IN_MIB,
+        },
+    )
+    rows_iter._table = table
+
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            "error", category=pandas_gbq.exceptions.LargeResultsWarning
+        )
+        connector._download_results(rows_iter)
 
 
 def test_GbqConnector_get_client_w_new_bq(mock_bigquery_client):

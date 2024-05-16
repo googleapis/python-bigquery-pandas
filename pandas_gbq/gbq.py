@@ -19,6 +19,8 @@ import numpy as np
 if typing.TYPE_CHECKING:  # pragma: NO COVER
     import pandas
 
+import pandas_gbq.constants
+import pandas_gbq.exceptions
 from pandas_gbq.exceptions import GenericGBQException, QueryTimeout
 from pandas_gbq.features import FEATURES
 import pandas_gbq.query
@@ -477,6 +479,34 @@ class GbqConnector(object):
         create_bqstorage_client = self.use_bqstorage_api
         if max_results is not None:
             create_bqstorage_client = False
+
+        # If we're downloading a large table, BigQuery DataFrames might be a
+        # better fit. Not all code paths will populate rows_iter._table, but
+        # if it's not populated that means we are working with a small result
+        # set.
+        if (
+            (table := getattr(rows_iter, "_table", None)) is not None
+            and (num_bytes := table.num_bytes) is not None
+            and num_bytes > pandas_gbq.constants.BYTES_TO_RECOMMEND_BIGFRAMES
+        ):
+            num_gib = num_bytes / pandas_gbq.constants.BYTES_IN_GIB
+            warnings.warn(
+                f"Recommendation: Your results are {num_gib:.1f} GiB. "
+                "Consider using BigQuery DataFrames "
+                "(https://cloud.google.com/bigquery/docs/dataframes-quickstart) "
+                "to process these results with pandas compatible APIs that "
+                "run in the BigQuery SQL query engine. This provides an "
+                "opportunity to save on costs and improve performance. "
+                "Please reach out to bigframes-feedback@google.com with any "
+                "questions or concerns. To disable this message, run "
+                "warnings.simplefilter('ignore', category=pandas_gbq.exceptions.LargeResultsWarning)",
+                category=pandas_gbq.exceptions.LargeResultsWarning,
+                # user's code
+                # -> read_gbq
+                # -> run_query
+                # -> download_results
+                stacklevel=4,
+            )
 
         try:
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
