@@ -152,7 +152,7 @@ def test__transform_read_gbq_configuration_makes_copy(original, expected):
     assert did_change == should_change
 
 
-def test_GbqConnector_download_results_warns_for_large_tables():
+def test_GbqConnector_download_results_warns_for_large_tables(default_bigquery_client):
     gbq._test_google_api_imports()
     connector = _make_connector()
     rows_iter = mock.create_autospec(
@@ -169,6 +169,8 @@ def test_GbqConnector_download_results_warns_for_large_tables():
         },
     )
     rows_iter._table = table
+    default_bigquery_client.get_table.reset_mock(side_effect=True)
+    default_bigquery_client.get_table.return_value = table
 
     with pytest.warns(
         pandas_gbq.exceptions.LargeResultsWarning,
@@ -177,7 +179,9 @@ def test_GbqConnector_download_results_warns_for_large_tables():
         connector._download_results(rows_iter)
 
 
-def test_GbqConnector_download_results_doesnt_warn_for_small_tables():
+def test_GbqConnector_download_results_doesnt_warn_for_small_tables(
+    default_bigquery_client,
+):
     gbq._test_google_api_imports()
     connector = _make_connector()
     rows_iter = mock.create_autospec(
@@ -194,6 +198,8 @@ def test_GbqConnector_download_results_doesnt_warn_for_small_tables():
         },
     )
     rows_iter._table = table
+    default_bigquery_client.get_table.reset_mock(side_effect=True)
+    default_bigquery_client.get_table.return_value = table
 
     with warnings.catch_warnings():
         warnings.simplefilter(
@@ -246,16 +252,13 @@ def test_to_gbq_with_chunksize_warns_deprecation(
     api_method, warning_message, warning_type
 ):
     with pytest.warns(warning_type, match=warning_message):
-        try:
-            gbq.to_gbq(
-                DataFrame([[1]]),
-                "dataset.tablename",
-                project_id="my-project",
-                api_method=api_method,
-                chunksize=100,
-            )
-        except gbq.TableCreationError:
-            pass
+        gbq.to_gbq(
+            DataFrame([[1]]),
+            "dataset.tablename",
+            project_id="my-project",
+            api_method=api_method,
+            chunksize=100,
+        )
 
 
 @pytest.mark.parametrize(["verbose"], [(True,), (False,)])
@@ -266,15 +269,12 @@ def test_to_gbq_with_verbose_new_pandas_warns_deprecation(monkeypatch, verbose):
         mock.PropertyMock(return_value=True),
     )
     with pytest.warns(FutureWarning, match="verbose is deprecated"):
-        try:
-            gbq.to_gbq(
-                DataFrame([[1]]),
-                "dataset.tablename",
-                project_id="my-project",
-                verbose=verbose,
-            )
-        except gbq.TableCreationError:
-            pass
+        gbq.to_gbq(
+            DataFrame([[1]]),
+            "dataset.tablename",
+            project_id="my-project",
+            verbose=verbose,
+        )
 
 
 def test_to_gbq_with_private_key_raises_notimplementederror():
@@ -288,11 +288,7 @@ def test_to_gbq_with_private_key_raises_notimplementederror():
 
 
 def test_to_gbq_doesnt_run_query(mock_bigquery_client):
-    try:
-        gbq.to_gbq(DataFrame([[1]]), "dataset.tablename", project_id="my-project")
-    except gbq.TableCreationError:
-        pass
-
+    gbq.to_gbq(DataFrame([[1]]), "dataset.tablename", project_id="my-project")
     mock_bigquery_client.query.assert_not_called()
 
 

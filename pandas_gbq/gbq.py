@@ -484,29 +484,30 @@ class GbqConnector(object):
         # better fit. Not all code paths will populate rows_iter._table, but
         # if it's not populated that means we are working with a small result
         # set.
-        if (
-            (table := getattr(rows_iter, "_table", None)) is not None
-            and isinstance((num_bytes := table.num_bytes), int)
-            and num_bytes > pandas_gbq.constants.BYTES_TO_RECOMMEND_BIGFRAMES
-        ):
-            num_gib = num_bytes / pandas_gbq.constants.BYTES_IN_GIB
-            warnings.warn(
-                f"Recommendation: Your results are {num_gib:.1f} GiB. "
-                "Consider using BigQuery DataFrames "
-                "(https://cloud.google.com/bigquery/docs/bigquery-dataframes-introduction) "
-                "to process large results with pandas compatible APIs with transparent SQL "
-                "pushdown to BigQuery engine. This provides an opportunity to save on costs "
-                "and improve performance. "
-                "Please reach out to bigframes-feedback@google.com with any "
-                "questions or concerns. To disable this message, run "
-                "warnings.simplefilter('ignore', category=pandas_gbq.exceptions.LargeResultsWarning)",
-                category=pandas_gbq.exceptions.LargeResultsWarning,
-                # user's code
-                # -> read_gbq
-                # -> run_query
-                # -> download_results
-                stacklevel=4,
-            )
+        if (table_ref := getattr(rows_iter, "_table", None)) is not None:
+            table = self.client.get_table(table_ref)
+            if (
+                isinstance((num_bytes := table.num_bytes), int)
+                and num_bytes > pandas_gbq.constants.BYTES_TO_RECOMMEND_BIGFRAMES
+            ):
+                num_gib = num_bytes / pandas_gbq.constants.BYTES_IN_GIB
+                warnings.warn(
+                    f"Recommendation: Your results are {num_gib:.1f} GiB. "
+                    "Consider using BigQuery DataFrames "
+                    "(https://cloud.google.com/bigquery/docs/bigquery-dataframes-introduction) "
+                    "to process large results with pandas compatible APIs with transparent SQL "
+                    "pushdown to BigQuery engine. This provides an opportunity to save on costs "
+                    "and improve performance. "
+                    "Please reach out to bigframes-feedback@google.com with any "
+                    "questions or concerns. To disable this message, run "
+                    "warnings.simplefilter('ignore', category=pandas_gbq.exceptions.LargeResultsWarning)",
+                    category=pandas_gbq.exceptions.LargeResultsWarning,
+                    # user's code
+                    # -> read_gbq
+                    # -> run_query
+                    # -> download_results
+                    stacklevel=4,
+                )
 
         try:
             schema_fields = [field.to_api_repr() for field in rows_iter.schema]
@@ -1087,12 +1088,7 @@ def to_gbq(
         )
 
     if api_method == "default":
-        # Avoid using parquet if pandas doesn't support lossless conversions to
-        # parquet timestamp. See: https://stackoverflow.com/a/69758676/101923
-        if FEATURES.pandas_has_parquet_with_lossless_timestamp:
-            api_method = "load_parquet"
-        else:
-            api_method = "load_csv"
+        api_method = "load_parquet"
 
     if chunksize is not None:
         if api_method == "load_parquet":
