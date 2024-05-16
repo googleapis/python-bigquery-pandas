@@ -693,17 +693,24 @@ def read_gbq(
     *,
     col_order=None,
 ):
-    r"""Load data from Google BigQuery using google-cloud-python
+    r"""Read data from Google BigQuery to a pandas DataFrame.
 
-    The main method a user calls to execute a Query in Google BigQuery
-    and read results into a pandas DataFrame.
-
-    This method uses the Google Cloud client library to make requests to
-    Google BigQuery, documented `here
-    <https://googleapis.dev/python/bigquery/latest/index.html>`__.
+    Run a SQL query in BigQuery or read directly from a table
+    the `Python client library for BigQuery
+    <https://cloud.google.com/python/docs/reference/bigquery/latest/index.html>`__
+    and for `BigQuery Storage
+    <https://cloud.google.com/python/docs/reference/bigquerystorage/latest>`__
+    to make API requests.
 
     See the :ref:`How to authenticate with Google BigQuery <authentication>`
     guide for authentication instructions.
+
+    .. note::
+        Consider using `BigQuery DataFrames
+        <https://cloud.google.com/bigquery/docs/dataframes-quickstart>`__ to
+        process large results with pandas compatible APIs that run in the
+        BigQuery SQL query engine. This provides an opportunity to save on
+        costs and improve performance.
 
     Parameters
     ----------
