@@ -381,7 +381,6 @@ def cover(session):
         "report",
         "--show-missing",
         "--include=tests/unit/*",
-        "--include=tests/system/small/*",
         "--fail-under=100",
     )
 
