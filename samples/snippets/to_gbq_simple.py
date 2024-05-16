@@ -10,7 +10,6 @@ import argparse
 def main(project_id, table_id):
     # [START bigquery_pandas_gbq_to_gbq_simple]
     import pandas
-
     import pandas_gbq
 
     # TODO: Set project_id to your Google Cloud Platform project ID.
