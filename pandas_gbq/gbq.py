@@ -492,11 +492,11 @@ class GbqConnector(object):
             num_gib = num_bytes / pandas_gbq.constants.BYTES_IN_GIB
             warnings.warn(
                 f"Recommendation: Your results are {num_gib:.1f} GiB. "
-                "Consider using BigQuery DataFrames "
-                "(https://cloud.google.com/bigquery/docs/dataframes-quickstart) "
-                "to process these results with pandas compatible APIs that "
-                "run in the BigQuery SQL query engine. This provides an "
-                "opportunity to save on costs and improve performance. "
+                "Also, consider using BigQuery DataFrames "
+                "(https://cloud.google.com/bigquery/docs/bigquery-dataframes-introduction) "
+                "to process large results with pandas compatible APIs with transparent SQL "
+                "pushdown to BigQuery engine. This provides an opportunity to save on costs "
+                "and improve performance. "
                 "Please reach out to bigframes-feedback@google.com with any "
                 "questions or concerns. To disable this message, run "
                 "warnings.simplefilter('ignore', category=pandas_gbq.exceptions.LargeResultsWarning)",
