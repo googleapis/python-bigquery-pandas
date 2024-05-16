@@ -486,7 +486,7 @@ class GbqConnector(object):
         # set.
         if (
             (table := getattr(rows_iter, "_table", None)) is not None
-            and (num_bytes := table.num_bytes) is not None
+            and isinstance((num_bytes := table.num_bytes), int)
             and num_bytes > pandas_gbq.constants.BYTES_TO_RECOMMEND_BIGFRAMES
         ):
             num_gib = num_bytes / pandas_gbq.constants.BYTES_IN_GIB
