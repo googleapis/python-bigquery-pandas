@@ -377,17 +377,15 @@ def test_cast_dataframe_for_parquet_w_null_fields():
 def test_cast_dataframe_for_parquet_w_null_numerics():
     from decimal import Decimal
 
-    dataframe = pandas.DataFrame(
-        {
-            "A": pandas.Series([Decimal("5413.36"), Decimal("nan"), None]),
-        },
-    )
+    nans = pandas.Series([Decimal("3.14"), Decimal("nan"), None, pandas.NA])
+    dataframe = pandas.DataFrame({"A": nans})
 
     schema = {"fields": [{"name": "A", "type": "BIGNUMERIC"}]}
     result = load.cast_dataframe_for_parquet(dataframe, schema)
 
-    # pandas.testing.assert_frame_equal() doesn't distinguish Decimal('nan')
-    # vs. None, verify Decimal("nan") directly.
+    # pandas.testing.assert_frame_equal() doesn't distinguish Decimal("NaN")
+    # vs. None, verify Decimal("NaN") directly.
     # https://github.com/pandas-dev/pandas/issues/18463
     assert result["A"][1].is_nan()
     assert result["A"][2].is_nan()
+    assert result["A"][3].is_nan()
