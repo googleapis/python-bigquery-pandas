@@ -9,7 +9,6 @@ BIGQUERY_MINIMUM_VERSION = "3.3.5"
 BIGQUERY_QUERY_AND_WAIT_VERSION = "3.14.0"
 PANDAS_VERBOSITY_DEPRECATION_VERSION = "0.23.0"
 PANDAS_BOOLEAN_DTYPE_VERSION = "1.0.0"
-PANDAS_PARQUET_LOSSLESS_TIMESTAMP_VERSION = "1.1.0"
 
 
 class Features:
@@ -55,8 +54,8 @@ class Features:
 
     @property
     def pandas_installed_version(self):
-        import pandas
         import packaging.version
+        import pandas
 
         if self._pandas_installed_version is not None:
             return self._pandas_installed_version
@@ -80,15 +79,6 @@ class Features:
         import packaging.version
 
         desired_version = packaging.version.parse(PANDAS_BOOLEAN_DTYPE_VERSION)
-        return self.pandas_installed_version >= desired_version
-
-    @property
-    def pandas_has_parquet_with_lossless_timestamp(self):
-        import packaging.version
-
-        desired_version = packaging.version.parse(
-            PANDAS_PARQUET_LOSSLESS_TIMESTAMP_VERSION
-        )
         return self.pandas_installed_version >= desired_version
 
 
