@@ -15,7 +15,6 @@
 """This script is used to synthesize generated parts of this library."""
 
 import pathlib
-import re
 
 import synthtool as s
 from synthtool import gcp
@@ -35,8 +34,8 @@ extras_by_python = {
 }
 extras = ["tqdm"]
 templated_files = common.py_library(
-    unit_test_python_versions=["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"],
-    system_test_python_versions=["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"],
+    unit_test_python_versions=["3.8", "3.9", "3.10", "3.11", "3.12"],
+    system_test_python_versions=["3.8", "3.9", "3.10", "3.11", "3.12"],
     cov_level=96,
     unit_test_external_dependencies=["freezegun"],
     unit_test_extras=extras,
@@ -56,7 +55,9 @@ s.move(
         # creating clients, not the end user.
         "docs/multiprocessing.rst",
         "noxfile.py",
-	    "README.rst",
+        "README.rst",
+        # exclude .kokoro/build.sh which is customized due to support for conda
+        ".kokoro/build.sh",
     ],
 )
 
@@ -65,37 +66,10 @@ s.move(
 # ----------------------------------------------------------------------------
 
 s.replace(
-    [".github/header-checker-lint.yml"], '"Google LLC"', '"pandas-gbq Authors"',
+    [".github/header-checker-lint.yml"],
+    '"Google LLC"',
+    '"pandas-gbq Authors"',
 )
-
-# Work around bug in templates https://github.com/googleapis/synthtool/pull/1335
-s.replace(".github/workflows/unittest.yml", "--fail-under=100", "--fail-under=96")
-
-# Add environment variables to build.sh to support conda virtualenv 
-# installations
-s.replace(
-    [".kokoro/build.sh"],
-    "export PYTHONUNBUFFERED=1",
-    r"""export PYTHONUNBUFFERED=1
-export CONDA_EXE=/root/conda/bin/conda
-export CONDA_PREFIX=/root/conda
-export CONDA_PROMPT_MODIFIER=(base) 
-export _CE_CONDA=
-export CONDA_SHLVL=1
-export CONDA_PYTHON_EXE=/root/conda/bin/python
-export CONDA_DEFAULT_ENV=base
-export PATH=/root/conda/bin:/root/conda/condabin:${PATH}
-""",
-)
-
-
-# Enable display of all environmental variables, not just KOKORO related vars
-s.replace(
-    [".kokoro/build.sh"],
-    r"env \| grep KOKORO",
-    "env",
-)
-
 
 # ----------------------------------------------------------------------------
 # Samples templates
@@ -107,6 +81,6 @@ python.py_samples(skip_readmes=True)
 # Final cleanup
 # ----------------------------------------------------------------------------
 
-s.shell.run(["nox", "-s", "blacken"], hide_output=False)
+s.shell.run(["nox", "-s", "format"], hide_output=False)
 for noxfile in REPO_ROOT.glob("samples/**/noxfile.py"):
-    s.shell.run(["nox", "-s", "blacken"], cwd=noxfile.parent, hide_output=False)
+    s.shell.run(["nox", "-s", "format"], cwd=noxfile.parent, hide_output=False)

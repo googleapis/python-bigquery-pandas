@@ -9,9 +9,9 @@ import io
 from typing import Any, Callable, Dict, List, Optional
 
 import db_dtypes
+from google.cloud import bigquery
 import pandas
 import pyarrow.lib
-from google.cloud import bigquery
 
 from pandas_gbq import exceptions
 import pandas_gbq.schema
@@ -99,7 +99,16 @@ def cast_dataframe_for_parquet(
                 errors="ignore",
             )
         elif column_type in {"NUMERIC", "DECIMAL", "BIGNUMERIC", "BIGDECIMAL"}:
-            cast_column = dataframe[column_name].map(decimal.Decimal)
+            # decimal.Decimal does not support `None` or `pandas.NA` input, add
+            # support here.
+            # https://github.com/googleapis/python-bigquery-pandas/issues/719
+            def convert(x):
+                if pandas.isna(x):  # true for `None` and `pandas.NA`
+                    return decimal.Decimal("NaN")
+                else:
+                    return decimal.Decimal(x)
+
+            cast_column = dataframe[column_name].map(convert)
         else:
             cast_column = None
 
