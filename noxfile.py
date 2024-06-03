@@ -615,6 +615,8 @@ def conda_test(session):
     # for troubleshooting purposes.
     session.run("mamba", "list")
 
+    # Using subprocess.run() instead of session.run() because
+    # session.run() does not correctly handle the pip check command.
     subprocess.run(
         ["pip", "check"], check=True
     )  # Raise an exception if pip check fails
