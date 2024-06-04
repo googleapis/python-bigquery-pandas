@@ -22,8 +22,8 @@ import os
 import pathlib
 import re
 import shutil
-import warnings
 import subprocess
+import warnings
 
 import nox
 
