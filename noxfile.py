@@ -76,6 +76,26 @@ SYSTEM_TEST_EXTRAS_BY_PYTHON = {}
 
 CURRENT_DIRECTORY = pathlib.Path(__file__).parent.absolute()
 
+
+def _calculate_duration(func):
+    """This decorator prints the execution time for the decorated function."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.monotonic()
+        result = func(*args, **kwargs)
+        end = time.monotonic()
+        total_seconds = round(end - start)
+        hours = total_seconds // 3600  # Integer division to get hours
+        remaining_seconds = total_seconds % 3600  # Modulo to find remaining seconds
+        minutes = remaining_seconds // 60
+        seconds = remaining_seconds % 60
+        human_time = f"{hours:}:{minutes:0>2}:{seconds:0>2}"
+        print(f"Session ran in {total_seconds} seconds ({human_time})")
+        return result
+
+    return wrapper
+
 # 'docfx' is excluded since it only needs to run in 'docs-presubmit'
 nox.options.sessions = [
     "unit",
@@ -92,6 +112,7 @@ nox.options.error_on_missing_interpreters = True
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+@_calculate_duration
 def lint(session):
     """Run linters.
 
@@ -108,6 +129,7 @@ def lint(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+@_calculate_duration
 def blacken(session):
     """Run black. Format code to uniform standard."""
     session.install(BLACK_VERSION)
@@ -118,6 +140,7 @@ def blacken(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+@_calculate_duration
 def format(session):
     """
     Run isort to sort imports. Then run black
@@ -138,6 +161,7 @@ def format(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+@_calculate_duration
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install("docutils", "pygments")
@@ -199,6 +223,7 @@ def default(session):
 
 
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
+@_calculate_duration
 def unit(session):
     """Run the unit test suite."""
     default(session)
@@ -235,6 +260,7 @@ def install_systemtest_dependencies(session, *constraints):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
+@_calculate_duration
 def system(session):
     """Run the system test suite."""
     constraints_path = str(
@@ -281,6 +307,7 @@ def system(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+@_calculate_duration
 def prerelease(session):
     session.install(
         "--extra-index-url",
@@ -368,6 +395,7 @@ def prerelease(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+@_calculate_duration
 def cover(session):
     """Run the final coverage report.
 
@@ -390,6 +418,7 @@ def cover(session):
 
 
 @nox.session(python="3.9")
+@_calculate_duration
 def docs(session):
     """Build the docs for this library."""
 
@@ -425,6 +454,7 @@ def docs(session):
 
 
 @nox.session(python="3.10")
+@_calculate_duration
 def docfx(session):
     """Build the docfx yaml files for this library."""
 
@@ -471,17 +501,58 @@ def docfx(session):
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
+@_calculate_duration
 def prerelease_deps(session):
     """Run all tests with prerelease versions of dependencies installed."""
 
-    # Install all dependencies
-    session.install("-e", ".[all, tests, tracing]")
-    unit_deps_all = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_EXTERNAL_DEPENDENCIES
-    session.install(*unit_deps_all)
-    system_deps_all = (
-        SYSTEM_TEST_STANDARD_DEPENDENCIES + SYSTEM_TEST_EXTERNAL_DEPENDENCIES
+    session.install(
+        "--extra-index-url",
+        "https://pypi.fury.io/arrow-nightlies/",
+        "--prefer-binary",
+        "--pre",
+        "--upgrade",
+        "pyarrow",
     )
-    session.install(*system_deps_all)
+    session.install(
+        "--extra-index-url",
+        "https://pypi.anaconda.org/scipy-wheels-nightly/simple",
+        "--prefer-binary",
+        "--pre",
+        "--upgrade",
+        "pandas",
+    )
+    session.install(
+        "--prefer-binary",
+        "--pre",
+        "--upgrade",
+        "google-api-core",
+        "google-cloud-bigquery",
+        "google-cloud-bigquery-storage",
+        "google-cloud-core",
+        "google-resumable-media",
+        # Exclude version 1.49.0rc1 which has a known issue. See https://github.com/grpc/grpc/pull/30642
+        "grpcio!=1.49.0rc1",
+    )
+    session.install(
+        "freezegun",
+        "google-cloud-datacatalog",
+        "google-cloud-storage",
+        "google-cloud-testutils",
+        "IPython",
+        "mock",
+        "psutil",
+        "pytest",
+        "pytest-cov",
+    )
+
+    # Install all dependencies
+    #session.install("-e", ".[all, tests, tracing]")
+    #unit_deps_all = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_EXTERNAL_DEPENDENCIES
+    #session.install(*unit_deps_all)
+    #system_deps_all = (
+    #    SYSTEM_TEST_STANDARD_DEPENDENCIES + SYSTEM_TEST_EXTERNAL_DEPENDENCIES
+    #)
+    #session.install(*system_deps_all)
 
     # Because we test minimum dependency versions on the minimum Python
     # version, the first version we test with in the unit tests sessions has a
@@ -502,8 +573,12 @@ def prerelease_deps(session):
         )
     ]
 
+    # We use --no-deps to ensure that pre-release versions aren't overwritten
+    # by the version ranges in setup.py.
     session.install(*constraints_deps)
+    session.install("--no-deps", "-e", ".[all]")
 
+  
     prerel_deps = [
         # "protobuf",
         # dependency of grpc
@@ -529,7 +604,7 @@ def prerelease_deps(session):
     ]
     session.install(*other_deps)
 
-    # Print out package versions.
+    # Print out prerelease package versions.
     session.run("python", "-m", "pip", "freeze")
 
     session.run("py.test", "tests/unit")
@@ -573,6 +648,7 @@ def install_conda_unittest_dependencies(session, standard_deps, conda_forge_pack
 
 
 @nox.session(python=CONDA_TEST_PYTHON_VERSIONS, venv_backend="mamba")
+@_calculate_duration
 def conda_test(session):
     """Run test suite in a conda virtual environment.
 
