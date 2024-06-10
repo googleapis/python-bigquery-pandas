@@ -98,6 +98,7 @@ def _calculate_duration(func):
 
     return wrapper
 
+
 # 'docfx' is excluded since it only needs to run in 'docs-presubmit'
 nox.options.sessions = [
     "unit",
