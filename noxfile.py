@@ -361,7 +361,7 @@ def prerelease(session):
         constraints_text = constraints_file.read()
 
     # Ignore leading whitespace and comment lines.
-    deps = [
+    constraints_deps = [
         match.group(1)
         for match in re.finditer(
             r"^\s*(\S+)(?===\S+)", constraints_text, flags=re.MULTILINE
@@ -370,7 +370,7 @@ def prerelease(session):
 
     # We use --no-deps to ensure that pre-release versions aren't overwritten
     # by the version ranges in setup.py.
-    session.install(*deps)
+    session.install(*constraints_deps)
     session.install("--no-deps", "-e", ".[all]")
 
     # Print out prerelease package versions.
@@ -498,137 +498,6 @@ def docfx(session):
         os.path.join("docs", ""),
         os.path.join("docs", "_build", "html", ""),
     )
-
-
-@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
-@_calculate_duration
-def prerelease_deps(session):
-    """Run all tests with prerelease versions of dependencies installed."""
-
-    session.install(
-        "--extra-index-url",
-        "https://pypi.fury.io/arrow-nightlies/",
-        "--prefer-binary",
-        "--pre",
-        "--upgrade",
-        "pyarrow",
-    )
-    session.install(
-        "--extra-index-url",
-        "https://pypi.anaconda.org/scipy-wheels-nightly/simple",
-        "--prefer-binary",
-        "--pre",
-        "--upgrade",
-        "pandas",
-    )
-    session.install(
-        "--prefer-binary",
-        "--pre",
-        "--upgrade",
-        "google-api-core",
-        "google-cloud-bigquery",
-        "google-cloud-bigquery-storage",
-        "google-cloud-core",
-        "google-resumable-media",
-        # Exclude version 1.49.0rc1 which has a known issue. See https://github.com/grpc/grpc/pull/30642
-        "grpcio!=1.49.0rc1",
-    )
-    session.install(
-        "freezegun",
-        "google-cloud-datacatalog",
-        "google-cloud-storage",
-        "google-cloud-testutils",
-        "IPython",
-        "mock",
-        "psutil",
-        "pytest",
-        "pytest-cov",
-    )
-
-    # Install all dependencies
-    #session.install("-e", ".[all, tests, tracing]")
-    #unit_deps_all = UNIT_TEST_STANDARD_DEPENDENCIES + UNIT_TEST_EXTERNAL_DEPENDENCIES
-    #session.install(*unit_deps_all)
-    #system_deps_all = (
-    #    SYSTEM_TEST_STANDARD_DEPENDENCIES + SYSTEM_TEST_EXTERNAL_DEPENDENCIES
-    #)
-    #session.install(*system_deps_all)
-
-    # Because we test minimum dependency versions on the minimum Python
-    # version, the first version we test with in the unit tests sessions has a
-    # constraints file containing all dependencies and extras.
-    with open(
-        CURRENT_DIRECTORY
-        / "testing"
-        / f"constraints-{UNIT_TEST_PYTHON_VERSIONS[0]}.txt",
-        encoding="utf-8",
-    ) as constraints_file:
-        constraints_text = constraints_file.read()
-
-    # Ignore leading whitespace and comment lines.
-    constraints_deps = [
-        match.group(1)
-        for match in re.finditer(
-            r"^\s*(\S+)(?===\S+)", constraints_text, flags=re.MULTILINE
-        )
-    ]
-
-    # We use --no-deps to ensure that pre-release versions aren't overwritten
-    # by the version ranges in setup.py.
-    session.install(*constraints_deps)
-    session.install("--no-deps", "-e", ".[all]")
-
-  
-    prerel_deps = [
-        # "protobuf",
-        # dependency of grpc
-        "six",
-        "googleapis-common-protos",
-        # Exclude version 1.52.0rc1 which has a known issue. See https://github.com/grpc/grpc/issues/32163
-        "grpcio!=1.52.0rc1",
-        "grpcio-status",
-        "google-api-core",
-        "google-auth",
-        "proto-plus",
-        "google-cloud-testutils",
-        # dependencies of google-cloud-testutils"
-        "click",
-    ]
-
-    for dep in prerel_deps:
-        session.install("--pre", "--no-deps", "--upgrade", dep)
-
-    # Remaining dependencies
-    other_deps = [
-        "requests",
-    ]
-    session.install(*other_deps)
-
-    # Print out prerelease package versions.
-    session.run("python", "-m", "pip", "freeze")
-
-    session.run("py.test", "tests/unit")
-
-    system_test_path = os.path.join("tests", "system.py")
-    system_test_folder_path = os.path.join("tests", "system")
-
-    # Only run system tests if found.
-    if os.path.exists(system_test_path):
-        session.run(
-            "py.test",
-            "--verbose",
-            f"--junitxml=system_{session.python}_sponge_log.xml",
-            system_test_path,
-            *session.posargs,
-        )
-    if os.path.exists(system_test_folder_path):
-        session.run(
-            "py.test",
-            "--verbose",
-            f"--junitxml=system_{session.python}_sponge_log.xml",
-            system_test_folder_path,
-            *session.posargs,
-        )
 
 
 def install_conda_unittest_dependencies(session, standard_deps, conda_forge_packages):
