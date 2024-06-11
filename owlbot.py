@@ -62,6 +62,7 @@ s.move(
         
         # exclude this file as we have an alternate prerelease.cfg
         ".kokoro/presubmit/prerelease-deps.cfg",
+    ]
 )
 
 # ----------------------------------------------------------------------------
