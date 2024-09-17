@@ -35,7 +35,7 @@ dependencies = [
     "google-auth-oauthlib >=0.7.0",
     # Please also update the minimum version in pandas_gbq/features.py to
     # allow pandas-gbq to detect invalid package versions at runtime.
-    "google-cloud-bigquery >=3.3.5,<4.0.0dev",
+    "google-cloud-bigquery >=3.4.2,<4.0.0dev",
     "packaging >=22.0.0",
 ]
 extras = {
