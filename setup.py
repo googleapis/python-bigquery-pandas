@@ -23,7 +23,7 @@ release_status = "Development Status :: 4 - Beta"
 dependencies = [
     "setuptools",
     "db-dtypes >=1.0.4,<2.0.0",
-    "numpy >=1.16.6",
+    "numpy >=1.18.1",
     "pandas >=1.1.4",
     "pyarrow >=3.0.0",
     "pydata-google-auth >=1.5.0",
