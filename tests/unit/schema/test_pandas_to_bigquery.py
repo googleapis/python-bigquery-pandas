@@ -6,9 +6,9 @@ import collections
 import datetime
 import operator
 
+from google.cloud.bigquery import schema
 import pandas
 import pytest
-from google.cloud.bigquery import schema
 
 
 @pytest.fixture

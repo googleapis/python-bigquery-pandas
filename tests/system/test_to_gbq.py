@@ -396,13 +396,17 @@ DATAFRAME_ROUND_TRIPS = [
                                     ("project", pyarrow.string()),
                                 ]
                             )
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     "arrow_array": pandas.Series(
                         [[1, 2, 3], None, [4, 5, 6]],
                         dtype=pandas.ArrowDtype(
                             pyarrow.list_(pyarrow.int64()),
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     "arrow_array_of_struct": pandas.Series(
                         [
@@ -412,7 +416,9 @@ DATAFRAME_ROUND_TRIPS = [
                         ],
                         dtype=pandas.ArrowDtype(
                             pyarrow.list_(pyarrow.struct([("test", pyarrow.string())])),
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                 },
             ),
@@ -423,20 +429,26 @@ DATAFRAME_ROUND_TRIPS = [
                         [{"test": "str1"}, {"test": "str2"}, {"test": "str3"}],
                         dtype=pandas.ArrowDtype(
                             pyarrow.struct([("test", pyarrow.string())]),
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     # Array of DATETIME requires inspection into list elements.
                     # See:
                     # https://github.com/googleapis/python-bigquery/pull/1061
                     "object_array_datetime": pandas.Series(
                         [[], [datetime.datetime(1998, 9, 4, 12, 0, 0)], []],
-                        dtype=pandas.ArrowDtype(pyarrow.list_(pyarrow.timestamp("us"))),
+                        dtype=pandas.ArrowDtype(pyarrow.list_(pyarrow.timestamp("us")))
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     "object_array_of_struct": pandas.Series(
                         [[], [{"test": "str4"}], []],
                         dtype=pandas.ArrowDtype(
                             pyarrow.list_(pyarrow.struct([("test", pyarrow.string())])),
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     "arrow_struct": pandas.Series(
                         [
@@ -451,19 +463,25 @@ DATAFRAME_ROUND_TRIPS = [
                                     ("project", pyarrow.string()),
                                 ]
                             )
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     "arrow_array": pandas.Series(
                         [[1, 2, 3], [], [4, 5, 6]],
                         dtype=pandas.ArrowDtype(
                             pyarrow.list_(pyarrow.int64()),
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                     "arrow_array_of_struct": pandas.Series(
                         [[{"test": "str5"}], [], [{"test": "str6"}, {"test": "str7"}]],
                         dtype=pandas.ArrowDtype(
                             pyarrow.list_(pyarrow.struct([("test", pyarrow.string())])),
-                        ),
+                        )
+                        if hasattr(pandas, "ArrowDtype")
+                        else "object",
                     ),
                 },
             ),
