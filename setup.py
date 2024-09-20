@@ -42,7 +42,8 @@ extras = {
     "bqstorage": [
         "google-cloud-bigquery-storage >=2.16.2, <3.0.0dev",
     ],
-    "tqdm": "tqdm>=4.23.0",
+    "tqdm": ["tqdm>=4.23.0"],
+    "geopandas": ["geopandas>=0.9.0", "Shapely>=1.8.4"],
 }
 
 # Setup boilerplate below this line.
