@@ -1461,7 +1461,7 @@ def create_user_agent(
     Returns (str):
         Customized user agent string.
 
-    Deprecation Warning:
+    Deprecation Warning: 
         In a future major release, the default delimiter will be changed to
         a `/` in accordance with RFC9110.
     """
@@ -1472,8 +1472,9 @@ def create_user_agent(
     else:
         warnings.warn(
             "In a future major release, the default delimiter will be "
-            "changed to a `/` in accordance with RFC9110",
+            "changed to a `/` in accordance with RFC9110.",
             PendingDeprecationWarning,
+            stacklevel=2,
         )
         delimiter = "-"
 
