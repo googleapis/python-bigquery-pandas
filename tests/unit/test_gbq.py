@@ -637,8 +637,9 @@ def test_read_gbq_wo_verbose_w_new_pandas_no_warnings(monkeypatch, recwarn):
     gbq.read_gbq("SELECT 1", project_id="my-project", dialect="standard")
     # This test was intended to check for warnings about the deprecation of
     # the argument `verbose` (which was removed from gbq (~v0.4.0) and
-    # pandas (~v0.23.0). This test should not fail upon seeing a
-    # warning in regards to a pending deprecation related to rfc9110 delimiters.
+    # pandas (~v0.23.0). (See https://github.com/googleapis/python-bigquery-pandas/pull/158/files)
+    # This test should not fail upon seeing a warning in regards to a pending
+    # deprecation related to rfc9110 delimiters.
     # TODO this and related tests have likely outlived their usefulness,
     # consider removing.
     for warning in recwarn.list:
@@ -669,8 +670,9 @@ def test_read_gbq_with_verbose_old_pandas_no_warnings(monkeypatch, recwarn):
     )
     # This test was intended to check for warnings about the deprecation of
     # the argument `verbose` (which was removed from gbq (~v0.4.0) and
-    # pandas (~v0.23.0). This test should not fail upon seeing a
-    # warning in regards to a pending deprecation related to rfc9110 delimiters.
+    # pandas (~v0.23.0). (See https://github.com/googleapis/python-bigquery-pandas/pull/158/files)
+    # This test should not fail upon seeing a warning in regards to a pending
+    # deprecation related to rfc9110 delimiters.
     # TODO this and related tests have likely outlived their usefulness,
     # consider removing.
     for warning in recwarn.list:
