@@ -1460,12 +1460,21 @@ def create_user_agent(
 
     Returns (str):
         Customized user agent string.
+
+    Deprecation Warning: 
+        In a future major release, the default delimiter will be changed to
+        a `/` in accordance with RFC9110.
     """
     import pandas as pd
 
     if rfc9110_delimiter:
         delimiter = "/"
     else:
+        warnings.warn(
+            "In a future major release, the default delimiter will be "
+            "changed to a `/` in accordance with RFC9110",
+            PendingDeprecationWarning,
+        )
         delimiter = "-"
 
     identity = f"pandas{delimiter}{pd.__version__}"
