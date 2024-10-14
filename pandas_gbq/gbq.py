@@ -342,8 +342,6 @@ class GbqConnector(object):
     def get_client(self):
         import google.api_core.client_info
 
-        # import pandas  # noqa: F401 # TODO is this line needed here?
-
         bigquery = FEATURES.bigquery_try_import()
 
         user_agent = create_user_agent(
