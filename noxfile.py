@@ -51,6 +51,7 @@ UNIT_TEST_DEPENDENCIES = []
 UNIT_TEST_EXTRAS = [
     "bqstorage",
     "tqdm",
+    "geopandas",
 ]
 UNIT_TEST_EXTRAS_BY_PYTHON = {
     "3.9": [],
@@ -207,6 +208,7 @@ def default(session):
     session.run(
         "py.test",
         "--quiet",
+        "-W default::PendingDeprecationWarning",
         f"--junitxml=unit_{session.python}_sponge_log.xml",
         "--cov=pandas_gbq",
         "--cov=tests/unit",
@@ -289,6 +291,7 @@ def system(session):
         session.run(
             "py.test",
             "--quiet",
+            "-W default::PendingDeprecationWarning",
             f"--junitxml=system_{session.python}_sponge_log.xml",
             system_test_path,
             *session.posargs,
@@ -297,6 +300,7 @@ def system(session):
         session.run(
             "py.test",
             "--quiet",
+            "-W default::PendingDeprecationWarning",
             f"--junitxml=system_{session.python}_sponge_log.xml",
             system_test_folder_path,
             *session.posargs,
@@ -371,6 +375,7 @@ def prerelease(session):
     session.run(
         "py.test",
         "--quiet",
+        "-W default::PendingDeprecationWarning",
         f"--junitxml=prerelease_unit_{session.python}_sponge_log.xml",
         os.path.join("tests", "unit"),
         *session.posargs,
@@ -379,6 +384,7 @@ def prerelease(session):
     session.run(
         "py.test",
         "--quiet",
+        "-W default::PendingDeprecationWarning",
         f"--junitxml=prerelease_system_{session.python}_sponge_log.xml",
         os.path.join("tests", "system"),
         *session.posargs,

@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.24.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.23.2...v0.24.0) (2024-10-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* `to_gbq` loads naive (no timezone) columns to BigQuery DATETIME instead of TIMESTAMP ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814))
+* `to_gbq` loads object column containing bool values to BOOLEAN instead of STRING ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814))
+* `to_gbq` loads object column containing dictionary values to STRUCT instead of STRING ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814))
+* `to_gbq` loads `unit8` columns to BigQuery INT64 instead of STRING ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814))
+
+### Features
+
+* Adds the capability to include custom user agent string ([#819](https://github.com/googleapis/python-bigquery-pandas/issues/819)) ([d43457b](https://github.com/googleapis/python-bigquery-pandas/commit/d43457b3838bdc135337cae47c56af397bb1d6d1))
+
+
+### Bug Fixes
+
+* `to_gbq` loads `unit8` columns to BigQuery INT64 instead of STRING ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814)) ([107bb40](https://github.com/googleapis/python-bigquery-pandas/commit/107bb40218b531be1a4f646b8fb0cea5bdfd8aee))
+* `to_gbq` loads naive (no timezone) columns to BigQuery DATETIME instead of TIMESTAMP ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814)) ([107bb40](https://github.com/googleapis/python-bigquery-pandas/commit/107bb40218b531be1a4f646b8fb0cea5bdfd8aee))
+* `to_gbq` loads object column containing bool values to BOOLEAN instead of STRING ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814)) ([107bb40](https://github.com/googleapis/python-bigquery-pandas/commit/107bb40218b531be1a4f646b8fb0cea5bdfd8aee))
+* `to_gbq` loads object column containing dictionary values to STRUCT instead of STRING ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814)) ([107bb40](https://github.com/googleapis/python-bigquery-pandas/commit/107bb40218b531be1a4f646b8fb0cea5bdfd8aee))
+
+
+### Dependencies
+
+* Min pyarrow is now 4.0.0 to support compliant nested types ([#814](https://github.com/googleapis/python-bigquery-pandas/issues/814)) ([107bb40](https://github.com/googleapis/python-bigquery-pandas/commit/107bb40218b531be1a4f646b8fb0cea5bdfd8aee))
+
+## [0.23.2](https://github.com/googleapis/python-bigquery-pandas/compare/v0.23.1...v0.23.2) (2024-09-20)
+
+
+### Bug Fixes
+
+* **deps:** Require google-cloud-bigquery &gt;= 3.4.2 ([5e14496](https://github.com/googleapis/python-bigquery-pandas/commit/5e144968893c476ffc9866461d128298e6b49d62))
+* **deps:** Require numpy &gt;=1.18.1 ([5e14496](https://github.com/googleapis/python-bigquery-pandas/commit/5e144968893c476ffc9866461d128298e6b49d62))
+* **deps:** Require packaging &gt;= 22.0 ([5e14496](https://github.com/googleapis/python-bigquery-pandas/commit/5e144968893c476ffc9866461d128298e6b49d62))
+
+
+### Documentation
+
+* Fix typo in 'vebosity' ([#803](https://github.com/googleapis/python-bigquery-pandas/issues/803)) ([a7641c9](https://github.com/googleapis/python-bigquery-pandas/commit/a7641c9b13be7f8649f43d985dac29cc7e05be0b))
+
 ## [0.23.1](https://github.com/googleapis/python-bigquery-pandas/compare/v0.23.0...v0.23.1) (2024-06-07)
 
 
