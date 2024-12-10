@@ -1097,9 +1097,7 @@ def to_gbq(
     # fail early if there are bigframes-y methods available.
     # https://github.com/googleapis/python-bigquery-pandas/issues/824
     if hasattr(dataframe, "to_pandas") and hasattr(dataframe, "to_gbq"):
-        raise TypeError(
-            f"Expected a pandas.DataFrame, but got {repr(type(dataframe))}"
-        )
+        raise TypeError(f"Expected a pandas.DataFrame, but got {repr(type(dataframe))}")
 
     _test_google_api_imports()
 

@@ -16,7 +16,7 @@ class FakeDataFrame:
 
     def to_gbq(self):
         """Fake to_gbq() to mimic a bigframes object."""
-    
+
     def to_pandas(self):
         """Fake to_pandas() to mimic a bigframes object."""
 
@@ -80,8 +80,7 @@ def test_to_gbq_with_bigframes_raises_typeerror():
     dataframe = FakeDataFrame()
 
     with pytest.raises(
-        TypeError,
-        match=r"Expected a pandas.DataFrame, but got .+FakeDataFrame"
+        TypeError, match=r"Expected a pandas.DataFrame, but got .+FakeDataFrame"
     ):
         gbq.to_gbq(dataframe, "my_dataset.my_table", project_id="myproj")
 
