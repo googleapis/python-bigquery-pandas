@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+from google.cloud import bigquery
 import pyarrow
 import pytest
 
-from google.cloud import bigquery
 from pandas_gbq.schema import pyarrow_to_bigquery
 
 
@@ -34,7 +34,9 @@ from pandas_gbq.schema import pyarrow_to_bigquery
     ),
 )
 def test_arrow_type_to_bigquery_field_scalar_types(pyarrow_type, bigquery_type):
-    field: bigquery.SchemaField = pyarrow_to_bigquery.arrow_type_to_bigquery_field("test_name", pyarrow_type)
+    field: bigquery.SchemaField = pyarrow_to_bigquery.arrow_type_to_bigquery_field(
+        "test_name", pyarrow_type
+    )
     assert field.name == "test_name"
     assert field.field_type == bigquery_type
 
