@@ -78,8 +78,12 @@ def arrow_type_to_bigquery_field(
     return None
 
 
-def arrow_list_type_to_bigquery(name, type_, default_type="STRING") -> Optional[schema.SchemaField]:
-    inner_field = arrow_type_to_bigquery_field(name, type_.value_type, default_type=default_type)
+def arrow_list_type_to_bigquery(
+    name, type_, default_type="STRING"
+) -> Optional[schema.SchemaField]:
+    inner_field = arrow_type_to_bigquery_field(
+        name, type_.value_type, default_type=default_type
+    )
     if inner_field is None:
         return None
 
