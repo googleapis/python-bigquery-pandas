@@ -206,8 +206,16 @@ def test_schema_is_subset_fails_if_not_subset():
                         ],
                     },
                     # Use DEFAULT_TYPE because there are no values to detect a type.
-                    {"name": "list_of_unknown", "type": "DEFAULT_TYPE", "mode": "REPEATED"},
-                    {"name": "list_of_null", "type": "DEFAULT_TYPE", "mode": "REPEATED"},
+                    {
+                        "name": "list_of_unknown",
+                        "type": "DEFAULT_TYPE",
+                        "mode": "REPEATED",
+                    },
+                    {
+                        "name": "list_of_null",
+                        "type": "DEFAULT_TYPE",
+                        "mode": "REPEATED",
+                    },
                 ],
             },
             id="array",
@@ -229,7 +237,11 @@ def test_schema_is_subset_fails_if_not_subset():
                         "name": "positions",
                         "type": "RECORD",
                         "fields": [
-                            {"name": "state", "type": "DEFAULT_TYPE", "mode": "NULLABLE"},
+                            {
+                                "name": "state",
+                                "type": "DEFAULT_TYPE",
+                                "mode": "NULLABLE",
+                            },
                         ],
                     },
                 ],
