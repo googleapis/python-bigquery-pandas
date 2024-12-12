@@ -103,7 +103,7 @@ def dataframe_to_bigquery_fields(
 
         # Try to automatically determine the type based on a few rows of the data.
         values = dataframe.reset_index()[column]
-        bq_field = values_to_bigquery_field(column, values)
+        bq_field = values_to_bigquery_field(column, values, default_type=default_type)
 
         if bq_field:
             bq_schema_out.append(bq_field)
@@ -114,7 +114,7 @@ def dataframe_to_bigquery_fields(
             arrow_value = pyarrow.array(values)
             bq_field = (
                 pandas_gbq.schema.pyarrow_to_bigquery.arrow_type_to_bigquery_field(
-                    column, arrow_value.type
+                    column, arrow_value.type, default_type=default_type,
                 )
             )
 
@@ -164,7 +164,11 @@ def dtype_to_bigquery_field(name, dtype) -> Optional[schema.SchemaField]:
     return None
 
 
-def value_to_bigquery_field(name, value) -> Optional[schema.SchemaField]:
+def value_to_bigquery_field(name, value, default_type=None) -> Optional[schema.SchemaField]:
+    # There are no non-null values, so assume the default type.
+    if value is None:
+        return schema.SchemaField(name, default_type)
+
     if isinstance(value, str):
         return schema.SchemaField(name, "STRING")
 
@@ -188,29 +192,31 @@ def value_to_bigquery_field(name, value) -> Optional[schema.SchemaField]:
     return None
 
 
-def values_to_bigquery_field(name, values) -> Optional[schema.SchemaField]:
+def values_to_bigquery_field(name, values, default_type="STRING") -> Optional[schema.SchemaField]:
     value = pandas_gbq.core.pandas.first_valid(values)
 
-    # All NULL, type not determinable.
+    # All NULL, type not determinable by this method. Return None so we can try
+    # some other methods.
     if value is None:
         return None
 
-    field = value_to_bigquery_field(name, value)
+    field = value_to_bigquery_field(name, value, default_type=default_type)
     if field is not None:
         return field
 
     if isinstance(value, str):
         return schema.SchemaField(name, "STRING")
 
-    # Check plain ARRAY values here. Let STRUCT get determined by pyarrow,
-    # which can examine more values to determine all keys.
+    # Check plain ARRAY values here. Exclude mapping types to let STRUCT get
+    # determined by pyarrow, which can examine more values to determine all
+    # keys.
     if isinstance(value, collections.abc.Iterable) and not isinstance(
         value, collections.abc.Mapping
     ):
         # It could be that this value contains all None or is empty, so get the
         # first non-None value we can find.
         valid_item = pandas_gbq.core.pandas.first_array_valid(values)
-        field = value_to_bigquery_field(name, valid_item)
+        field = value_to_bigquery_field(name, valid_item, default_type=default_type)
 
         if field is not None:
             return schema.SchemaField(name, field.field_type, mode="REPEATED")
