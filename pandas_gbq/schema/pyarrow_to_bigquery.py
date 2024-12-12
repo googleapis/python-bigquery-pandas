@@ -58,7 +58,7 @@ def arrow_type_to_bigquery_field(name, type_, default_type="STRING") -> Optional
         return schema.SchemaField(name, detected_type)
 
     if pyarrow.types.is_list(type_):
-        return arrow_list_type_to_bigquery(name, type_)
+        return arrow_list_type_to_bigquery(name, type_, default_type=default_type)
 
     if pyarrow.types.is_struct(type_):
         inner_fields: list[pyarrow.Field] = []
@@ -72,8 +72,8 @@ def arrow_type_to_bigquery_field(name, type_, default_type="STRING") -> Optional
     return None
 
 
-def arrow_list_type_to_bigquery(name, type_) -> Optional[schema.SchemaField]:
-    inner_field = arrow_type_to_bigquery_field(name, type_.value_type)
+def arrow_list_type_to_bigquery(name, type_, default_type="STRING") -> Optional[schema.SchemaField]:
+    inner_field = arrow_type_to_bigquery_field(name, type_.value_type, default_type=default_type)
     if inner_field is None:
         return None
 
