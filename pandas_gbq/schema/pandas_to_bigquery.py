@@ -114,7 +114,9 @@ def dataframe_to_bigquery_fields(
             arrow_value = pyarrow.array(values)
             bq_field = (
                 pandas_gbq.schema.pyarrow_to_bigquery.arrow_type_to_bigquery_field(
-                    column, arrow_value.type, default_type=default_type,
+                    column,
+                    arrow_value.type,
+                    default_type=default_type,
                 )
             )
 
@@ -164,7 +166,9 @@ def dtype_to_bigquery_field(name, dtype) -> Optional[schema.SchemaField]:
     return None
 
 
-def value_to_bigquery_field(name, value, default_type=None) -> Optional[schema.SchemaField]:
+def value_to_bigquery_field(
+    name, value, default_type=None
+) -> Optional[schema.SchemaField]:
     # There are no non-null values, so assume the default type.
     if value is None:
         return schema.SchemaField(name, default_type)
@@ -192,7 +196,9 @@ def value_to_bigquery_field(name, value, default_type=None) -> Optional[schema.S
     return None
 
 
-def values_to_bigquery_field(name, values, default_type="STRING") -> Optional[schema.SchemaField]:
+def values_to_bigquery_field(
+    name, values, default_type="STRING"
+) -> Optional[schema.SchemaField]:
     value = pandas_gbq.core.pandas.first_valid(values)
 
     # All NULL, type not determinable by this method. Return None so we can try
