@@ -169,7 +169,8 @@ def dtype_to_bigquery_field(name, dtype) -> Optional[schema.SchemaField]:
 def value_to_bigquery_field(
     name, value, default_type=None
 ) -> Optional[schema.SchemaField]:
-    # There are no non-null values, so assume the default type.
+    # Set the SchemaField datatype to the given default_type if the value
+    # being assessed is None.
     if value is None:
         return schema.SchemaField(name, default_type)
 
