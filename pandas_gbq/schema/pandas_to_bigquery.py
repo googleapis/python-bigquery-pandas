@@ -203,7 +203,7 @@ def values_to_bigquery_field(
     value = pandas_gbq.core.pandas.first_valid(values)
 
     # All values came back as NULL, thus type not determinable by this method.
-    # Return None so we can try other methods. 
+    # Return None so we can try other methods.
     if value is None:
         return None
 
