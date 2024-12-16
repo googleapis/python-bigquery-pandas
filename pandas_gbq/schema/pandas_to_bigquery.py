@@ -202,8 +202,8 @@ def values_to_bigquery_field(
 ) -> Optional[schema.SchemaField]:
     value = pandas_gbq.core.pandas.first_valid(values)
 
-    # All NULL, type not determinable by this method. Return None so we can try
-    # some other methods.
+    # All values came back as NULL, thus type not determinable by this method.
+    # Return None so we can try other methods. 
     if value is None:
         return None
 
