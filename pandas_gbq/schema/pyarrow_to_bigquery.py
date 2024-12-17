@@ -37,7 +37,15 @@ _ARROW_SCALAR_IDS_TO_BQ = {
 }
 
 
-def arrow_type_to_bigquery_field(name, type_) -> Optional[schema.SchemaField]:
+def arrow_type_to_bigquery_field(
+    name, type_, default_type="STRING"
+) -> Optional[schema.SchemaField]:
+    # If a sub-field is the null type, then assume it's the default type, as
+    # that's the best we can do.
+    # https://github.com/googleapis/python-bigquery-pandas/issues/836
+    if pyarrow.types.is_null(type_):
+        return schema.SchemaField(name, default_type)
+
     # Since both TIMESTAMP/DATETIME use pyarrow.timestamp(...), we need to use
     # a special case to disambiguate them. See:
     # https://github.com/googleapis/python-bigquery-pandas/issues/450
@@ -52,22 +60,30 @@ def arrow_type_to_bigquery_field(name, type_) -> Optional[schema.SchemaField]:
         return schema.SchemaField(name, detected_type)
 
     if pyarrow.types.is_list(type_):
-        return arrow_list_type_to_bigquery(name, type_)
+        return arrow_list_type_to_bigquery(name, type_, default_type=default_type)
 
     if pyarrow.types.is_struct(type_):
         inner_fields: list[pyarrow.Field] = []
         struct_type = cast(pyarrow.StructType, type_)
         for field_index in range(struct_type.num_fields):
             field = struct_type[field_index]
-            inner_fields.append(arrow_type_to_bigquery_field(field.name, field.type))
+            inner_fields.append(
+                arrow_type_to_bigquery_field(
+                    field.name, field.type, default_type=default_type
+                )
+            )
 
         return schema.SchemaField(name, "RECORD", fields=inner_fields)
 
     return None
 
 
-def arrow_list_type_to_bigquery(name, type_) -> Optional[schema.SchemaField]:
-    inner_field = arrow_type_to_bigquery_field(name, type_.value_type)
+def arrow_list_type_to_bigquery(
+    name, type_, default_type="STRING"
+) -> Optional[schema.SchemaField]:
+    inner_field = arrow_type_to_bigquery_field(
+        name, type_.value_type, default_type=default_type
+    )
     if inner_field is None:
         return None
 
