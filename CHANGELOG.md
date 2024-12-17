@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.25.0...v0.26.0) (2024-12-17)
+
+
+### Features
+
+* `to_gbq` fails with `TypeError` if passing in a bigframes DataFrame object ([#833](https://github.com/googleapis/python-bigquery-pandas/issues/833)) ([5004d08](https://github.com/googleapis/python-bigquery-pandas/commit/5004d08c6af93471686ccb319c69cd38c7893042))
+
 ## [0.25.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.24.0...v0.25.0) (2024-12-11)
 
 
