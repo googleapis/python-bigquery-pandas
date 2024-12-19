@@ -167,9 +167,25 @@ def dtype_to_bigquery_field(name, dtype) -> Optional[schema.SchemaField]:
 
 
 def value_to_bigquery_field(
-    name, value, default_type=None
+    name: str, value: Any, default_type: Optional[str] = None
 ) -> Optional[schema.SchemaField]:
-    # There are no non-null values, so assume the default type.
+    """Infers the BigQuery schema field type from a single value.
+
+    Args:
+        name:
+            The name of the field.
+        value:
+            The value to infer the type from. If None, the default type is used
+            if available.
+        default_type:
+            The default field type.  Defaults to None.
+
+    Returns:
+        The schema field, or None if a type cannot be inferred.
+    """
+
+    # Set the SchemaField datatype to the given default_type if the value
+    # being assessed is None.
     if value is None:
         return schema.SchemaField(name, default_type)
 
@@ -207,12 +223,30 @@ def value_to_bigquery_field(
 
 
 def values_to_bigquery_field(
-    name, values, default_type="STRING"
+    name: str, values: Any, default_type: str = "STRING"
 ) -> Optional[schema.SchemaField]:
+    """Infers the BigQuery schema field type from a list of values.
+
+    This function iterates through the given values to determine the
+    corresponding schema field type.
+
+    Args:
+        name:
+            The name of the field.
+        values:
+            An iterable of values to infer the type from. If all the values
+            are None or the iterable is empty, the function returns None.
+        default_type:
+            The default field type to use if a specific type cannot be
+            determined from the values. Defaults to "STRING".
+
+    Returns:
+        The schema field, or None if a type cannot be inferred.
+    """
     value = pandas_gbq.core.pandas.first_valid(values)
 
-    # All NULL, type not determinable by this method. Return None so we can try
-    # some other methods.
+    # All values came back as NULL, thus type not determinable by this method.
+    # Return None so we can try other methods.
     if value is None:
         return None
 
