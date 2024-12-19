@@ -173,8 +173,21 @@ def value_to_bigquery_field(
     if value is None:
         return schema.SchemaField(name, default_type)
 
-    if isinstance(value, str):
-        return schema.SchemaField(name, "STRING")
+    # Map from Python types to BigQuery types. This isn't super exhaustive
+    # because we rely more on pyarrow, which can check more than one value to
+    # determine the type.
+    type_mapping = {
+        str: "STRING",
+    }
+
+    # geopandas and shapely are optional dependencies, so only check if those
+    # are installed.
+    if _BaseGeometry is not None:
+        type_mapping[_BaseGeometry] = "GEOGRAPHY"
+
+    for type_, bq_type in type_mapping.items():
+        if isinstance(value, type_):
+            return schema.SchemaField(name, bq_type)
 
     # For timezone-naive datetimes, the later pyarrow conversion to try and
     # learn the type add a timezone to such datetimes, causing them to be
@@ -190,9 +203,6 @@ def value_to_bigquery_field(
         else:
             return schema.SchemaField(name, "DATETIME")
 
-    if _BaseGeometry is not None and isinstance(value, _BaseGeometry):
-        return schema.SchemaField(name, "GEOGRAPHY")
-
     return None
 
 
@@ -207,11 +217,8 @@ def values_to_bigquery_field(
         return None
 
     field = value_to_bigquery_field(name, value, default_type=default_type)
-    if field is not None:
+    if field:
         return field
-
-    if isinstance(value, str):
-        return schema.SchemaField(name, "STRING")
 
     # Check plain ARRAY values here. Exclude mapping types to let STRUCT get
     # determined by pyarrow, which can examine more values to determine all
