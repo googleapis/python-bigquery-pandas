@@ -4,7 +4,7 @@
 
 import collections.abc
 import datetime
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 import warnings
 
 import db_dtypes
@@ -28,14 +28,21 @@ except ImportError:
 # `docs/source/writing.rst`.
 _PANDAS_DTYPE_TO_BQ = {
     "bool": "BOOLEAN",
+    "boolean": "BOOLEAN",
     "datetime64[ns, UTC]": "TIMESTAMP",
+    "datetime64[us, UTC]": "TIMESTAMP",
     "datetime64[ns]": "DATETIME",
+    "datetime64[us]": "DATETIME",
     "float32": "FLOAT",
     "float64": "FLOAT",
     "int8": "INTEGER",
     "int16": "INTEGER",
     "int32": "INTEGER",
     "int64": "INTEGER",
+    "Int8": "INTEGER",
+    "Int16": "INTEGER",
+    "Int32": "INTEGER",
+    "Int64": "INTEGER",
     "uint8": "INTEGER",
     "uint16": "INTEGER",
     "uint32": "INTEGER",
@@ -153,6 +160,19 @@ def dataframe_to_bigquery_fields(
 
 
 def dtype_to_bigquery_field(name, dtype) -> Optional[schema.SchemaField]:
+    """Infers the BigQuery schema field type from a pandas dtype.
+
+    Args:
+        name (str):
+            Name of the column/field.
+        dtype:
+            A pandas / numpy dtype object.
+
+    Returns:
+        Optional[schema.SchemaField]:
+            The schema field, or None if a type cannot be inferred, such as if
+            it is ambiguous like the object dtype.
+    """
     bq_type = _PANDAS_DTYPE_TO_BQ.get(dtype.name)
 
     if bq_type is not None:
