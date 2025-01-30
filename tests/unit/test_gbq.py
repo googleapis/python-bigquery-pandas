@@ -113,11 +113,16 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
         assert result == {"x": expected}
 
 
+@pytest.mark.skipif(
+    pandas.__version__ < "2.0.0", reason="requires pandas 2.0.0 or higher"
+)
 @pytest.mark.parametrize(
     ("data", "schema_type", "expected"),
     [
         (
-            pandas.to_datetime(["2017-01-01T12:00:00Z"]).astype(pandas.DatetimeTZDtype(unit="us", tz="UTC")),
+            pandas.to_datetime(["2017-01-01T12:00:00Z"]).astype(
+                pandas.DatetimeTZDtype(unit="us", tz="UTC")
+            ),
             "TIMESTAMP",
             pandas.DatetimeTZDtype(unit="us", tz="UTC"),
         ),
