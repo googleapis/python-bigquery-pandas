@@ -639,8 +639,8 @@ def _finalize_dtypes(
         "DATETIME": "datetime64[ns]",
         "TIMESTAMP": "datetime64[ns]",
     }
-    if pandas.__version__ > "2.0.0":
-        # when pandas is 2.0.0 or later, default timestamp dtype is 'datetime64[us]'
+    if tuple(int(part) for part in pandas.__version__.split()[:2]) >= (2, 1):
+        # when pandas is 2.1.0 or later, default timestamp dtype is 'datetime64[us]'
         # and we should use 'datetime64[us]' instead of 'datetime64[ns]'
         dtype_map = {
             "DATE": db_dtypes.DateDtype(),

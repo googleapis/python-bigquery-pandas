@@ -64,8 +64,8 @@ INT64              Int64
 FLOAT64            float64
 TIME               dbtime
 DATE               dbdate or object
-DATETIME           datetime64[ns] (datetime64[us] if pandas version >= 2.0.0) or object
-TIMESTAMP          datetime64[ns, UTC] (datetime64[us, UTC] if pandas version >= 2.0.0) or object
+DATETIME           datetime64[ns] (datetime64[us] if pandas version >= 2.1.0) or object
+TIMESTAMP          datetime64[ns, UTC] (datetime64[us, UTC] if pandas version >= 2.1.0) or object
 ================== ============================================
 
 If any DATE/DATETIME/TIMESTAMP value is outside of the range of `pandas.Timestamp.min
