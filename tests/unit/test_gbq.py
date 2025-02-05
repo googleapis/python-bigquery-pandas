@@ -114,7 +114,7 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
 
 
 @pytest.mark.skipif(
-    tuple(int(part) for part in pandas.__version__.split()[:2]) < (2, 1),
+    tuple(int(part) for part in pandas.__version__.split(".")[:2]) < (2, 1),
     reason="requires pandas 2.1.0 or higher"
 )
 @pytest.mark.parametrize(
