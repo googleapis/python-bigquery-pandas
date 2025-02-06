@@ -195,6 +195,7 @@ def load_csv_from_dataframe(
         bq_schema = pandas_gbq.schema.to_google_cloud_bigquery(schema)
 
     def load_chunk(chunk, job_config):
+        breakpoint()
         client.load_table_from_dataframe(
             chunk,
             destination_table_ref,

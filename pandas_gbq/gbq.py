@@ -639,7 +639,7 @@ def _finalize_dtypes(
         "DATETIME": "datetime64[ns]",
         "TIMESTAMP": "datetime64[ns]",
     }
-    if tuple(int(part) for part in pandas.__version__.split(".")[:2]) >= (2, 1):
+    if FEATURES.pandas_has_microseconds_datetime:
         # when pandas is 2.1.0 or later, default timestamp dtype is 'datetime64[us]'
         # and we should use 'datetime64[us]' instead of 'datetime64[ns]'
         dtype_map = {

@@ -28,9 +28,6 @@ from pandas_gbq.features import FEATURES
 pytestmark = pytest.mark.filterwarnings("ignore:credentials from Google Cloud SDK")
 
 
-PANDAS_VERSION = tuple(int(part) for part in pandas.__version__.split(".")[:2])
-
-
 def _make_connector(project_id="some-project", **kwargs):
     return gbq.GbqConnector(project_id, **kwargs)
 
@@ -122,17 +119,13 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
         pytest.param(
             pandas.to_datetime(["2017-01-01T12:00:00Z"]).astype(
                 pandas.DatetimeTZDtype(
-                    # Microseconds aren't supported until newer pandas.
-                    # https://github.com/googleapis/python-bigquery-pandas/issues/852
-                    unit="us" if PANDAS_VERSION >= (2, 1) else "ns",
+                    unit="us" if FEATURES.pandas_has_microseconds_datetime else "ns",
                     tz="UTC",
                 ),
             ),
             "TIMESTAMP",
             pandas.DatetimeTZDtype(
-                # Microseconds aren't supported until newer pandas.
-                # https://github.com/googleapis/python-bigquery-pandas/issues/852
-                unit="us" if PANDAS_VERSION >= (2, 1) else "ns",
+                unit="us" if FEATURES.pandas_has_microseconds_datetime else "ns",
                 tz="UTC",
             ),
         ),
@@ -140,26 +133,20 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
             pandas.to_datetime([]).astype(object),
             "TIMESTAMP",
             pandas.DatetimeTZDtype(
-                # Microseconds aren't supported until newer pandas.
-                # https://github.com/googleapis/python-bigquery-pandas/issues/852
-                unit="us" if PANDAS_VERSION >= (2, 1) else "ns",
+                unit="us" if FEATURES.pandas_has_microseconds_datetime else "ns",
                 tz="UTC",
             ),
         ),
         (
             pandas.to_datetime(["2017-01-01T12:00:00"]).astype(
-                # Microseconds aren't supported until newer pandas.
-                # https://github.com/googleapis/python-bigquery-pandas/issues/852
                 "datetime64[us]"
-                if PANDAS_VERSION >= (2, 1)
+                if FEATURES.pandas_has_microseconds_datetime
                 else "datetime64[ns]",
             ),
             "DATETIME",
             numpy.dtype(
-                # Microseconds aren't supported until newer pandas.
-                # https://github.com/googleapis/python-bigquery-pandas/issues/852
                 "datetime64[us]"
-                if PANDAS_VERSION >= (2, 1)
+                if FEATURES.pandas_has_microseconds_datetime
                 else "datetime64[ns]",
             ),
         ),
@@ -167,10 +154,8 @@ def test__bqschema_to_nullsafe_dtypes(type_, expected):
             pandas.to_datetime([]).astype(object),
             "DATETIME",
             numpy.dtype(
-                # Microseconds aren't supported until newer pandas.
-                # https://github.com/googleapis/python-bigquery-pandas/issues/852
                 "datetime64[us]"
-                if PANDAS_VERSION >= (2, 1)
+                if FEATURES.pandas_has_microseconds_datetime
                 else "datetime64[ns]",
             ),
         ),
