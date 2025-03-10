@@ -4,6 +4,7 @@
 
 from typing import Optional, cast
 
+import db_dtypes
 from google.cloud.bigquery import schema
 import pyarrow
 import pyarrow.types
@@ -34,27 +35,20 @@ _ARROW_SCALAR_IDS_TO_BQ = {
     # the type ID matters, and it's the same for all decimal256 instances.
     pyarrow.decimal128(38, scale=9).id: "NUMERIC",
     pyarrow.decimal256(76, scale=38).id: "BIGNUMERIC",
+    # NOTE: all extension types (e.g. json_, uuid, db_dtypes.JSONArrowType)
+    # have the same id (31 as of version 19.0.1), so these should not be
+    # matched by id.
 }
 
 
-def arrow_type_to_bigquery_field(
+def arrow_scalar_type_to_bigquery_field(
     name, type_, default_type="STRING"
 ) -> Optional[schema.SchemaField]:
-    """Infers the BigQuery schema field type from an arrow type.
-
-    Args:
-        name (str):
-            Name of the column/field.
-        type_:
-            A pyarrow type object.
+    """Infers the BigQuery schema field type from a scalar arrow type.
 
     Returns:
-        Optional[schema.SchemaField]:
-            The schema field, or None if a type cannot be inferred, such as if
-            it is a type that doesn't have a clear mapping in BigQuery.
-
-            null() are assumed to be the ``default_type``, since there are no
-            values that contradict that.
+        The BigQuery scalar type that the input arrow scalar type maps to.
+        If it cannot find the arrow scalar, return None.
     """
     # If a sub-field is the null type, then assume it's the default type, as
     # that's the best we can do.
@@ -81,6 +75,46 @@ def arrow_type_to_bigquery_field(
 
     if detected_type is not None:
         return schema.SchemaField(name, detected_type)
+
+    # NOTE: all extension types (e.g. json_, uuid, db_dtypes.JSONArrowType)
+    # have the same id (31 as of version 19.0.1), so these should not be
+    # matched by id.
+    if (hasattr(pyarrow, "JsonType") and isinstance(type_, pyarrow.JsonType)) or (
+        hasattr(db_dtypes, "JSONArrowType")
+        and isinstance(type_, db_dtypes.JSONArrowType)
+    ):
+        return schema.SchemaField(name, "JSON")
+
+    # Could not identify a type.
+    return None
+
+
+def arrow_type_to_bigquery_field(
+    name, type_, default_type="STRING"
+) -> Optional[schema.SchemaField]:
+    """Infers the BigQuery schema field type from an arrow type.
+
+    Args:
+        name (str):
+            Name of the column/field.
+        type_:
+            A pyarrow type object.
+
+    Returns:
+        Optional[schema.SchemaField]:
+            The schema field, or None if a type cannot be inferred, such as if
+            it is a type that doesn't have a clear mapping in BigQuery.
+
+            null() are assumed to be the ``default_type``, since there are no
+            values that contradict that.
+    """
+    scalar_field = arrow_scalar_type_to_bigquery_field(
+        name,
+        type_,
+        default_type=default_type,
+    )
+    if scalar_field is not None:
+        return scalar_field
 
     if pyarrow.types.is_list(type_):
         return arrow_list_type_to_bigquery(name, type_, default_type=default_type)

@@ -574,6 +574,64 @@ DATAFRAME_ROUND_TRIPS = [
         ),
         id="struct",
     ),
+    pytest.param(
+        *DataFrameRoundTripTestCase(
+            input_df=pandas.DataFrame(
+                {
+                    "row_num": [0, 1, 2, 3, 4],
+                    "json": pandas.Series(
+                        [
+                            '{"key": "value"}',
+                            None,
+                            "123",
+                            "[123]",
+                            '"string"',
+                        ],
+                        dtype=(
+                            pandas.ArrowDtype(pyarrow.json_(pyarrow.string()))
+                            if hasattr(pandas, "ArrowDtype")
+                            and hasattr(pyarrow, "json_")
+                            else "object"
+                        ),
+                    ),
+                },
+            ),
+            # Writes with parquet currently blocked by internal issue 374784249.
+            api_methods={"load_csv"},
+            expected_df=pandas.DataFrame(
+                {
+                    "row_num": [0, 1, 2, 3, 4],
+                    "json": pandas.Series(
+                        [
+                            '{"key": "value"}',
+                            None,
+                            "123",
+                            "[123]",
+                            '"string"',
+                        ],
+                        # TODO(https://github.com/googleapis/python-bigquery/pull/1876):
+                        # if pyarrow.json_() type is supported by both reads and writes, then
+                        # round-trip of a JSON column should work.
+                        # Reads currently blocked by
+                        # https://github.com/googleapis/python-bigquery/pull/1876
+                        # though, we should probably move the BQ -> pandas type mapping to this
+                        # package so the logic can be consolidated soon.
+                        dtype=(
+                            pandas.ArrowDtype(pyarrow.json_(pyarrow.string()))
+                            if hasattr(pandas, "ArrowDtype")
+                            and hasattr(pyarrow, "json_")
+                            else "object"
+                        ),
+                    ),
+                },
+            ),
+        ),
+        marks=pytest.mark.skipif(
+            not hasattr(pyarrow, "json_"),
+            reason="no canonical JSON extension type available",
+        ),
+        id="json",
+    ),
 ]
 
 
