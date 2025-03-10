@@ -2,12 +2,12 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-import warnings
 from typing import Any, Union
+import warnings
 
 import db_dtypes
-import pyarrow
 from google.cloud import bigquery
+import pyarrow
 
 
 def pyarrow_datetime():
