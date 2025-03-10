@@ -588,10 +588,11 @@ DATAFRAME_ROUND_TRIPS = [
                             '"string"',
                         ],
                         dtype=(
-                            pandas.ArrowDtype(pyarrow.json_(pyarrow.string()))
-                            if hasattr(pandas, "ArrowDtype")
-                            and hasattr(pyarrow, "json_")
-                            else "object"
+                            pandas.ArrowDtype(db_dtypes.JSONArrowType())
+                            # pandas.ArrowDtype(pyarrow.json_(pyarrow.string()))
+                            # if hasattr(pandas, "ArrowDtype")
+                            # and hasattr(pyarrow, "json_")
+                            # else "object"
                         ),
                     ),
                 },
@@ -603,7 +604,7 @@ DATAFRAME_ROUND_TRIPS = [
                     "row_num": [0, 1, 2, 3, 4],
                     "json": pandas.Series(
                         [
-                            '{"key": "value"}',
+                            '{"key":"value"}',
                             None,
                             "123",
                             "[123]",
@@ -617,10 +618,11 @@ DATAFRAME_ROUND_TRIPS = [
                         # though, we should probably move the BQ -> pandas type mapping to this
                         # package so the logic can be consolidated soon.
                         dtype=(
-                            pandas.ArrowDtype(pyarrow.json_(pyarrow.string()))
-                            if hasattr(pandas, "ArrowDtype")
-                            and hasattr(pyarrow, "json_")
-                            else "object"
+                            pandas.ArrowDtype(db_dtypes.JSONArrowType())
+                            # pandas.ArrowDtype(pyarrow.json_(pyarrow.string()))
+                            # if hasattr(pandas, "ArrowDtype")
+                            # and hasattr(pyarrow, "json_")
+                            # else "object"
                         ),
                     ),
                 },
