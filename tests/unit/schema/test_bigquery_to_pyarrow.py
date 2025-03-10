@@ -19,10 +19,10 @@
 import functools
 import warnings
 
-import pyarrow
-import pytest
 from google.cloud import bigquery
 from google.cloud.bigquery import schema
+import pyarrow
+import pytest
 
 
 @pytest.fixture
