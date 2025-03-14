@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.28.1](https://github.com/googleapis/python-bigquery-pandas/compare/v0.28.0...v0.28.1) (2025-03-14)
+
+
+### Bug Fixes
+
+* Remove setup.cfg configuration for creating universal wheels ([#898](https://github.com/googleapis/python-bigquery-pandas/issues/898)) ([b3a9af2](https://github.com/googleapis/python-bigquery-pandas/commit/b3a9af27960c6e2736835d6a94e116f550f94114))
+* Resolve issue where pre-release versions of dependencies are installed ([#890](https://github.com/googleapis/python-bigquery-pandas/issues/890)) ([3574ca1](https://github.com/googleapis/python-bigquery-pandas/commit/3574ca181fe91ee65114835fd7db8bdd75fe135a))
+
 ## [0.28.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.27.0...v0.28.0) (2025-02-24)
 
 
