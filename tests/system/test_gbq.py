@@ -195,7 +195,7 @@ class TestReadGBQIntegration(object):
         col_order = ["string_aaa", "string_1", "string_2"]
 
         # Column string_aaa does not exist. Should raise InvalidColumnOrder
-        with pytest.raises(gbq.InvalidColumnOrder):
+        with pytest.raises(exceptions.InvalidColumnOrder):
             gbq.read_gbq(
                 query,
                 project_id=project_id,
@@ -227,7 +227,7 @@ class TestReadGBQIntegration(object):
         col_order = ["string_3", "string_2"]
 
         # Column string_bbb does not exist. Should raise InvalidIndexColumn
-        with pytest.raises(gbq.InvalidIndexColumn):
+        with pytest.raises(exceptions.InvalidIndexColumn):
             gbq.read_gbq(
                 query,
                 project_id=project_id,
@@ -507,7 +507,7 @@ class TestReadGBQIntegration(object):
         ]
 
         for config in configs:
-            with pytest.raises(gbq.QueryTimeout):
+            with pytest.raises(exceptions.QueryTimeout):
                 gbq.read_gbq(
                     sql_statement,
                     project_id=project_id,
@@ -741,7 +741,7 @@ class TestToGBQIntegration(object):
         )
 
         # Test the default value of if_exists == 'fail'
-        with pytest.raises(gbq.TableCreationError):
+        with pytest.raises(exceptions.TableCreationError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
@@ -750,7 +750,7 @@ class TestToGBQIntegration(object):
             )
 
         # Test the if_exists parameter with value 'fail'
-        with pytest.raises(gbq.TableCreationError):
+        with pytest.raises(exceptions.TableCreationError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
@@ -1193,7 +1193,7 @@ def test_create_dataset(bigquery_client, gbq_dataset, random_dataset_id, project
 
 def test_create_dataset_already_exists(gbq_dataset, random_dataset_id):
     gbq_dataset.create(random_dataset_id)
-    with pytest.raises(gbq.DatasetCreationError):
+    with pytest.raises(exceptions.DatasetCreationError):
         gbq_dataset.create(random_dataset_id)
 
 
@@ -1218,7 +1218,7 @@ def test_create_table(gbq_table):
 def test_create_table_already_exists(gbq_table):
     schema = gbq._generate_bq_schema(make_mixed_dataframe_v1())
     gbq_table.create("test_create_table_exists", schema)
-    with pytest.raises(gbq.TableCreationError):
+    with pytest.raises(exceptions.TableCreationError):
         gbq_table.create("test_create_table_exists", schema)
 
 
