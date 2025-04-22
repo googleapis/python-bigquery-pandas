@@ -8,7 +8,7 @@ import pandas as pd
 from pandas import DataFrame
 import pytest
 
-from pandas_gbq import gbq
+from pandas_gbq import exceptions, gbq
 
 
 class FakeDataFrame:
@@ -53,7 +53,7 @@ def test_to_gbq_create_dataset_translates_exception(mock_bigquery_client):
         google.api_core.exceptions.InternalServerError("something went wrong")
     )
 
-    with pytest.raises(gbq.GenericGBQException):
+    with pytest.raises(exceptions.GenericGBQException):
         gbq.to_gbq(DataFrame([[1]]), "my_dataset.my_table", project_id="1234")
 
 
@@ -67,7 +67,7 @@ def test_to_gbq_load_method_translates_exception(
         "error loading data"
     )
 
-    with pytest.raises(gbq.GenericGBQException):
+    with pytest.raises(exceptions.GenericGBQException):
         gbq.to_gbq(
             DataFrame({"int_cole": [1, 2, 3]}),
             "my_dataset.my_table",
@@ -111,11 +111,11 @@ def test_to_gbq_with_if_exists_append_mismatch(mock_bigquery_client):
         "myproj.my_dataset.my_table",
         schema=(SchemaField("col_a", "INTEGER"), SchemaField("col_b", "STRING")),
     )
-    mock_bigquery_client.side_effect = gbq.InvalidSchema(
+    mock_bigquery_client.side_effect = exceptions.InvalidSchema(
         message=r"Provided Schema does not match Table *"
     )
 
-    with pytest.raises((gbq.InvalidSchema)) as exception_block:
+    with pytest.raises(exceptions.InvalidSchema) as exception_block:
         gbq.to_gbq(
             DataFrame({"col_a": [0.25, 1.5, -1.0]}),
             "my_dataset.my_table",
@@ -198,7 +198,7 @@ def test_to_gbq_with_if_exists_unknown():
     ],
 )
 def test_create_user_agent(user_agent, rfc9110_delimiter, expected):
-    from pandas_gbq.gbq import create_user_agent
+    from pandas_gbq.gbq_connector import create_user_agent
 
     result = create_user_agent(user_agent, rfc9110_delimiter)
     assert result == expected

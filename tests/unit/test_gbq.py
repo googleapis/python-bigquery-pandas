@@ -19,9 +19,8 @@ import pandas
 from pandas import DataFrame
 import pytest
 
-from pandas_gbq import gbq
+from pandas_gbq import exceptions, gbq, gbq_connector
 import pandas_gbq.constants
-import pandas_gbq.exceptions
 import pandas_gbq.features
 from pandas_gbq.features import FEATURES
 
@@ -104,7 +103,7 @@ def default_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_itera
     ],
 )
 def test__bqschema_to_nullsafe_dtypes(type_, expected):
-    result = gbq._bqschema_to_nullsafe_dtypes(
+    result = gbq_connector._bqschema_to_nullsafe_dtypes(
         [dict(name="x", type=type_, mode="NULLABLE")]
     )
     if not expected:
@@ -222,7 +221,7 @@ def test_GbqConnector_process_http_error_transforms_timeout():
     original = google.api_core.exceptions.GoogleAPICallError(
         "Job execution was cancelled: Job timed out after 0s"
     )
-    with pytest.raises(gbq.QueryTimeout):
+    with pytest.raises(exceptions.QueryTimeout):
         gbq.GbqConnector.process_http_error(original)
 
 
@@ -390,7 +389,7 @@ def test_dataset_exists_translates_exception(mock_bigquery_client):
     mock_bigquery_client.get_dataset.side_effect = (
         google.api_core.exceptions.InternalServerError("something went wrong")
     )
-    with pytest.raises(gbq.GenericGBQException):
+    with pytest.raises(exceptions.GenericGBQException):
         connector.exists("not_gonna_work")
 
 
@@ -413,7 +412,7 @@ def test_table_create_translates_exception(mock_bigquery_client):
     mock_bigquery_client.create_table.side_effect = (
         google.api_core.exceptions.InternalServerError("something went wrong")
     )
-    with pytest.raises(gbq.GenericGBQException):
+    with pytest.raises(exceptions.GenericGBQException):
         connector.create(
             "not_gonna_work", {"fields": [{"name": "f", "type": "STRING"}]}
         )
@@ -435,7 +434,7 @@ def test_table_delete_translates_exception(mock_bigquery_client):
     mock_bigquery_client.delete_table.side_effect = (
         google.api_core.exceptions.InternalServerError("something went wrong")
     )
-    with pytest.raises(gbq.GenericGBQException):
+    with pytest.raises(exceptions.GenericGBQException):
         connector.delete("not_gonna_work")
 
 
@@ -461,7 +460,7 @@ def test_table_exists_translates_exception(mock_bigquery_client):
     mock_bigquery_client.get_table.side_effect = (
         google.api_core.exceptions.InternalServerError("something went wrong")
     )
-    with pytest.raises(gbq.GenericGBQException):
+    with pytest.raises(exceptions.GenericGBQException):
         connector.exists("not_gonna_work")
 
 
@@ -920,7 +919,7 @@ def test_read_gbq_with_list_rows_error_translates_exception(
         google.api_core.exceptions.NotFound("table not found"),
     )
 
-    with pytest.raises(gbq.GenericGBQException, match="table not found"):
+    with pytest.raises(exceptions.GenericGBQException, match="table not found"):
         gbq.read_gbq(
             "my-project.my_dataset.read_gbq_table",
             credentials=mock_service_account_credentials,
