@@ -19,7 +19,7 @@ import pandas
 from pandas import DataFrame
 import pytest
 
-from pandas_gbq import gbq, gbq_connector
+from pandas_gbq import gbq
 import pandas_gbq.constants
 import pandas_gbq.exceptions
 import pandas_gbq.features
