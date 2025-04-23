@@ -11,17 +11,37 @@ import warnings
 from pandas_gbq.contexts import context
 from pandas_gbq.exceptions import (
     DatasetCreationError,
+    GenericGBQException,
     InvalidColumnOrder,
     InvalidIndexColumn,
+    InvalidPageToken,
+    InvalidSchema,
     NotFoundException,
+    QueryTimeout,
     TableCreationError,
 )
 from pandas_gbq.features import FEATURES
-from pandas_gbq.gbq_connector import GbqConnector
+from pandas_gbq.gbq_connector import GbqConnector, create_user_agent
 import pandas_gbq.schema
 import pandas_gbq.schema.pandas_to_bigquery
 
 logger = logging.getLogger(__name__)
+
+
+__all__ = [
+    # The following items were originally defined in this module
+    # Export them here for backward compatibility.
+    "DatasetCreationError",
+    "InvalidColumnOrder",
+    "InvalidIndexColumn",
+    "InvalidPageToken",
+    "InvalidSchema",
+    "NotFoundException",
+    "TableCreationError",
+    "GenericGBQException",
+    "QueryTimeout",
+    "create_user_agent",
+]
 
 
 def _test_google_api_imports():
