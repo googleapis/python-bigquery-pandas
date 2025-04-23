@@ -8,40 +8,31 @@ import logging
 import re
 import warnings
 
+from pandas_gbq.contexts import Context  # noqa - backward compatible export
 from pandas_gbq.contexts import context
-from pandas_gbq.exceptions import (
+from pandas_gbq.exceptions import (  # noqa - backward compatible export
     DatasetCreationError,
     GenericGBQException,
     InvalidColumnOrder,
     InvalidIndexColumn,
-    InvalidPageToken,
-    InvalidSchema,
     NotFoundException,
-    QueryTimeout,
     TableCreationError,
 )
+from pandas_gbq.exceptions import InvalidPageToken  # noqa - backward compatible export
+from pandas_gbq.exceptions import InvalidSchema  # noqa - backward compatible export
+from pandas_gbq.exceptions import QueryTimeout  # noqa - backward compatible export
 from pandas_gbq.features import FEATURES
-from pandas_gbq.gbq_connector import GbqConnector, create_user_agent
+from pandas_gbq.gbq_connector import (  # noqa - backward compatible export
+    GbqConnector,
+    _bqschema_to_nullsafe_dtypes,
+    _finalize_dtypes,
+    create_user_agent,
+)
+from pandas_gbq.gbq_connector import _get_client  # noqa - backward compatible export
 import pandas_gbq.schema
 import pandas_gbq.schema.pandas_to_bigquery
 
 logger = logging.getLogger(__name__)
-
-
-__all__ = [
-    # The following items were originally defined in this module
-    # Export them here for backward compatibility.
-    "DatasetCreationError",
-    "InvalidColumnOrder",
-    "InvalidIndexColumn",
-    "InvalidPageToken",
-    "InvalidSchema",
-    "NotFoundException",
-    "TableCreationError",
-    "GenericGBQException",
-    "QueryTimeout",
-    "create_user_agent",
-]
 
 
 def _test_google_api_imports():

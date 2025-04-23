@@ -104,7 +104,7 @@ def default_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_itera
     ],
 )
 def test__bqschema_to_nullsafe_dtypes(type_, expected):
-    result = gbq_connector._bqschema_to_nullsafe_dtypes(
+    result = gbq._bqschema_to_nullsafe_dtypes(
         [dict(name="x", type=type_, mode="NULLABLE")]
     )
     if not expected:
