@@ -16,7 +16,7 @@ import pandas.testing as tm
 import pytest
 import pytz
 
-from pandas_gbq import exceptions, gbq
+from pandas_gbq import gbq
 import pandas_gbq.schema
 
 TABLE_ID = "new_test"
@@ -195,7 +195,7 @@ class TestReadGBQIntegration(object):
         col_order = ["string_aaa", "string_1", "string_2"]
 
         # Column string_aaa does not exist. Should raise InvalidColumnOrder
-        with pytest.raises(exceptions.InvalidColumnOrder):
+        with pytest.raises(gbq.InvalidColumnOrder):
             gbq.read_gbq(
                 query,
                 project_id=project_id,
@@ -227,7 +227,7 @@ class TestReadGBQIntegration(object):
         col_order = ["string_3", "string_2"]
 
         # Column string_bbb does not exist. Should raise InvalidIndexColumn
-        with pytest.raises(exceptions.InvalidIndexColumn):
+        with pytest.raises(gbq.InvalidIndexColumn):
             gbq.read_gbq(
                 query,
                 project_id=project_id,
@@ -238,7 +238,7 @@ class TestReadGBQIntegration(object):
             )
 
     def test_malformed_query(self, project_id):
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(
                 "SELCET * FORM [publicdata:samples.shakespeare]",
                 project_id=project_id,
@@ -247,7 +247,7 @@ class TestReadGBQIntegration(object):
             )
 
     def test_bad_project_id(self):
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(
                 "SELCET * FROM [publicdata:samples.shakespeare]",
                 project_id="not-my-project",
@@ -256,7 +256,7 @@ class TestReadGBQIntegration(object):
             )
 
     def test_bad_table_name(self, project_id):
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(
                 "SELECT * FROM [publicdata:samples.nope]",
                 project_id=project_id,
@@ -316,7 +316,7 @@ class TestReadGBQIntegration(object):
 
         # Test that a legacy sql statement fails when
         # setting dialect='standard'
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(
                 legacy_sql,
                 project_id=project_id,
@@ -341,7 +341,7 @@ class TestReadGBQIntegration(object):
 
         # Test that a standard sql statement fails when using
         # the legacy SQL dialect.
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.read_gbq(
                 standard_sql,
                 project_id=project_id,
@@ -485,7 +485,7 @@ class TestReadGBQIntegration(object):
             {"query": {"useQueryCache": False}, "jobTimeoutMs": 401},
         ]
         for config in configs:
-            with pytest.raises(exceptions.QueryTimeout):
+            with pytest.raises(gbq.QueryTimeout):
                 gbq.read_gbq(
                     sql_statement,
                     project_id=project_id,
@@ -507,7 +507,7 @@ class TestReadGBQIntegration(object):
         ]
 
         for config in configs:
-            with pytest.raises(exceptions.QueryTimeout):
+            with pytest.raises(gbq.QueryTimeout):
                 gbq.read_gbq(
                     sql_statement,
                     project_id=project_id,
@@ -741,7 +741,7 @@ class TestToGBQIntegration(object):
         )
 
         # Test the default value of if_exists == 'fail'
-        with pytest.raises(exceptions.TableCreationError):
+        with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
@@ -750,7 +750,7 @@ class TestToGBQIntegration(object):
             )
 
         # Test the if_exists parameter with value 'fail'
-        with pytest.raises(exceptions.TableCreationError):
+        with pytest.raises(gbq.TableCreationError):
             gbq.to_gbq(
                 df,
                 self.destination_table + test_id,
@@ -794,7 +794,7 @@ class TestToGBQIntegration(object):
         assert result["num_rows"][0] == test_size * 2
 
         # Try inserting with a different schema, confirm failure
-        with pytest.raises(exceptions.InvalidSchema):
+        with pytest.raises(gbq.InvalidSchema):
             gbq.to_gbq(
                 df_different_schema,
                 self.destination_table + test_id,
@@ -1029,7 +1029,7 @@ class TestToGBQIntegration(object):
             {"name": "D", "type": "FLOAT"},
         ]
         destination_table = self.destination_table + test_id
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.to_gbq(
                 df,
                 destination_table,
@@ -1047,7 +1047,7 @@ class TestToGBQIntegration(object):
             {"name": "C", "type": "FLOAT"},
         ]
         destination_table = self.destination_table + test_id
-        with pytest.raises(exceptions.GenericGBQException):
+        with pytest.raises(gbq.GenericGBQException):
             gbq.to_gbq(
                 df,
                 destination_table,
@@ -1193,7 +1193,7 @@ def test_create_dataset(bigquery_client, gbq_dataset, random_dataset_id, project
 
 def test_create_dataset_already_exists(gbq_dataset, random_dataset_id):
     gbq_dataset.create(random_dataset_id)
-    with pytest.raises(exceptions.DatasetCreationError):
+    with pytest.raises(gbq.DatasetCreationError):
         gbq_dataset.create(random_dataset_id)
 
 
@@ -1218,7 +1218,7 @@ def test_create_table(gbq_table):
 def test_create_table_already_exists(gbq_table):
     schema = gbq._generate_bq_schema(make_mixed_dataframe_v1())
     gbq_table.create("test_create_table_exists", schema)
-    with pytest.raises(exceptions.TableCreationError):
+    with pytest.raises(gbq.TableCreationError):
         gbq_table.create("test_create_table_exists", schema)
 
 
