@@ -116,6 +116,7 @@ def read_gbq(
     *,
     col_order=None,
     bigquery_client=None,
+    dry_run=False,
 ):
     r"""Read data from Google BigQuery to a pandas DataFrame.
 
@@ -266,6 +267,8 @@ def read_gbq(
     bigquery_client : google.cloud.bigquery.Client, optional
         A Google Cloud BigQuery Python Client instance. If provided, it will be used for reading
         data, while the project and credentials parameters will be ignored.
+    dry_run : bool, default False
+        If true, executes the query in dry run mode and returns a statistic report as a Pandas series.
 
     Returns
     -------
@@ -317,6 +320,19 @@ def read_gbq(
         client_secret=client_secret,
         bigquery_client=bigquery_client,
     )
+
+    if dry_run:
+        if not _is_query(query_or_table):
+            # If the input is a table reference, turn it to a query
+            query_or_table = f"SELECT * FROM `{query_or_table}`;"
+        return connector.run_query(
+            query_or_table,
+            configuration=configuration,
+            max_results=max_results,
+            progress_bar_type=progress_bar_type,
+            dtypes=dtypes,
+            dry_run=True,
+        )
 
     if _is_query(query_or_table):
         final_df = connector.run_query(

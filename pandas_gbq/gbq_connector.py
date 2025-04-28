@@ -3,6 +3,7 @@
 # license that can be found in the LICENSE file.
 
 
+import copy
 import logging
 import time
 import typing
@@ -10,6 +11,7 @@ from typing import Any, Dict, Optional, Sequence, Union
 import warnings
 
 import numpy as np
+import pandas
 
 # Only import at module-level at type checking time to avoid circular
 # dependencies in the pandas package, which has an optional dependency on
@@ -198,7 +200,9 @@ class GbqConnector:
             user_dtypes=dtypes,
         )
 
-    def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
+    def run_query(
+        self, query, max_results=None, progress_bar_type=None, dry_run=False, **kwargs
+    ):
         from google.cloud import bigquery
 
         job_config_dict = {
@@ -235,6 +239,13 @@ class GbqConnector:
         self._start_timer()
         job_config = bigquery.QueryJobConfig.from_api_repr(job_config_dict)
 
+        if dry_run:
+            job_config.dry_run = True
+
+            return self._report_dry_run_stats(
+                self.client.query(query, job_config),
+            )
+
         if FEATURES.bigquery_has_query_and_wait:
             rows_iter = pandas_gbq.query.query_and_wait_via_client_library(
                 self,
@@ -265,6 +276,45 @@ class GbqConnector:
             progress_bar_type=progress_bar_type,
             user_dtypes=dtypes,
         )
+
+    def _report_dry_run_stats(
+        self,
+        query_job,
+    ) -> pandas.Series:
+        job_api_repr = copy.deepcopy(query_job._properties)
+
+        index = []
+        values = []
+
+        fields = job_api_repr["statistics"]["query"]["schema"]["fields"]
+        index.append("fieldCount")
+        values.append(len(fields))
+        index.append("fields")
+        values.append(fields)
+
+        query_config = job_api_repr["configuration"]["query"]
+        for key in ("destinationTable", "useLegacySql"):
+            index.append(key)
+            values.append(query_config.get(key))
+
+        query_stats = job_api_repr["statistics"]["query"]
+        for key in (
+            "referencedTables",
+            "totalBytesProcessed",
+            "cacheHit",
+            "statementType",
+        ):
+            index.append(key)
+            values.append(query_stats.get(key))
+
+        index.append("creationTime")
+        values.append(
+            pandas.Timestamp(
+                job_api_repr["statistics"]["creationTime"], unit="ms", tz="UTC"
+            )
+        )
+
+        return pandas.Series(values, index=index)
 
     def _download_results(
         self,
