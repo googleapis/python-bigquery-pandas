@@ -92,7 +92,7 @@ def default_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_itera
 
 
 @pytest.fixture(autouse=True)
-def dryrun_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_iterator):
+def dryrun_bigquery_client(mock_bigquery_client, mock_query_job):
     mock_query_job._properties = {
         "configuration": {
             "query": {
