@@ -11,7 +11,6 @@ from typing import Any, Dict, Optional, Sequence, Union
 import warnings
 
 import numpy as np
-import pandas
 
 # Only import at module-level at type checking time to avoid circular
 # dependencies in the pandas package, which has an optional dependency on
@@ -280,7 +279,7 @@ class GbqConnector:
     def _report_dry_run_stats(
         self,
         query_job,
-    ) -> pandas.Series:
+    ) -> "pandas.Series":
         job_api_repr = copy.deepcopy(query_job._properties)
 
         index = []
@@ -306,6 +305,8 @@ class GbqConnector:
         ):
             index.append(key)
             values.append(query_stats.get(key))
+
+        import pandas
 
         index.append("creationTime")
         values.append(

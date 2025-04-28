@@ -91,6 +91,54 @@ def default_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_itera
     return mock_bigquery_client
 
 
+@pytest.fixture(autouse=True)
+def dryrun_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_iterator):
+    mock_query_job._properties = {
+        "configuration": {
+            "query": {
+                "destinationTable": {
+                    "projectId": "project-id",
+                    "datasetId": "dataset-id",
+                    "tableId": "table-id",
+                },
+                "useLegacySql": False,
+            },
+            "dryRun": True,
+            "jobType": "QUERY",
+        },
+        "jobReference": {"projectId": "bigframes-dev", "location": "US"},
+        "statistics": {
+            "creationTime": 1745880402624.0,
+            "totalBytesProcessed": "38324173849",
+            "query": {
+                "totalBytesProcessed": "38324173849",
+                "totalBytesBilled": "0",
+                "cacheHit": False,
+                "referencedTables": [
+                    {
+                        "projectId": "projectId",
+                        "datasetId": "datasetId",
+                        "tableId": "tableId",
+                    }
+                ],
+                "schema": {
+                    "fields": [
+                        {"name": "title", "type": "STRING", "mode": "NULLABLE"},
+                    ]
+                },
+                "statementType": "SELECT",
+                "totalBytesProcessedAccuracy": "PRECISE",
+            },
+            "reservation_id": "reservation_id",
+            "edition": "edition",
+        },
+        "status": {"state": "DONE"},
+    }
+    mock_bigquery_client.query.return_value = mock_query_job
+
+    return mock_bigquery_client
+
+
 @pytest.mark.parametrize(
     ("type_", "expected"),
     [
@@ -937,3 +985,41 @@ def test_run_query_with_dml_query(mock_bigquery_client, mock_query_job):
     type(mock_query_job).destination = mock.PropertyMock(return_value=None)
     connector.run_query("UPDATE tablename SET value = '';")
     mock_bigquery_client.list_rows.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "query_or_table",
+    [
+        pytest.param("my-project.my_dataset.my_table", id="table_ref"),
+        pytest.param("SELECT * FROM my-project.my_dataset.my_table", id="query"),
+    ],
+)
+def test_read_gbq_dry_run(
+    query_or_table, dryrun_bigquery_client, mock_service_account_credentials
+):
+    mock_service_account_credentials.project_id = "service_account_project_id"
+    result = gbq.read_gbq(
+        query_or_table,
+        credentials=mock_service_account_credentials,
+        project_id="param-project",
+        dry_run=True,
+    )
+
+    assert isinstance(result, pandas.Series)
+    dryrun_bigquery_client.query.assert_called_once()
+    pandas.testing.assert_index_equal(
+        result.index,
+        pandas.Index(
+            [
+                "fieldCount",
+                "fields",
+                "destinationTable",
+                "useLegacySql",
+                "referencedTables",
+                "totalBytesProcessed",
+                "cacheHit",
+                "statementType",
+                "creationTime",
+            ]
+        ),
+    )
