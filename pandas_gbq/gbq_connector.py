@@ -11,6 +11,8 @@ import warnings
 
 import numpy as np
 
+from . import environment
+
 # Only import at module-level at type checking time to avoid circular
 # dependencies in the pandas package, which has an optional dependency on
 # pandas-gbq.
@@ -517,11 +519,18 @@ def create_user_agent(
         )
         delimiter = "-"
 
-    identity = f"pandas{delimiter}{pd.__version__}"
+    identities = [f"pandas{delimiter}{pd.__version__}"]
 
-    if user_agent is None:
-        user_agent = identity
-    else:
-        user_agent = f"{user_agent} {identity}"
+    if user_agent is not None:
+        user_agent = identities.append(user_agent)
+
+    if environment.is_vscode():
+        identities.append("vscode")
+        if environment.is_vscode_google_cloud_code_extension_installed():
+            identities.append(environment.GOOGLE_CLOUD_CODE_EXTENSION_NAME)
+    elif environment.is_jupyter():
+        identities.append("jupyter")
+        if environment.is_jupyter_bigquery_plugin_installed():
+            identities.append(environment.BIGQUERY_JUPYTER_PLUGIN_NAME)
 
     return user_agent
