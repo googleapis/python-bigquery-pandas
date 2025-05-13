@@ -2,6 +2,10 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+
+import os
+import unittest.mock as mock
+
 import google.api_core.exceptions
 import google.cloud.bigquery
 import pandas as pd
@@ -202,3 +206,52 @@ def test_create_user_agent(user_agent, rfc9110_delimiter, expected):
 
     result = create_user_agent(user_agent, rfc9110_delimiter)
     assert result == expected
+
+
+@mock.patch.dict(os.environ, {"VSCODE_PID": "1234"}, clear=True)
+def test_create_user_agent_vscode():
+    from pandas_gbq.gbq import create_user_agent
+
+    assert create_user_agent() == f"pandas-{pd.__version__} vscode"
+
+@mock.patch.dict(os.environ, {"VSCODE_PID": "1234"}, clear=True)
+def test_create_user_agent_vscode_plugin():
+    from pandas_gbq.gbq import create_user_agent
+
+    # simulate plugin installation by creating plugin config on disk
+    user_home = os.path.expanduser("~")
+    plugin_dir = os.path.join(user_home, ".vscode", "extensions", "googlecloudtools.cloudcode-0.12")
+    plugin_config = os.path.join(plugin_dir, "package.json")
+    assert not os.path.exists(plugin_config) # initially does not exist
+    os.makedirs(plugin_dir, exist_ok=True)
+    with open(plugin_config, "w") as f:
+        f.write("{}")
+
+    # test
+    assert create_user_agent() == f"pandas-{pd.__version__} vscode googlecloudtools.cloudcode"
+
+    # clean up disk
+    os.remove(plugin_config)
+
+
+@mock.patch.dict(os.environ, {"JPY_PARENT_PID": "1234"}, clear=True)
+def test_create_user_agent_jupyter():
+    from pandas_gbq.gbq import create_user_agent
+
+    assert create_user_agent() == f"pandas-{pd.__version__} jupyter"
+
+
+@mock.patch.dict(os.environ, {"JPY_PARENT_PID": "1234"}, clear=True)
+def test_create_user_agent_jupyter_extension():
+    from pandas_gbq.gbq import create_user_agent
+
+    def custom_import_module_side_effect(name, package=None):
+        print(f"  [Test Mock] Intercepted importlib.import_module for '{name}'")
+        if name == "bigquery_jupyter_plugin":
+            return mock.MagicMock()
+        else:
+            import importlib
+            return importlib.import_module(name, package)
+    
+    with mock.patch('importlib.import_module', side_effect=custom_import_module_side_effect):
+        assert create_user_agent() == f"pandas-{pd.__version__} jupyter bigquery_jupyter_plugin"
