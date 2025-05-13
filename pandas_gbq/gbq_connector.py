@@ -519,10 +519,8 @@ def create_user_agent(
         )
         delimiter = "-"
 
-    identities = [f"pandas{delimiter}{pd.__version__}"]
-
-    if user_agent is not None:
-        user_agent = identities.append(user_agent)
+    identities = [] if user_agent is None else [user_agent]
+    identities.append(f"pandas{delimiter}{pd.__version__}")
 
     if environment.is_vscode():
         identities.append("vscode")
@@ -533,4 +531,4 @@ def create_user_agent(
         if environment.is_jupyter_bigquery_plugin_installed():
             identities.append(environment.BIGQUERY_JUPYTER_PLUGIN_NAME)
 
-    return user_agent
+    return " ".join(identities)
