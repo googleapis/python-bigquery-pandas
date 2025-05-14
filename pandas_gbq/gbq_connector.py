@@ -11,8 +11,6 @@ import warnings
 
 import numpy as np
 
-from . import environment
-
 # Only import at module-level at type checking time to avoid circular
 # dependencies in the pandas package, which has an optional dependency on
 # pandas-gbq.
@@ -21,6 +19,7 @@ if typing.TYPE_CHECKING:  # pragma: NO COVER
 
 import pandas_gbq.constants
 from pandas_gbq.contexts import context
+import pandas_gbq.environment as environment
 import pandas_gbq.exceptions
 from pandas_gbq.exceptions import (
     GenericGBQException,
