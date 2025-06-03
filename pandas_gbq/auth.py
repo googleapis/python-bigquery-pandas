@@ -13,6 +13,7 @@ CREDENTIALS_CACHE_DIRNAME = "pandas_gbq"
 CREDENTIALS_CACHE_FILENAME = "bigquery_credentials.dat"
 SCOPES = ["https://www.googleapis.com/auth/bigquery"]
 
+
 def get_credentials(
     private_key=None,
     project_id=None,
