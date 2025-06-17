@@ -22,7 +22,7 @@ In order to add a feature:
   documentation.
 
 - The feature must work fully on the following CPython versions:
-  3.8, 3.9, 3.10, 3.11 and 3.12 on both UNIX and Windows.
+  3.8, 3.9, 3.10, 3.11, 3.12 and 3.13 on both UNIX and Windows.
 
 - The feature must not add unnecessary dependencies (where
   "unnecessary" is of course subjective, but new dependencies should
@@ -72,7 +72,7 @@ We use `nox <https://nox.readthedocs.io/en/latest/>`__ to instrument our tests.
 
 - To run a single unit test::
 
-    $ nox -s unit-3.12 -- -k <name of test>
+    $ nox -s unit-3.13 -- -k <name of test>
 
 
   .. note::
@@ -143,12 +143,12 @@ Running System Tests
    $ nox -s system
 
    # Run a single system test
-   $ nox -s system-3.12 -- -k <name of test>
+   $ nox -s system-3.13 -- -k <name of test>
 
 
   .. note::
 
-      System tests are only configured to run under Python 3.8, 3.9, 3.10, 3.11 and 3.12.
+      System tests are only configured to run under Python 3.8, 3.9, 3.10, 3.11, 3.12 and 3.13.
       For expediency, we do not run them in older versions of Python 3.
 
   This alone will not run the tests. You'll need to change some local
