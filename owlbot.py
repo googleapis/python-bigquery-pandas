@@ -57,8 +57,9 @@ s.move(
         "docs/multiprocessing.rst",
         "noxfile.py",
         "README.rst",
-        # exclude this file as we have an alternate prerelease.cfg
         ".github/workflows/docs.yml",
+        ".github/sync-repo-settings.yaml",
+        # exclude this file as we have an alternate prerelease.cfg
         ".kokoro/presubmit/prerelease-deps.cfg",
         ".kokoro/presubmit/presubmit.cfg",
     ],
