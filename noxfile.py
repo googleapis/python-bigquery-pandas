@@ -33,7 +33,7 @@ ISORT_VERSION = "isort==5.10.1"
 LINT_PATHS = ["docs", "pandas_gbq", "tests", "noxfile.py", "setup.py"]
 
 DEFAULT_PYTHON_VERSION = "3.10"
-
+LINT_PYTHON_VERSION = "3.10"
 
 UNIT_TEST_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 UNIT_TEST_STANDARD_DEPENDENCIES = [
@@ -109,7 +109,7 @@ nox.options.sessions = [
 nox.options.error_on_missing_interpreters = True
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python=LINT_PYTHON_VERSION)
 @_calculate_duration
 def lint(session):
     """Run linters.
@@ -158,7 +158,7 @@ def format(session):
     )
 
 
-@nox.session(python=DEFAULT_PYTHON_VERSION)
+@nox.session(python=LINT_PYTHON_VERSION)
 @_calculate_duration
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
