@@ -108,7 +108,7 @@ nox.options.sessions = [
 nox.options.error_on_missing_interpreters = True
 
 
-@nox.session(python=LINT_PYTHON_VERSION)
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 @_calculate_duration
 def lint(session):
     """Run linters.
