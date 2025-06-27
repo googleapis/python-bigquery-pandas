@@ -672,3 +672,48 @@ def test_read_gbq_with_bq_client(read_gbq_with_bq_client):
         {"numbers": pandas.Series([1, 2, 3], dtype="Int64")}
     )
     pandas.testing.assert_frame_equal(actual_result, expected_result)
+
+
+def test_read_gbq_table_dry_run(read_gbq, writable_table):
+    result = read_gbq(writable_table, dry_run=True)
+
+    assert isinstance(result, pandas.Series)
+    pandas.testing.assert_index_equal(
+        result.index,
+        pandas.Index(
+            [
+                "fieldCount",
+                "fields",
+                "destinationTable",
+                "useLegacySql",
+                "referencedTables",
+                "totalBytesProcessed",
+                "cacheHit",
+                "statementType",
+                "creationTime",
+            ]
+        ),
+    )
+
+
+def test_read_gbq_query_dry_run(read_gbq, writable_table):
+    query = f"SELECT * FROM {writable_table} LIMIT 10"
+    result = read_gbq(query, dry_run=True)
+
+    assert isinstance(result, pandas.Series)
+    pandas.testing.assert_index_equal(
+        result.index,
+        pandas.Index(
+            [
+                "fieldCount",
+                "fields",
+                "destinationTable",
+                "useLegacySql",
+                "referencedTables",
+                "totalBytesProcessed",
+                "cacheHit",
+                "statementType",
+                "creationTime",
+            ]
+        ),
+    )
