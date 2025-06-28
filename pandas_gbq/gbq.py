@@ -7,6 +7,7 @@ from datetime import datetime
 import logging
 import re
 import warnings
+from typing import Optional
 
 from pandas_gbq.contexts import Context  # noqa - backward compatible export
 from pandas_gbq.contexts import context
@@ -108,7 +109,7 @@ def read_gbq(
     max_results=None,
     verbose=None,
     private_key=None,
-    progress_bar_type="tqdm",
+    progress_bar_type: Optional[str] = "tqdm",
     dtypes=None,
     auth_redirect_uri=None,
     client_id=None,
