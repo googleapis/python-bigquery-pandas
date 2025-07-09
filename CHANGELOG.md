@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.29.1...v1.0.0) (2025-07-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove support for Python 3.8 ([#932](https://github.com/googleapis/python-bigquery-pandas/issues/932))
+
+### Features
+
+* Add Python 3.13 support ([#930](https://github.com/googleapis/python-bigquery-pandas/issues/930)) ([76e6d11](https://github.com/googleapis/python-bigquery-pandas/commit/76e6d11aaf674bc4bb4de223845cc31fe3cf5765))
+
+
+### Dependencies
+
+* Remove support for Python 3.8 ([#932](https://github.com/googleapis/python-bigquery-pandas/issues/932)) ([ba35a9c](https://github.com/googleapis/python-bigquery-pandas/commit/ba35a9c3fe1acef13a629dacbc92d00f4291aa63))
+
 ## [0.29.1](https://github.com/googleapis/python-bigquery-pandas/compare/v0.29.0...v0.29.1) (2025-06-03)
 
 
