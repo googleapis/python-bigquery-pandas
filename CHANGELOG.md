@@ -3,10 +3,6 @@
 ## [0.29.2](https://github.com/googleapis/python-bigquery-pandas/compare/v0.29.1...v0.29.2) (2025-07-10)
 
 
-### ⚠ BREAKING CHANGES
-
-* Remove support for Python 3.8 ([#932](https://github.com/googleapis/python-bigquery-pandas/issues/932))
-
 ### Features
 
 * Add Python 3.13 support ([#930](https://github.com/googleapis/python-bigquery-pandas/issues/930)) ([76e6d11](https://github.com/googleapis/python-bigquery-pandas/commit/76e6d11aaf674bc4bb4de223845cc31fe3cf5765))
