@@ -194,8 +194,7 @@ def test_dataframe_to_bigquery_fields_w_extra_fields(module_under_test):
     assert len(record) == 1
     message = str(record[0].message)
     assert (
-        "Provided BigQuery fields contain field(s) not present in DataFrame"
-        in message
+        "Provided BigQuery fields contain field(s) not present in DataFrame" in message
     )
     # Note: The field names are sorted in the warning message.
     assert "['also_not_in_df', 'not_in_df']" in message
