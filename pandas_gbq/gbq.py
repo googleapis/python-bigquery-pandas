@@ -416,9 +416,7 @@ def to_gbq(
     destination_table : str
         Name of table to be written, in the form ``dataset.tablename`` or
         ``project.dataset.tablename``.
-    clustering_columns : typing.Union[
-        pandas.core.indexes.base.Index, typing.Iterable[typing.Hashable]
-    ] = (),
+    clustering_columns : pandas.Index | Iterable[Hashable], optional
         Specifies the columns for clustering in the BigQuery table.
     time_partitioning_column : str, optional
         Specifies the column for time-based partitioning in the BigQuery table.
