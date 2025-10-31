@@ -10,6 +10,7 @@ import typing
 import warnings
 
 import pandas
+
 from pandas_gbq.contexts import Context  # noqa - backward compatible export
 from pandas_gbq.contexts import context
 from pandas_gbq.exceptions import (  # noqa - backward compatible export
@@ -797,11 +798,11 @@ class _Table(GbqConnector):
         """
         from google.cloud.bigquery import (
             DatasetReference,
+            PartitionRange,
+            RangePartitioning,
             Table,
             TableReference,
             TimePartitioning,
-            RangePartitioning,
-            PartitionRange,
         )
 
         if self.exists(table_id):

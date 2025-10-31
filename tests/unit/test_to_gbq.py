@@ -272,6 +272,7 @@ def test_create_user_agent_jupyter_extension():
             == f"pandas-{pd.__version__} jupyter bigquery_jupyter_plugin"
         )
 
+
 def test_to_gbq_with_clustering(mock_bigquery_client):
     mock_bigquery_client.get_table.side_effect = google.api_core.exceptions.NotFound(
         "my_table"
