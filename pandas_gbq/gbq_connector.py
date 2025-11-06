@@ -270,7 +270,7 @@ class GbqConnector:
         dtypes = kwargs.get("dtypes")
 
         if dry_run:
-            return rows_iter
+            return rows_iter.total_bytes_processed / 1024**3
 
         return self._download_results(
             rows_iter,

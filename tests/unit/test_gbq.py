@@ -939,8 +939,10 @@ def test_run_query_with_dml_query(mock_bigquery_client, mock_query_job):
     mock_bigquery_client.list_rows.assert_not_called()
 
 
-def test_read_gbq_with_dry_run(mock_bigquery_client):
-    gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
+def test_read_gbq_with_dry_run(mock_bigquery_client, mock_query_job):
+    type(mock_query_job).total_bytes_processed = mock.PropertyMock(return_value=12345)
+    cost = gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
     _, kwargs = mock_bigquery_client.query.call_args
     job_config = kwargs["job_config"]
     assert job_config.dry_run is True
+    assert cost == 12345 / 1024**3
