@@ -937,3 +937,10 @@ def test_run_query_with_dml_query(mock_bigquery_client, mock_query_job):
     type(mock_query_job).destination = mock.PropertyMock(return_value=None)
     connector.run_query("UPDATE tablename SET value = '';")
     mock_bigquery_client.list_rows.assert_not_called()
+
+
+def test_read_gbq_with_dry_run(mock_bigquery_client):
+    gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
+    _, kwargs = mock_bigquery_client.query.call_args
+    job_config = kwargs["job_config"]
+    assert job_config.dry_run is True
