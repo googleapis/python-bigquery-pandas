@@ -76,6 +76,8 @@ def mock_row_iterator(mock_bigquery_client):
 @pytest.fixture(autouse=True)
 def default_bigquery_client(mock_bigquery_client, mock_query_job, mock_row_iterator):
     mock_query_job.result.return_value = mock_row_iterator
+    # Set up RowIterator.job to point to QueryJob for dry_run access
+    mock_row_iterator.job = mock_query_job
     mock_bigquery_client.list_rows.return_value = mock_row_iterator
     mock_bigquery_client.query.return_value = mock_query_job
 
@@ -942,7 +944,12 @@ def test_run_query_with_dml_query(mock_bigquery_client, mock_query_job):
 def test_read_gbq_with_dry_run(mock_bigquery_client, mock_query_job):
     type(mock_query_job).total_bytes_processed = mock.PropertyMock(return_value=12345)
     cost = gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
-    _, kwargs = mock_bigquery_client.query.call_args
-    job_config = kwargs["job_config"]
+    # Check which method was called based on BigQuery version
+    if hasattr(mock_bigquery_client, "query_and_wait") and mock_bigquery_client.query_and_wait.called:
+        _, kwargs = mock_bigquery_client.query_and_wait.call_args
+        job_config = kwargs["job_config"]
+    else:
+        _, kwargs = mock_bigquery_client.query.call_args
+        job_config = kwargs["job_config"]
     assert job_config.dry_run is True
     assert cost == 12345 / 1024**3

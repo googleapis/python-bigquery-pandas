@@ -270,7 +270,15 @@ class GbqConnector:
         dtypes = kwargs.get("dtypes")
 
         if dry_run:
-            return rows_iter.total_bytes_processed / 1024**3
+            # Access total_bytes_processed from the QueryJob via RowIterator.job
+            # RowIterator has a job attribute that references the QueryJob
+            query_job = rows_iter.job if hasattr(rows_iter, 'job') and rows_iter.job else None
+            if query_job is None:
+                # Fallback: if query_and_wait_via_client_library doesn't set job,
+                # we need to get it from the query result
+                # For query_and_wait_via_client_library, the RowIterator should have job set
+                raise ValueError("Cannot access QueryJob from RowIterator for dry_run")
+            return query_job.total_bytes_processed / 1024**3
 
         return self._download_results(
             rows_iter,

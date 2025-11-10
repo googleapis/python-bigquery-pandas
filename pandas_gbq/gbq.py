@@ -274,8 +274,9 @@ def read_gbq(
         If True, run a dry run query.
     Returns
     -------
-    df: DataFrame
-        DataFrame representing results of query.
+    df: DataFrame or float
+        DataFrame representing results of query. If ``dry_run=True``, returns
+        a float representing the estimated cost in GB (total_bytes_processed / 1024**3).
     """
     if dialect is None:
         dialect = context.dialect
@@ -332,6 +333,9 @@ def read_gbq(
             dtypes=dtypes,
             dry_run=dry_run,
         )
+        # When dry_run=True, run_query returns a float (cost in GB), not a DataFrame
+        if dry_run:
+            return final_df
     else:
         final_df = connector.download_table(
             query_or_table,
