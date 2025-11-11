@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/pandas-gbq/#history
 
+## [0.31.0](https://github.com/googleapis/google-cloud-python/compare/pandas-gbq-v0.30.0...pandas-gbq-v0.31.0) (2025-11-11)
+
+
+### Features
+
+* some feature ([74598c1c039584b7f27e0d6c0de4bdb14fa659b0](https://github.com/googleapis/google-cloud-python/commit/74598c1c039584b7f27e0d6c0de4bdb14fa659b0))
+
 ## [0.30.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.29.2...v0.30.0) (2025-10-31)
 
 
