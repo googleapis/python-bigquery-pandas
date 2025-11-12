@@ -945,7 +945,10 @@ def test_read_gbq_with_dry_run(mock_bigquery_client, mock_query_job):
     type(mock_query_job).total_bytes_processed = mock.PropertyMock(return_value=12345)
     cost = gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
     # Check which method was called based on BigQuery version
-    if hasattr(mock_bigquery_client, "query_and_wait") and mock_bigquery_client.query_and_wait.called:
+    if (
+        hasattr(mock_bigquery_client, "query_and_wait")
+        and mock_bigquery_client.query_and_wait.called
+    ):
         _, kwargs = mock_bigquery_client.query_and_wait.call_args
         job_config = kwargs["job_config"]
     else:

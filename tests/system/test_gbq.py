@@ -669,7 +669,6 @@ class TestReadGBQIntegration(object):
         assert cost > 0
 
 
-
 class TestToGBQIntegration(object):
     @pytest.fixture(autouse=True, scope="function")
     def setup(self, project, credentials, random_dataset_id):

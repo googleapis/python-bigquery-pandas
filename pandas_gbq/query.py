@@ -182,7 +182,7 @@ def query_and_wait(
         rows_iter = query_reply.result(max_results=max_results)
         # Store reference to QueryJob in RowIterator for dry_run access
         # RowIterator already has a job attribute, but ensure it's set
-        if not hasattr(rows_iter, 'job') or rows_iter.job is None:
+        if not hasattr(rows_iter, "job") or rows_iter.job is None:
             rows_iter.job = query_reply
         return rows_iter
     except connector.http_error as ex:
@@ -217,10 +217,10 @@ def query_and_wait_via_client_library(
         query_job.result(timeout=timeout_ms / 1000.0 if timeout_ms else None)
         # Get the result iterator and ensure job attribute is set
         rows_iter = query_job.result(max_results=max_results)
-        if not hasattr(rows_iter, 'job') or rows_iter.job is None:
+        if not hasattr(rows_iter, "job") or rows_iter.job is None:
             rows_iter.job = query_job
         return rows_iter
-    
+
     rows_iter = try_query(
         connector,
         functools.partial(
@@ -234,7 +234,7 @@ def query_and_wait_via_client_library(
         ),
     )
     # Ensure job attribute is set for consistency
-    if hasattr(rows_iter, 'job') and rows_iter.job is None:
+    if hasattr(rows_iter, "job") and rows_iter.job is None:
         # If query_and_wait doesn't set job, we need to get it from the query
         # This shouldn't happen, but we ensure it's set for dry_run compatibility
         pass
