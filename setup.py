@@ -27,6 +27,7 @@ dependencies = [
     "pandas >=1.1.4",
     "pyarrow >=4.0.0",
     "pydata-google-auth >=1.5.0",
+    "psutil",  # TODO: pick a min version and add to constraints.
     # Note: google-api-core and google-auth are also included via transitive
     # dependency on google-cloud-bigquery, but this library also uses them
     # directly.

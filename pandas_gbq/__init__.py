@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+import logging
 import warnings
 
 from pandas_gbq import version as pandas_gbq_version
@@ -20,6 +21,8 @@ if sys_major == 3 and sys_minor < 9:
         "see: https://cloud.google.com/python/docs/supported-python-versions",
         FutureWarning,
     )
+
+logger = logging.Logger(__name__)
 
 __version__ = pandas_gbq_version.__version__
 
