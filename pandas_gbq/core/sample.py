@@ -52,6 +52,7 @@ _TYPE_SIZES = {
 _ARRAY_LENGTH_ESTIMATE = 5
 _UNKNOWN_TYPE_SIZE_ESTIMATE = 4
 _MAX_ROW_BYTES = 100 * pandas_gbq.constants.BYTES_IN_MIB
+_MAX_AUTO_TARGET_BYTES = 1 * pandas_gbq.constants.BYTES_IN_GIB
 
 
 def _calculate_target_bytes(target_mb: Optional[int]) -> int:
@@ -59,7 +60,7 @@ def _calculate_target_bytes(target_mb: Optional[int]) -> int:
         return target_mb * pandas_gbq.constants.BYTES_IN_MIB
 
     mem = psutil.virtual_memory()
-    return max(_MAX_ROW_BYTES, mem.available // 4)
+    return min(_MAX_AUTO_TARGET_BYTES, max(_MAX_ROW_BYTES, mem.available // 4))
 
 
 def _estimate_limit(

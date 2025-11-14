@@ -124,10 +124,10 @@ def test_calculate_target_bytes_with_target_mb():
 @mock.patch("psutil.virtual_memory")
 def test_calculate_target_bytes_with_available_memory(mock_virtual_memory):
     # Mock psutil.virtual_memory to return a mock object with an 'available' attribute.
-    available_memory = 8 * 1024 * 1024 * 1024  # 8 GB
+    available_memory = 2 * pandas_gbq.constants.BYTES_IN_GIB  # 2 GB
     mock_virtual_memory.return_value = mock.Mock(available=available_memory)
 
-    # Expected bytes is available memory / 4
+    # Expected bytes is available memory / 4, as it falls between _MAX_ROW_BYTES and _MAX_AUTO_TARGET_BYTES
     expected_bytes = available_memory // 4
     actual_bytes = pandas_gbq.core.sample._calculate_target_bytes(None)
     assert actual_bytes == expected_bytes
@@ -142,6 +142,19 @@ def test_calculate_target_bytes_low_memory_uses_max_row_bytes(mock_virtual_memor
 
     # Expected bytes should be _MAX_ROW_BYTES because available // 4 is less.
     expected_bytes = pandas_gbq.core.sample._MAX_ROW_BYTES
+    actual_bytes = pandas_gbq.core.sample._calculate_target_bytes(None)
+    assert actual_bytes == expected_bytes
+
+
+@mock.patch("psutil.virtual_memory")
+def test_calculate_target_bytes_caps_at_max_auto_target_bytes(mock_virtual_memory):
+    # Mock psutil.virtual_memory to return a mock object with an 'available' attribute.
+    # Set available memory to a high value (e.g., 8 GB) so that available // 4 > _MAX_AUTO_TARGET_BYTES.
+    available_memory = 8 * pandas_gbq.constants.BYTES_IN_GIB  # 8 GB
+    mock_virtual_memory.return_value = mock.Mock(available=available_memory)
+
+    # Expected bytes should be _MAX_AUTO_TARGET_BYTES (1 GiB) because available // 4 (2 GiB) is capped.
+    expected_bytes = pandas_gbq.core.sample._MAX_AUTO_TARGET_BYTES
     actual_bytes = pandas_gbq.core.sample._calculate_target_bytes(None)
     assert actual_bytes == expected_bytes
 
