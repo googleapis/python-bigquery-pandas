@@ -22,6 +22,7 @@ if typing.TYPE_CHECKING:  # pragma: NO COVER
     import pandas
 
 
+_READ_API_ELIGIBLE_TYPES = ("TABLE", "MATERIALIZED_VIEW", "EXTERNAL")
 _TABLESAMPLE_ELIGIBLE_TYPES = ("TABLE", "EXTERNAL")
 
 # Base logical sizes for non-complex and non-variable types.
@@ -193,9 +194,19 @@ def sample(
     bqclient = connector.get_client()
     table = bqclient.get_table(table_id)
     num_rows = table.num_rows
+    num_bytes = table.num_bytes
+    table_type = table.table_type
+
+    # Some tables such as views report 0 despite actually having rows.
+    if num_bytes == 0:
+        num_bytes = None
 
     # Table is small enough to download the whole thing.
-    if (num_bytes := table.num_bytes) is not None and num_bytes <= target_bytes:
+    if (
+        table_type in _READ_API_ELIGIBLE_TYPES
+        and num_bytes is not None
+        and num_bytes <= target_bytes
+    ):
         rows_iter = bqclient.list_rows(table)
         return pandas_gbq.core.read.download_results(
             rows_iter,
@@ -215,7 +226,7 @@ def sample(
     )
 
     # Table is eligible for TABLESAMPLE.
-    if num_bytes is not None and table.table_type in _TABLESAMPLE_ELIGIBLE_TYPES:
+    if num_bytes is not None and table_type in _TABLESAMPLE_ELIGIBLE_TYPES:
         proportion = target_bytes / num_bytes
         return _sample_with_tablesample(
             table,
