@@ -25,9 +25,7 @@ from pandas_gbq.exceptions import InvalidPageToken  # noqa - backward compatible
 from pandas_gbq.exceptions import InvalidSchema  # noqa - backward compatible export
 from pandas_gbq.exceptions import QueryTimeout  # noqa - backward compatible export
 from pandas_gbq.features import FEATURES
-from pandas_gbq.gbq_connector import (  # noqa - backward compatible export
-    GbqConnector,
-)
+from pandas_gbq.gbq_connector import GbqConnector  # noqa - backward compatible export
 from pandas_gbq.gbq_connector import _get_client  # noqa - backward compatible export
 import pandas_gbq.schema
 import pandas_gbq.schema.pandas_to_bigquery

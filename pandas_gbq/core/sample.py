@@ -23,7 +23,7 @@ if typing.TYPE_CHECKING:  # pragma: NO COVER
 
 
 _TABLESAMPLE_ELIGIBLE_TYPES = ("TABLE", "EXTERNAL")
-    
+
 # Base logical sizes for non-complex and non-variable types.
 # https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/data-types#data_type_sizes
 _TYPE_SIZES = {
@@ -50,7 +50,7 @@ _TYPE_SIZES = {
 # TODO(tswast): Choose an estimate based on actual BigQuery stats.
 _ARRAY_LENGTH_ESTIMATE = 5
 _UNKNOWN_TYPE_SIZE_ESTIMATE = 4
-_MAX_ROW_BYTES = 100 * pandas_gbq.constants.BYTES_IN_MIB 
+_MAX_ROW_BYTES = 100 * pandas_gbq.constants.BYTES_IN_MIB
 
 
 def _calculate_target_bytes(target_mb: Optional[int]) -> int:
@@ -61,32 +61,40 @@ def _calculate_target_bytes(target_mb: Optional[int]) -> int:
     return max(_MAX_ROW_BYTES, mem.available // 4)
 
 
-def _estimate_limit(*, target_bytes : int, table_bytes: Optional[int], table_rows: Optional[int], fields: Sequence[google.cloud.bigquery.SchemaField]) -> int:
+def _estimate_limit(
+    *,
+    target_bytes: int,
+    table_bytes: Optional[int],
+    table_rows: Optional[int],
+    fields: Sequence[google.cloud.bigquery.SchemaField],
+) -> int:
     if table_bytes and table_rows:
         proportion = target_bytes / table_bytes
         return max(1, int(table_rows * proportion))
-    
+
     row_bytes_estimate = _estimate_row_bytes(fields)
     assert row_bytes_estimate >= 0
 
     if row_bytes_estimate == 0:
         # Assume there's some overhead per row so we have some kind of limit.
         return target_bytes
-    
-    return max(1, target_bytes // row_bytes_estimate) 
-    
-    
+
+    return max(1, target_bytes // row_bytes_estimate)
+
+
 def _estimate_field_bytes(field: google.cloud.bigquery.SchemaField) -> int:
     """Recursive helper function to calculate the size of a single field."""
     field_type = field.field_type
-    
+
     # If the field is REPEATED (ARRAY), its size is the sum of its elements.
     if field.mode == "REPEATED":
         # Create a temporary single-element field for size calculation
-        temp_field = google.cloud.bigquery.SchemaField(field.name, field.field_type, mode="NULLABLE", fields=field.fields)
+        temp_field = google.cloud.bigquery.SchemaField(
+            field.name, field.field_type, mode="NULLABLE", fields=field.fields
+        )
         element_size = _estimate_field_bytes(temp_field)
         return _ARRAY_LENGTH_ESTIMATE * element_size
-    
+
     if field_type == "STRUCT" or field_type == "RECORD":
         # STRUCT has 0 logical bytes + the size of its contained fields.
         return _estimate_row_bytes(field.fields)
@@ -101,7 +109,7 @@ def _estimate_row_bytes(fields: Sequence[google.cloud.bigquery.SchemaField]) -> 
     fields.
 
     Args:
-        schema_fields: A list of google.cloud.bigquery.SchemaField objects 
+        schema_fields: A list of google.cloud.bigquery.SchemaField objects
                        representing the table schema.
 
     Returns:
@@ -210,11 +218,20 @@ def sample(
     if num_bytes is not None and table.table_type in _TABLESAMPLE_ELIGIBLE_TYPES:
         proportion = target_bytes / num_bytes
         return _sample_with_tablesample(
-            table, bqclient=bqclient, proportion=proportion, target_row_count=target_row_count, progress_bar_type=progress_bar_type, use_bqstorage_api=use_bqstorage_api,
+            table,
+            bqclient=bqclient,
+            proportion=proportion,
+            target_row_count=target_row_count,
+            progress_bar_type=progress_bar_type,
+            use_bqstorage_api=use_bqstorage_api,
         )
 
     # Not eligible for TABLESAMPLE or reading directly, so take a random sample
     # with a full table scan.
     return _sample_with_limit(
-            table, bqclient=bqclient, target_row_count=target_row_count, progress_bar_type=progress_bar_type, use_bqstorage_api=use_bqstorage_api,
+        table,
+        bqclient=bqclient,
+        target_row_count=target_row_count,
+        progress_bar_type=progress_bar_type,
+        use_bqstorage_api=use_bqstorage_api,
     )
