@@ -284,16 +284,15 @@ def test_sample_uses_tablesample(
     mock_sample_with_tablesample, mock_gbq_connector, mock_bigquery_client
 ):
     mock_table = mock.Mock(spec=google.cloud.bigquery.Table)
-    mock_table.num_bytes = 10000
-    mock_table.num_rows = 100
-    mock_table.table_type = "TABLE"
-    mock_table.schema = [google.cloud.bigquery.SchemaField("col1", "INT64")]
+    type(mock_table).table_type = mock.PropertyMock(return_value="TABLE")
+    type(mock_table).num_bytes = mock.PropertyMock(return_value=1_000_000_000_000)
+    type(mock_table).num_rows = mock.PropertyMock(return_value=1_000)
+    type(mock_table).schema = mock.PropertyMock(
+        return_value=[google.cloud.bigquery.SchemaField("col1", "INT64")]
+    )
     mock_bigquery_client.get_table.return_value = mock_table
 
-    with mock.patch(
-        "pandas_gbq.core.sample._calculate_target_bytes", return_value=1000
-    ):
-        pandas_gbq.core.sample.sample("my-project.my_dataset.my_table")
+    pandas_gbq.core.sample.sample("my-project.my_dataset.my_table", target_mb=1)
 
     mock_sample_with_tablesample.assert_called_once()
 
