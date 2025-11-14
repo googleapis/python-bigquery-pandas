@@ -27,9 +27,6 @@ from pandas_gbq.exceptions import QueryTimeout  # noqa - backward compatible exp
 from pandas_gbq.features import FEATURES
 from pandas_gbq.gbq_connector import (  # noqa - backward compatible export
     GbqConnector,
-    _bqschema_to_nullsafe_dtypes,
-    _finalize_dtypes,
-    create_user_agent,
 )
 from pandas_gbq.gbq_connector import _get_client  # noqa - backward compatible export
 import pandas_gbq.schema

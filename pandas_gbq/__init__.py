@@ -10,6 +10,7 @@ from pandas_gbq.contexts import Context, context
 
 from . import _versions_helpers
 from .gbq import read_gbq, to_gbq  # noqa
+from pandas_gbq.core.sample import sample
 
 sys_major, sys_minor, sys_micro = _versions_helpers.extract_runtime_version()
 if sys_major == 3 and sys_minor < 9:
@@ -32,4 +33,5 @@ __all__ = [
     "read_gbq",
     "Context",
     "context",
+    "sample",
 ]
