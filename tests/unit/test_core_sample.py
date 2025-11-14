@@ -262,9 +262,10 @@ def test_sample_small_table_downloads_all(
     mock_download_results, mock_gbq_connector, mock_bigquery_client
 ):
     mock_table = mock.Mock(spec=google.cloud.bigquery.Table)
-    mock_table.num_bytes = 1000
-    mock_table.num_rows = 10
-    mock_table.schema = []
+    type(mock_table).table_type = mock.PropertyMock(return_value="TABLE")
+    type(mock_table).num_bytes = mock.PropertyMock(return_value=1000)
+    type(mock_table).num_rows = mock.PropertyMock(return_value=10)
+    type(mock_table).schema = mock.PropertyMock(return_value=[])
     mock_bigquery_client.get_table.return_value = mock_table
 
     with mock.patch(
