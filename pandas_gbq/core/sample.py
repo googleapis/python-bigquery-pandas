@@ -186,6 +186,43 @@ def sample(
     progress_bar_type: Optional[str] = None,
     use_bqstorage_api: bool = True,
 ) -> Optional[pandas.DataFrame]:
+    """Sample a BigQuery table, attempting to limit the amount of data read.
+
+    This function attempts to sample a BigQuery table to a target size in
+    memory. It prioritizes methods that minimize data scanned and downloaded.
+
+    The sampling strategy is as follows:
+    1. If the table is small enough (based on `target_mb` or available memory)
+       and eligible for the BigQuery Storage Read API, the entire table is
+       downloaded.
+    2. If the table is larger than the target size and eligible for
+       `TABLESAMPLE SYSTEM` (e.g., a regular table), a `TABLESAMPLE` query
+       is used to retrieve a proportion of rows, followed by `ORDER BY RAND()`
+       and `LIMIT` to get the `target_row_count`.
+    3. If `TABLESAMPLE` is not applicable (e.g., for views) or `num_bytes` is
+       not available, a full table scan is performed with `ORDER BY RAND()`
+       and `LIMIT` to retrieve the `target_row_count`.
+
+    Args:
+        table_id: The BigQuery table ID to sample, in the format
+            "project.dataset.table" or "dataset.table".
+        target_mb: Optional. The target size in megabytes for the sampled
+            DataFrame. If not specified, it defaults to 1/4 of available
+            system memory, with a minimum of 100MB.
+        credentials: Optional. The credentials to use for BigQuery access.
+            If not provided, `pandas_gbq` will attempt to infer them.
+        billing_project_id: Optional. The ID of the Google Cloud project to
+            bill for the BigQuery job. If not provided, `pandas_gbq` will
+            attempt to infer it.
+        progress_bar_type: Optional. Type of progress bar to display.
+            See `pandas_gbq.core.read.download_results` for options.
+        use_bqstorage_api: Optional. If `True`, use the BigQuery Storage Read
+            API for faster downloads. Defaults to `True`.
+
+    Returns:
+        A `pandas.DataFrame` containing the sampled data, or `None` if no data
+        could be sampled.
+    """
     target_bytes = _calculate_target_bytes(target_mb)
     connector = pandas_gbq.gbq_connector.GbqConnector(
         project_id=billing_project_id, credentials=credentials
