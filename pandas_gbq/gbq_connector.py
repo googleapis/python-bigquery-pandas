@@ -280,7 +280,7 @@ class GbqConnector:
                 # we need to get it from the query result
                 # For query_and_wait_via_client_library, the RowIterator should have job set
                 raise ValueError("Cannot access QueryJob from RowIterator for dry_run")
-            return query_job.total_bytes_processed / 1024**3
+            return query_job.total_bytes_processed
 
         return self._download_results(
             rows_iter,
