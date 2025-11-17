@@ -4,7 +4,7 @@
 
 [1]: https://pypi.org/project/pandas-gbq/#history
 
-## [0.31.0](https://github.com/googleapis/google-cloud-python/compare/v0.30.0...v0.31.0) (2025-11-17)
+## [0.31.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.30.0...v0.31.0) (2025-11-17)
 
 
 ### Features
