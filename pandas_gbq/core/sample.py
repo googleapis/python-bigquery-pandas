@@ -8,6 +8,7 @@ import typing
 from typing import Optional, Sequence, cast
 
 import google.cloud.bigquery
+import google.cloud.bigquery.table
 import google.oauth2.credentials
 import psutil
 
@@ -124,6 +125,36 @@ def _estimate_row_bytes(fields: Sequence[google.cloud.bigquery.SchemaField]) -> 
     return total_size
 
 
+def _download_results_in_parallel(
+    rows: google.cloud.bigquery.table.RowIterator,
+    *,
+    bqclient: google.cloud.bigquery.Client,
+    progress_bar_type: Optional[str] = None,
+    use_bqstorage_api: bool = True,
+):
+    table_reference = getattr(rows, "_table", None)
+    schema = getattr(rows, "_schema", None)
+
+    # If the results are large enough to materialize a table, break the
+    # connection to the original query that contains an ORDER BY clause to allow
+    # reading with multiple streams.
+    if table_reference is not None and schema is not None:
+        rows = bqclient.list_rows(
+            table_reference,
+            selected_fields=schema,
+        )
+
+    return pandas_gbq.core.read.download_results(
+        rows,
+        bqclient=bqclient,
+        progress_bar_type=progress_bar_type,
+        warn_on_large_results=False,
+        max_results=None,
+        user_dtypes=None,
+        use_bqstorage_api=use_bqstorage_api,
+    )
+
+
 def _sample_with_tablesample(
     table: google.cloud.bigquery.Table,
     *,
@@ -141,13 +172,10 @@ def _sample_with_tablesample(
     LIMIT {int(target_row_count)};
     """
     rows = bqclient.query_and_wait(query)
-    return pandas_gbq.core.read.download_results(
+    return _download_results_in_parallel(
         rows,
         bqclient=bqclient,
         progress_bar_type=progress_bar_type,
-        warn_on_large_results=False,
-        max_results=None,
-        user_dtypes=None,
         use_bqstorage_api=use_bqstorage_api,
     )
 
@@ -167,13 +195,10 @@ def _sample_with_limit(
     LIMIT {int(target_row_count)};
     """
     rows = bqclient.query_and_wait(query)
-    return pandas_gbq.core.read.download_results(
+    return _download_results_in_parallel(
         rows,
         bqclient=bqclient,
         progress_bar_type=progress_bar_type,
-        warn_on_large_results=False,
-        max_results=None,
-        user_dtypes=None,
         use_bqstorage_api=use_bqstorage_api,
     )
 
@@ -192,7 +217,19 @@ def sample(
     This function attempts to sample a BigQuery table to a target size in
     memory. It prioritizes methods that minimize data scanned and downloaded.
 
-    The sampling strategy is as follows:
+    The target size is based on an estimate of the row size and this method
+    return more or less than expected. If the table metadata doesn't include
+    a size, such as with views, an estimate based on the table schema is
+    used.
+
+    Sampling is based on the `BigQuery TABLESAMPLE
+    <https://docs.cloud.google.com/bigquery/docs/table-sampling>`_ feature,
+    which can provide a biased sample if data is not randomly distributed
+    among file blocks. For more control over sampling, use BigQuery
+    DataFrames ``read_gbq_table`` and ``DataFrame.sample`` methods.
+
+    Specificially, the sampling strategy is as follows:
+
     1. If the table is small enough (based on `target_mb` or available memory)
        and eligible for the BigQuery Storage Read API, the entire table is
        downloaded.
@@ -209,7 +246,7 @@ def sample(
             "project.dataset.table" or "dataset.table".
         target_mb: Optional. The target size in megabytes for the sampled
             DataFrame. If not specified, it defaults to 1/4 of available
-            system memory, with a minimum of 100MB.
+            system memory, with a minimum of 100MB and maximum of 1 GB.
         credentials: Optional. The credentials to use for BigQuery access.
             If not provided, `pandas_gbq` will attempt to infer them.
         billing_project_id: Optional. The ID of the Google Cloud project to
