@@ -39,7 +39,7 @@ def test_sample_large_table(
     bigquery_client: google.cloud.bigquery.Client,
 ):
     # Arrange
-    table_id = "bigquery-public-data-staging.chicago.taxi_trips"
+    table_id = "bigquery-public-data.chicago.taxi_trips"
     table = bigquery_client.get_table(table_id)
     num_bytes = table.num_bytes
     num_rows = table.num_rows
