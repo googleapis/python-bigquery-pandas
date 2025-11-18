@@ -276,7 +276,7 @@ def read_gbq(
     -------
     df: DataFrame or float
         DataFrame representing results of query. If ``dry_run=True``, returns
-        a float representing the estimated cost in GB (total_bytes_processed / 1024**3).
+        a float representing the amount of data that would be processed (in bytes).
     """
     if dialect is None:
         dialect = context.dialect
