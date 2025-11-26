@@ -269,9 +269,9 @@ def read_gbq(
         If True, run a dry run query.
     Returns
     -------
-    df: DataFrame or float
+    df: DataFrame or int
         DataFrame representing results of query. If ``dry_run=True``, returns
-        a float representing the amount of data that would be processed (in bytes).
+        aan integer representing the amount of data that would be processed (in bytes).
     """
     if dialect is None:
         dialect = context.dialect

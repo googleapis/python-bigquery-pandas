@@ -956,4 +956,4 @@ def test_read_gbq_with_dry_run(mock_bigquery_client, mock_query_job):
         _, kwargs = mock_bigquery_client.query.call_args
         job_config = kwargs["job_config"]
     assert job_config.dry_run is True
-    assert cost >= 0 
+    assert cost >= 0
