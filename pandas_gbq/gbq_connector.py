@@ -176,7 +176,14 @@ class GbqConnector:
             user_dtypes=dtypes,
         )
 
-    def run_query(self, query, max_results=None, progress_bar_type=None, **kwargs):
+    def run_query(
+        self,
+        query,
+        max_results=None,
+        progress_bar_type=None,
+        dry_run: bool = False,
+        **kwargs,
+    ):
         from google.cloud import bigquery
 
         job_config_dict = {
@@ -212,6 +219,7 @@ class GbqConnector:
 
         self._start_timer()
         job_config = bigquery.QueryJobConfig.from_api_repr(job_config_dict)
+        job_config.dry_run = dry_run
 
         if FEATURES.bigquery_has_query_and_wait:
             rows_iter = pandas_gbq.query.query_and_wait_via_client_library(
@@ -237,6 +245,20 @@ class GbqConnector:
             )
 
         dtypes = kwargs.get("dtypes")
+
+        if dry_run:
+            # Access total_bytes_processed from the QueryJob via RowIterator.job
+            # RowIterator has a job attribute that references the QueryJob
+            query_job = (
+                rows_iter.job if hasattr(rows_iter, "job") and rows_iter.job else None
+            )
+            if query_job is None:
+                # Fallback: if query_and_wait_via_client_library doesn't set job,
+                # we need to get it from the query result
+                # For query_and_wait_via_client_library, the RowIterator should have job set
+                raise ValueError("Cannot access QueryJob from RowIterator for dry_run")
+            return query_job.total_bytes_processed
+
         return self._download_results(
             rows_iter,
             max_results=max_results,
