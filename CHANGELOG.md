@@ -6,6 +6,10 @@
 
 ## [0.31.1](https://github.com/googleapis/python-bigquery-pandas/compare/v0.31.0...v0.31.1) (2025-12-08)
 
+### Dependencies
+
+* Temporarily mark as incompatible with pandas 3.0
+
 ## [0.31.0](https://github.com/googleapis/python-bigquery-pandas/compare/v0.30.0...v0.31.0) (2025-11-17)
 
 
