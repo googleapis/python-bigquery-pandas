@@ -45,9 +45,7 @@ def make_mixed_dataframe_v2(test_size):
     flts = np.random.randn(1, test_size)
     ints = np.random.randint(1, 10, size=(1, test_size))
     strs = np.random.randint(1, 10, size=(1, test_size)).astype(str)
-    times = [
-        datetime.datetime.now(zoneinfo.ZoneInfo("UTC")) for t in range(test_size)
-    ]
+    times = [datetime.datetime.now(zoneinfo.ZoneInfo("UTC")) for t in range(test_size)]
     return DataFrame(
         {
             "bools": bools[0],
