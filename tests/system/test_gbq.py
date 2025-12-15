@@ -6,10 +6,10 @@
 
 import datetime
 import sys
+import zoneinfo
 
 import numpy as np
 import packaging.version
-import pandas
 from pandas import DataFrame
 import pandas.api.types
 import pandas.testing as tm
@@ -45,7 +45,7 @@ def make_mixed_dataframe_v2(test_size):
     ints = np.random.randint(1, 10, size=(1, test_size))
     strs = np.random.randint(1, 10, size=(1, test_size)).astype(str)
     times = [
-        datetime.datetime.now(datetime.zoneinfo.ZoneInfo("US/Arizona")) for t in range(test_size)
+        datetime.datetime.now(zoneinfo.ZoneInfo("US/Arizona")) for t in range(test_size)
     ]
     return DataFrame(
         {
@@ -893,7 +893,7 @@ class TestToGBQIntegration(object):
         raise pytest.skip("buggy test")
 
         test_id = "5"
-        test_timestamp = datetime.datetime.now(datetime.zoneinfo.ZoneInfo("US/Arizona"))
+        test_timestamp = datetime.datetime.now(zoneinfo.ZoneInfo("US/Arizona"))
         bad_df = DataFrame(
             {
                 "bools": [False, False],
