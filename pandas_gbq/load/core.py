@@ -73,7 +73,6 @@ def cast_dataframe_for_parquet(
     # Protect against an explicit None in the dictionary.
     columns = columns if columns is not None else []
 
-    new_columns = {}
     for column in columns:
         # Schema can be a superset of the columns in the dataframe, so ignore
         # columns that aren't present.
