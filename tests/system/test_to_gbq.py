@@ -174,11 +174,7 @@ DATAFRAME_ROUND_TRIPS = [
                     "object_col": pandas.Series(
                         [
                             False,
-                            (
-                                pandas.NA
-                                if hasattr(pandas, "NA")
-                                else None
-                            ),
+                            (pandas.NA if hasattr(pandas, "NA") else None),
                             True,
                         ],
                         dtype="object",

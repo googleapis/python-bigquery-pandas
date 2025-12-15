@@ -73,6 +73,7 @@ def cast_dataframe_for_parquet(
     # Protect against an explicit None in the dictionary.
     columns = columns if columns is not None else []
 
+    new_columns = {}
     for column in columns:
         # Schema can be a superset of the columns in the dataframe, so ignore
         # columns that aren't present.
@@ -135,6 +136,7 @@ def cast_dataframe_for_csv(
     # Protect against an explicit None in the dictionary.
     columns = columns if columns is not None else []
 
+    new_columns = {}
     for column in columns:
         # Schema can be a superset of the columns in the dataframe, so ignore
         # columns that aren't present.
@@ -149,10 +151,16 @@ def cast_dataframe_for_csv(
             def convert(x):
                 if pandas.isna(x):
                     return None
-                return x.isoformat(sep=" ")
+                try:
+                    return x.isoformat(sep=" ")
+                except AttributeError:
+                    # It might be a string already or some other type.
+                    return x
 
-            cast_column = dataframe[column_name].map(convert)
-            dataframe = dataframe.assign(**{column_name: cast_column})
+            new_columns[column_name] = dataframe[column_name].map(convert)
+
+    if new_columns:
+        dataframe = dataframe.assign(**new_columns)
     return dataframe
 
 
