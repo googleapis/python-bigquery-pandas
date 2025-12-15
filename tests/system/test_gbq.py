@@ -10,6 +10,7 @@ import zoneinfo
 
 import numpy as np
 import packaging.version
+import pandas
 from pandas import DataFrame
 import pandas.api.types
 import pandas.testing as tm
