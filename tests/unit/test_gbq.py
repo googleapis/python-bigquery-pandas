@@ -943,8 +943,29 @@ def test_run_query_with_dml_query(mock_bigquery_client, mock_query_job):
 
 
 def test_read_gbq_with_dry_run(mock_bigquery_client, mock_query_job):
-    type(mock_query_job).total_bytes_processed = mock.PropertyMock(return_value=12345)
-    cost = gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
+    total_bytes_processed = 15
+    type(mock_query_job)._properties = mock.PropertyMock(
+        return_value={
+            "statistics": {
+                "creationTime": 1767037135155.0,
+                "startTime": 1767037135238.0,
+                "endTime": 1767037135353.0,
+                "totalBytesProcessed": f"{total_bytes_processed}",
+                "query": {
+                    "totalBytesProcessed": f"{total_bytes_processed}",
+                    "totalBytesBilled": "0",
+                    "cacheHit": True,
+                    "statementType": "SELECT",
+                },
+                "reservation_id": "reservation_id",
+                "edition": "ENTERPRISE",
+                "reservationGroupPath": [""],
+            },
+        }
+    )
+
+    dry_run_result = gbq.read_gbq("SELECT 1", project_id="my-project", dry_run=True)
+
     # Check which method was called based on BigQuery version
     if (
         hasattr(mock_bigquery_client, "query_and_wait")
@@ -956,4 +977,4 @@ def test_read_gbq_with_dry_run(mock_bigquery_client, mock_query_job):
         _, kwargs = mock_bigquery_client.query.call_args
         job_config = kwargs["job_config"]
     assert job_config.dry_run is True
-    assert cost >= 0
+    assert dry_run_result["totalBytesProcessed"] == total_bytes_processed

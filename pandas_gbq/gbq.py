@@ -269,9 +269,9 @@ def read_gbq(
         If True, run a dry run query.
     Returns
     -------
-    df: DataFrame or int
+    df: DataFrame or Series
         DataFrame representing results of query. If ``dry_run=True``, returns
-        aan integer representing the amount of data that would be processed (in bytes).
+        a Pandas series that contains job statistics.
     """
     if dialect is None:
         dialect = context.dialect
@@ -328,7 +328,7 @@ def read_gbq(
             dtypes=dtypes,
             dry_run=dry_run,
         )
-        # When dry_run=True, run_query returns a float (cost in GB), not a DataFrame
+        # When dry_run=True, run_query returns a Pandas series
         if dry_run:
             return final_df
     else:

@@ -16,6 +16,7 @@ import warnings
 if typing.TYPE_CHECKING:  # pragma: NO COVER
     import pandas
 
+from pandas_gbq import dry_runs
 import pandas_gbq.constants
 from pandas_gbq.contexts import context
 import pandas_gbq.core.read
@@ -249,15 +250,13 @@ class GbqConnector:
         if dry_run:
             # Access total_bytes_processed from the QueryJob via RowIterator.job
             # RowIterator has a job attribute that references the QueryJob
-            query_job = (
-                rows_iter.job if hasattr(rows_iter, "job") and rows_iter.job else None
-            )
-            if query_job is None:
-                # Fallback: if query_and_wait_via_client_library doesn't set job,
-                # we need to get it from the query result
-                # For query_and_wait_via_client_library, the RowIterator should have job set
-                raise ValueError("Cannot access QueryJob from RowIterator for dry_run")
-            return query_job.total_bytes_processed
+            if hasattr(rows_iter, "job") and rows_iter.job:
+                return dry_runs.get_query_stats(rows_iter.job)
+
+            # Fallback: if query_and_wait_via_client_library doesn't set job,
+            # we need to get it from the query result
+            # For query_and_wait_via_client_library, the RowIterator should have job set
+            raise ValueError("Cannot access QueryJob from RowIterator for dry_run")
 
         return self._download_results(
             rows_iter,
