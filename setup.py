@@ -40,6 +40,7 @@ dependencies = [
     # allow pandas-gbq to detect invalid package versions at runtime.
     "google-cloud-bigquery >=3.20.0,<4.0.0",
     "packaging >=22.0.0",
+    "requests >= 2.20.0, < 3.0.0",
 ]
 extras = {
     "bqstorage": [

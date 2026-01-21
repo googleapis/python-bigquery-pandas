@@ -207,16 +207,11 @@ def test_estimate_limit(target_bytes, table_bytes, table_rows, fields, expected_
 
 @mock.patch("pandas_gbq.core.read.download_results")
 def test_sample_with_tablesample(mock_download_results, mock_bigquery_client):
-    mock_table = mock.Mock(spec=google.cloud.bigquery.Table)
-    mock_table.project = "test-project"
-    mock_table.dataset_id = "test_dataset"
-    mock_table.table_id = "test_table"
-
     proportion = 0.1
     target_row_count = 100
 
     pandas_gbq.core.sample._sample_with_tablesample(
-        mock_table,
+        "test-project.test_dataset.test_table",
         bqclient=mock_bigquery_client,
         proportion=proportion,
         target_row_count=target_row_count,
@@ -226,25 +221,17 @@ def test_sample_with_tablesample(mock_download_results, mock_bigquery_client):
     query = mock_bigquery_client.query_and_wait.call_args[0][0]
     assert "TABLESAMPLE SYSTEM (10.0 PERCENT)" in query
     assert "LIMIT 100" in query
-    assert (
-        f"FROM `{mock_table.project}.{mock_table.dataset_id}.{mock_table.table_id}`"
-        in query
-    )
+    assert "FROM `test-project.test_dataset.test_table`" in query
 
     mock_download_results.assert_called_once()
 
 
 @mock.patch("pandas_gbq.core.read.download_results")
 def test_sample_with_limit(mock_download_results, mock_bigquery_client):
-    mock_table = mock.Mock(spec=google.cloud.bigquery.Table)
-    mock_table.project = "test-project"
-    mock_table.dataset_id = "test_dataset"
-    mock_table.table_id = "test_table"
-
     target_row_count = 200
 
     pandas_gbq.core.sample._sample_with_limit(
-        mock_table,
+        "test-project.test_dataset.test_table",
         bqclient=mock_bigquery_client,
         target_row_count=target_row_count,
     )
@@ -253,10 +240,7 @@ def test_sample_with_limit(mock_download_results, mock_bigquery_client):
     query = mock_bigquery_client.query_and_wait.call_args[0][0]
     assert "TABLESAMPLE" not in query
     assert "LIMIT 200" in query
-    assert (
-        f"FROM `{mock_table.project}.{mock_table.dataset_id}.{mock_table.table_id}`"
-        in query
-    )
+    assert "FROM `test-project.test_dataset.test_table`" in query
 
     mock_download_results.assert_called_once()
 
