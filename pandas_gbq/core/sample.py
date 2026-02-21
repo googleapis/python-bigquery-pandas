@@ -14,6 +14,7 @@ import psutil
 
 import pandas_gbq.constants
 import pandas_gbq.core.read
+import pandas_gbq.core.biglake
 import pandas_gbq.gbq_connector
 
 # Only import at module-level at type checking time to avoid circular
@@ -156,7 +157,7 @@ def _download_results_in_parallel(
 
 
 def _sample_with_tablesample(
-    table: google.cloud.bigquery.Table,
+    table_id: str,
     *,
     bqclient: google.cloud.bigquery.Client,
     proportion: float,
@@ -166,7 +167,7 @@ def _sample_with_tablesample(
 ) -> Optional[pandas.DataFrame]:
     query = f"""
     SELECT *
-    FROM `{table.project}.{table.dataset_id}.{table.table_id}`
+    FROM `{table_id}`
     TABLESAMPLE SYSTEM ({float(proportion) * 100.0} PERCENT)
     ORDER BY RAND() DESC
     LIMIT {int(target_row_count)};
@@ -181,7 +182,7 @@ def _sample_with_tablesample(
 
 
 def _sample_with_limit(
-    table: google.cloud.bigquery.Table,
+    table_id: str,
     *,
     bqclient: google.cloud.bigquery.Client,
     target_row_count: int,
@@ -190,7 +191,7 @@ def _sample_with_limit(
 ) -> Optional[pandas.DataFrame]:
     query = f"""
     SELECT *
-    FROM `{table.project}.{table.dataset_id}.{table.table_id}`
+    FROM `{table_id}`
     ORDER BY RAND() DESC
     LIMIT {int(target_row_count)};
     """
@@ -198,6 +199,82 @@ def _sample_with_limit(
     return _download_results_in_parallel(
         rows,
         bqclient=bqclient,
+        progress_bar_type=progress_bar_type,
+        use_bqstorage_api=use_bqstorage_api,
+    )
+
+
+def _sample_biglake_table(
+    *,
+    table_id: str,
+    credentials: google.oauth2.credentials.Credentials,
+    bqclient: google.cloud.bigquery.Client,
+    target_bytes: int,
+    progress_bar_type: str | None,
+    use_bqstorage_api: bool,
+) -> Optional[pandas.DataFrame]:
+    pass
+
+
+def _sample_bq_table(
+    *,
+    table_id: str,
+    bqclient: google.cloud.bigquery.Client,
+    target_bytes: int,
+    progress_bar_type: str | None,
+    use_bqstorage_api: bool,
+) -> Optional[pandas.DataFrame]:
+    table = bqclient.get_table(table_id)
+    num_rows = table.num_rows
+    num_bytes = table.num_bytes
+    table_type = table.table_type
+
+    # Some tables such as views report 0 despite actually having rows.
+    if num_bytes == 0:
+        num_bytes = None
+
+    # Table is small enough to download the whole thing.
+    if (
+        table_type in _READ_API_ELIGIBLE_TYPES
+        and num_bytes is not None
+        and num_bytes <= target_bytes
+    ):
+        rows_iter = bqclient.list_rows(table)
+        return pandas_gbq.core.read.download_results(
+            rows_iter,
+            bqclient=bqclient,
+            progress_bar_type=progress_bar_type,
+            warn_on_large_results=False,
+            max_results=None,
+            user_dtypes=None,
+            use_bqstorage_api=use_bqstorage_api,
+        )
+
+    target_row_count = _estimate_limit(
+        target_bytes=target_bytes,
+        table_bytes=num_bytes,
+        table_rows=num_rows,
+        fields=table.schema,
+    )
+
+    # Table is eligible for TABLESAMPLE.
+    if num_bytes is not None and table_type in _TABLESAMPLE_ELIGIBLE_TYPES:
+        proportion = target_bytes / num_bytes
+        return _sample_with_tablesample(
+            f"{table.project}.{table.dataset_id}.{table.table_id}",
+            bqclient=bqclient,
+            proportion=proportion,
+            target_row_count=target_row_count,
+            progress_bar_type=progress_bar_type,
+            use_bqstorage_api=use_bqstorage_api,
+        )
+
+    # Not eligible for TABLESAMPLE or reading directly, so take a random sample
+    # with a full table scan.
+    return _sample_with_limit(
+        f"{table.project}.{table.dataset_id}.{table.table_id}",
+        bqclient=bqclient,
+        target_row_count=target_row_count,
         progress_bar_type=progress_bar_type,
         use_bqstorage_api=use_bqstorage_api,
     )
@@ -267,57 +344,24 @@ def sample(
     )
     credentials = cast(google.oauth2.credentials.Credentials, connector.credentials)
     bqclient = connector.get_client()
-    table = bqclient.get_table(table_id)
-    num_rows = table.num_rows
-    num_bytes = table.num_bytes
-    table_type = table.table_type
 
-    # Some tables such as views report 0 despite actually having rows.
-    if num_bytes == 0:
-        num_bytes = None
-
-    # Table is small enough to download the whole thing.
-    if (
-        table_type in _READ_API_ELIGIBLE_TYPES
-        and num_bytes is not None
-        and num_bytes <= target_bytes
-    ):
-        rows_iter = bqclient.list_rows(table)
-        return pandas_gbq.core.read.download_results(
-            rows_iter,
+    # BigLake tables can't be read directly by the BQ Storage Read API, so make
+    # sure we run a query first.
+    parts = table_id.split(".")
+    if len(parts) == 4:
+        return _sample_biglake_table(
+            table_id=table_id,
+            credentials=credentials,
             bqclient=bqclient,
-            progress_bar_type=progress_bar_type,
-            warn_on_large_results=False,
-            max_results=None,
-            user_dtypes=None,
-            use_bqstorage_api=use_bqstorage_api,
-        )
-
-    target_row_count = _estimate_limit(
-        target_bytes=target_bytes,
-        table_bytes=num_bytes,
-        table_rows=num_rows,
-        fields=table.schema,
-    )
-
-    # Table is eligible for TABLESAMPLE.
-    if num_bytes is not None and table_type in _TABLESAMPLE_ELIGIBLE_TYPES:
-        proportion = target_bytes / num_bytes
-        return _sample_with_tablesample(
-            table,
-            bqclient=bqclient,
-            proportion=proportion,
-            target_row_count=target_row_count,
+            target_bytes=target_bytes,
             progress_bar_type=progress_bar_type,
             use_bqstorage_api=use_bqstorage_api,
         )
-
-    # Not eligible for TABLESAMPLE or reading directly, so take a random sample
-    # with a full table scan.
-    return _sample_with_limit(
-        table,
-        bqclient=bqclient,
-        target_row_count=target_row_count,
-        progress_bar_type=progress_bar_type,
-        use_bqstorage_api=use_bqstorage_api,
-    )
+    else:
+        return _sample_bq_table(
+            table_id=table_id,
+            bqclient=bqclient,
+            target_bytes=target_bytes,
+            progress_bar_type=progress_bar_type,
+            use_bqstorage_api=use_bqstorage_api,
+        )

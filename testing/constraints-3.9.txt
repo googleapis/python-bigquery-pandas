@@ -16,6 +16,7 @@ google-auth==2.14.1
 google-auth-oauthlib==0.7.0
 google-cloud-bigquery==3.20.0
 packaging==22.0.0
+requests==2.20.0
 # Extras
 google-cloud-bigquery-storage==2.16.2
 tqdm==4.23.0
