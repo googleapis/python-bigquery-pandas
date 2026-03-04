@@ -2,60 +2,76 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
+"""
+Utilities for working with BigLake tables.
+"""
+
+# TODO(tswast): Synchronize with bigframes/session/iceberg.py, which uses
+# pyiceberg and the BigLake APIs, rather than relying on dry run.
+
 from __future__ import annotations
 
 import dataclasses
+from typing import Sequence
 
 import google.auth.transport.requests
+import google.cloud.bigquery
 import google.oauth2.credentials
 
-_ICEBERG_REST_CATALOG_URI = "https://biglake.googleapis.com/iceberg/v1/restcatalog"
-_TABLE_METADATA_PATH = (
-    "/v1/projects/{project}/catalogs/{catalog}/namespaces/{namespace}/tables/{table}"
-)
+import pandas_gbq.core.resource_references
 
+
+_DRY_RUN_TEMPLATE = """
+SELECT *
+FROM `{project}.{catalog}.{namespace}.{table}`
+"""
+
+
+_COUNT_TEMPLATE = """
+SELECT COUNT(*) as total_rows
+FROM `{project}.{catalog}.{namespace}.{table}`
+"""
 
 @dataclasses.dataclass(frozen=True)
-class BigLakeTableId:
-    project: str
-    catalog: str
-    namespace: str
-    table: str
+class BigLakeTableMetadata:
+    schema: Sequence[google.cloud.bigquery.SchemaField]
+    num_rows: int
 
 
 def get_table_metadata(
     *,
-    table_id: str,
-    credentials: google.oauth2.credentials.Credentials,
-    billing_project_id: str,
-):
+    reference: pandas_gbq.core.resource_references.BigLakeTableId,
+    bqclient: google.cloud.bigquery.Client,
+) -> BigLakeTableMetadata:
     """
-    Docstring for get_table_metadata
+    Get the schema for a BigLake table.
 
-    https://iceberg.apache.org/spec/#metrics;
-
-     curl -X GET -H "Authorization: Bearer \"$(gcloud auth application-default print-access-token)\"" \
-              -H "Content-Type: application/json; charset=utf-8" \
-    -H 'x-goog-user-project: swast-scratch' \
-    -H 'X-Iceberg-Access-Delegation: vended-credentials' \
+    Currently, this does some BigQuery queries. In the future, we'll want to get
+    other metadata like the number of rows and storage bytes so that we can do a
+    more accurate estimate of how many rows to sample.
     """
-    # https://iceberg.apache.org/spec/#metrics
-    # total-files-size
-    project, catalog, namespace, table = table_id.split(".")
-    session = google.auth.transport.requests.AuthorizedSession(credentials=credentials)
-    path = _TABLE_METADATA_PATH.format(
-        project=project,
-        catalog=catalog,
-        namespace=namespace,
-        table=table,
+    dry_run_config = google.cloud.bigquery.QueryJobConfig(dry_run=True)
+    query = _DRY_RUN_TEMPLATE.format(
+        project=reference.project,
+        catalog=reference.catalog,
+        namespace=".".join(reference.namespace),
+        table=reference.table,
     )
-    return session.get(
-        f"{_ICEBERG_REST_CATALOG_URI}.{path}",
-        headers={
-            "x-goog-user-project": billing_project_id,
-            "Content-Type": "application/json; charset=utf-8",
-            # TODO(tswast): parameter for this option (or get from catalog metadata?)
-            # /iceberg/{$api_version}/restcatalog/extensions/{name=projects/*/catalogs/*}
-            "X-Iceberg-Access-Delegation": "vended-credentials",
-        },
-    ).json()
+    job = bqclient.query(query, job_config=dry_run_config)
+    job.result()
+    schema = job.schema
+
+    count_rows = list(bqclient.query_and_wait(_COUNT_TEMPLATE.format(
+        project=reference.project,
+        catalog=reference.catalog,
+        namespace=".".join(reference.namespace),
+        table=reference.table,
+    )))
+    assert len(count_rows) == 1, "got unexpected query response when determining number of rows"
+    total_rows = count_rows[0].total_rows
+
+    return BigLakeTableMetadata(
+        schema=schema if schema is not None else [],
+        num_rows=total_rows,
+    )
+
