@@ -48,6 +48,9 @@ def parse_table_id(table_id: str) -> BigLakeTableId | BigQueryTableId:
         raise ValueError(f"Invalid table ID: {table_id}")
 
     inner_parts = regex_match.group("inner_parts").split(".")
+    if any(part == "" for part in inner_parts):
+        raise ValueError(f"Invalid table ID: {table_id}")
+
     if len(inner_parts) == 1:
         return BigQueryTableId(
             project_id=regex_match.group("project"),
