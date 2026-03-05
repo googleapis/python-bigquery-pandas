@@ -1,11 +1,11 @@
-# Copyright (c) 2025 pandas-gbq Authors All rights reserved.
+# Copyright (c) 2026 pandas-gbq Authors All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
 from __future__ import annotations
 
 import typing
-from typing import Optional, Sequence, cast
+from typing import Optional, Sequence
 
 import google.cloud.bigquery
 import google.cloud.bigquery.table
