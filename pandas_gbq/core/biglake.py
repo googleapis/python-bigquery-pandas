@@ -30,6 +30,7 @@ SELECT COUNT(*) as total_rows
 FROM `{project}.{catalog}.{namespace}.{table}`
 """
 
+
 @dataclasses.dataclass(frozen=True)
 class BigLakeTableMetadata:
     schema: Sequence[google.cloud.bigquery.SchemaField]
@@ -59,17 +60,22 @@ def get_table_metadata(
     job.result()
     schema = job.schema
 
-    count_rows = list(bqclient.query_and_wait(_COUNT_TEMPLATE.format(
-        project=reference.project,
-        catalog=reference.catalog,
-        namespace=".".join(reference.namespace),
-        table=reference.table,
-    )))
-    assert len(count_rows) == 1, "got unexpected query response when determining number of rows"
+    count_rows = list(
+        bqclient.query_and_wait(
+            _COUNT_TEMPLATE.format(
+                project=reference.project,
+                catalog=reference.catalog,
+                namespace=".".join(reference.namespace),
+                table=reference.table,
+            )
+        )
+    )
+    assert (
+        len(count_rows) == 1
+    ), "got unexpected query response when determining number of rows"
     total_rows = count_rows[0].total_rows
 
     return BigLakeTableMetadata(
         schema=schema if schema is not None else [],
         num_rows=total_rows,
     )
-

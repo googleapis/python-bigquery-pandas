@@ -250,12 +250,14 @@ def _sample_bq_table(
     progress_bar_type: str | None,
     use_bqstorage_api: bool,
 ) -> Optional[pandas.DataFrame]:
-    table = bqclient.get_table(google.cloud.bigquery.TableReference(
-        google.cloud.bigquery.DatasetReference(
-            reference.project_id, reference.dataset_id
-        ),
-        reference.table_id
-    ))
+    table = bqclient.get_table(
+        google.cloud.bigquery.TableReference(
+            google.cloud.bigquery.DatasetReference(
+                reference.project_id, reference.dataset_id
+            ),
+            reference.table_id,
+        )
+    )
     num_rows = table.num_rows
     num_bytes = table.num_bytes
     table_type = table.table_type

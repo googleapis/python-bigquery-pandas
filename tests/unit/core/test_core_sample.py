@@ -237,7 +237,9 @@ def test_download_results_in_parallel_no_table(
 
 
 @mock.patch("pandas_gbq.core.sample._download_results_in_parallel")
-def test_sample_with_tablesample(mock_download_results_in_parallel, mock_bigquery_client):
+def test_sample_with_tablesample(
+    mock_download_results_in_parallel, mock_bigquery_client
+):
     proportion = 0.1
     target_row_count = 100
 

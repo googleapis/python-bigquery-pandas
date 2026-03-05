@@ -244,8 +244,7 @@ def test_create_user_agent_vscode_plugin():
         with mock.patch("pathlib.Path.home", return_value=user_home):
             result = create_user_agent()
             assert (
-                f"pandas-{pd.__version__} vscode googlecloudtools.cloudcode"
-                in result
+                f"pandas-{pd.__version__} vscode googlecloudtools.cloudcode" in result
             )
 
 
