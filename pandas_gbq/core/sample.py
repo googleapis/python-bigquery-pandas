@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import google.cloud.bigquery
 import google.cloud.bigquery.table
@@ -130,7 +130,7 @@ def _download_results_in_parallel(
     rows: google.cloud.bigquery.table.RowIterator,
     *,
     bqclient: google.cloud.bigquery.Client,
-    progress_bar_type: Optional[str] = None,
+    progress_bar_type: Union[str, None] = None,
     use_bqstorage_api: bool = True,
 ):
     table_reference = getattr(rows, "_table", None)
@@ -162,7 +162,7 @@ def _sample_with_tablesample(
     bqclient: google.cloud.bigquery.Client,
     proportion: float,
     target_row_count: int,
-    progress_bar_type: Optional[str] = None,
+    progress_bar_type: Union[str, None] = None,
     use_bqstorage_api: bool = True,
 ) -> Optional[pandas.DataFrame]:
     sample_percent = min(100, max(1, int(proportion * 100)))
@@ -187,7 +187,7 @@ def _sample_with_limit(
     *,
     bqclient: google.cloud.bigquery.Client,
     target_row_count: int,
-    progress_bar_type: Optional[str] = None,
+    progress_bar_type: Union[str, None] = None,
     use_bqstorage_api: bool = True,
 ) -> Optional[pandas.DataFrame]:
     query = f"""
@@ -210,7 +210,7 @@ def _sample_biglake_table(
     reference: pandas_gbq.core.resource_references.BigLakeTableId,
     bqclient: google.cloud.bigquery.Client,
     target_bytes: int,
-    progress_bar_type: str | None,
+    progress_bar_type: Union[str, None],
     use_bqstorage_api: bool,
 ) -> Optional[pandas.DataFrame]:
     metadata = pandas_gbq.core.biglake.get_table_metadata(
@@ -247,7 +247,7 @@ def _sample_bq_table(
     reference: pandas_gbq.core.resource_references.BigQueryTableId,
     bqclient: google.cloud.bigquery.Client,
     target_bytes: int,
-    progress_bar_type: str | None,
+    progress_bar_type: Union[str, None],
     use_bqstorage_api: bool,
 ) -> Optional[pandas.DataFrame]:
     table = bqclient.get_table(
@@ -319,7 +319,7 @@ def sample(
     target_mb: Optional[int] = None,
     credentials: Optional[google.oauth2.credentials.Credentials] = None,
     billing_project_id: Optional[str] = None,
-    progress_bar_type: Optional[str] = None,
+    progress_bar_type: Union[str, None] = None,
     use_bqstorage_api: bool = True,
 ) -> Optional[pandas.DataFrame]:
     """Sample a BigQuery table, attempting to limit the amount of data read.

@@ -4,6 +4,7 @@
 
 import dataclasses
 import re
+from typing import Union
 
 
 _TABLE_REFEREENCE_PATTERN = re.compile(
@@ -37,7 +38,7 @@ class BigQueryTableId:
     table_id: str
 
 
-def parse_table_id(table_id: str) -> BigLakeTableId | BigQueryTableId:
+def parse_table_id(table_id: str) -> Union[BigLakeTableId, BigQueryTableId]:
     """Turn a string into a BigLakeTableId or BigQueryTableId.
 
     Raises:
