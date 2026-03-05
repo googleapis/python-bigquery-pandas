@@ -6,7 +6,6 @@ import collections
 from unittest import mock
 
 import google.cloud.bigquery
-import pytest
 
 from pandas_gbq.core import biglake
 from pandas_gbq.core import resource_references
@@ -25,7 +24,9 @@ def test_get_table_metadata(mock_bigquery_client):
     Row = collections.namedtuple("Row", ["total_rows"])
     mock_bigquery_client.query_and_wait.return_value = [Row(total_rows=123)]
 
-    metadata = biglake.get_table_metadata(reference=reference, bqclient=mock_bigquery_client)
+    metadata = biglake.get_table_metadata(
+        reference=reference, bqclient=mock_bigquery_client
+    )
 
     assert metadata.schema == schema
     assert metadata.num_rows == 123
@@ -43,7 +44,9 @@ def test_get_table_metadata_no_schema(mock_bigquery_client):
     Row = collections.namedtuple("Row", ["total_rows"])
     mock_bigquery_client.query_and_wait.return_value = [Row(total_rows=456)]
 
-    metadata = biglake.get_table_metadata(reference=reference, bqclient=mock_bigquery_client)
+    metadata = biglake.get_table_metadata(
+        reference=reference, bqclient=mock_bigquery_client
+    )
 
     assert metadata.schema == []
     assert metadata.num_rows == 456
