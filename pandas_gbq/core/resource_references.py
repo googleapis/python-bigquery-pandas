@@ -11,10 +11,14 @@ _TABLE_REFEREENCE_PATTERN = re.compile(
     # name. Such projects still exist, especially at Google.
     r"^(?P<legacy_project_domain>[^:]+:)?"
     r"(?P<project>[^.]+)\."
-    # Dataset for native BigQuery tables, catalog + namespace(s) for  BigLake.
-    r"(?P<inner_parts>([^.\s]+\.?)+)\."
+    # Match dataset or catalog + namespace.
+    #
+    # Namespace could be arbitrarily deeply nested in Iceberg/BigLake. Support
+    # this without catastrophic backtracking by moving the trailing "." to the
+    # table group.
+    r"(?P<inner_parts>.*)"
     # Table names can't contain ".", as that's used as the separator.
-    r"(?P<table>[^.]+)$"
+    r"\.(?P<table>[^.]+)$"
 )
 
 

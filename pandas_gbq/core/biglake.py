@@ -14,9 +14,7 @@ from __future__ import annotations
 import dataclasses
 from typing import Sequence
 
-import google.auth.transport.requests
 import google.cloud.bigquery
-import google.oauth2.credentials
 
 import pandas_gbq.core.resource_references
 
