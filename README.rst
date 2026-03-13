@@ -1,3 +1,6 @@
+.. _google-cloud-python: https://github.com/googleapis/google-cloud-python/tree/main/packages/pandas-gbq
+
+
 pandas-gbq
 ==========
 
@@ -55,6 +58,10 @@ Upload a dataframe
     import pandas_gbq
 
     pandas_gbq.to_gbq(dataframe, "dataset.table")
+
+
+:**NOTE**: **This github repository is archived. The repository contents and history have moved to** `google-cloud-python`_.
+
 
 More samples
 ~~~~~~~~~~~~
